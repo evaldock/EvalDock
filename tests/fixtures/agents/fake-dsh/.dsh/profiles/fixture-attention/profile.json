@@ -1,0 +1,12 @@
+{
+  "profile": "fixture-attention",
+  "probe": {
+    "schema": "dsh-eval.probe/v1",
+    "order": "before-headless",
+    "captureDispatch": true,
+    "captureLogs": true
+  },
+  "plugins": [{ "id": "fixture.python-tool", "version": "1.0.0" }],
+  "permissionPreset": "fixture-workspace-only",
+  "sandboxMode": "fixture-process"
+}

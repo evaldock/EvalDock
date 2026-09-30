@@ -1,0 +1,12 @@
+{
+  "sourceType": "NETWORK",
+  "implementationId": "evaldock.macos-network-sensor",
+  "capabilities": [
+    "ESTABLISHED_CONNECTIONS",
+    "LISTENING_PORTS",
+    "TCP_ENDPOINTS",
+    "UDP_ENDPOINTS"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

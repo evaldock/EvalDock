@@ -1,0 +1,13 @@
+{
+  "sourceType": "SYSTEM",
+  "implementationId": "evaldock.macos-system-sensor",
+  "capabilities": [
+    "BOOT_TIME",
+    "BREW_SERVICES",
+    "LOCALE",
+    "OS_VERSION",
+    "TIMEZONE"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

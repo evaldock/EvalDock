@@ -1,0 +1,52 @@
+name: CI
+
+# 发布门禁：构建与组件契约检查。
+# 本地等价命令：pnpm run verify
+# 说明：测试不访问公网、不需要模型 API Key，因此跑在 ubuntu-latest 即可。
+
+on:
+  push:
+    branches:
+      - main
+      - lanye
+      - release/**
+  pull_request:
+  workflow_dispatch:
+
+# 只读仓库内容，CI 不需要写权限。
+permissions:
+  contents: read
+
+# 同一分支上新的推送会取消仍在运行的旧任务。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: 类型检查与测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 与本地 `pnpm run verify` 完全一致：类型检查 + 构建 + 全部测试。
+      - name: 发布门禁
+        run: |
+          pnpm run verify
+          node --test workbench/lib/model-settings.test.mjs

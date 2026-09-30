@@ -1,0 +1,12 @@
+{
+  "sourceType": "DATABASE",
+  "implementationId": "evaldock.database-sensor",
+  "capabilities": [
+    "DATABASE_AVAILABILITY",
+    "QUERY_DIGEST",
+    "SCHEMA_STATE",
+    "SERVICE_STATE"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

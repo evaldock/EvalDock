@@ -1,0 +1,45 @@
+{
+  "name": "evaldock-runtime-probe",
+  "version": "0.2.0",
+  "private": true,
+  "description": "High-coverage, read-only runtime evidence collector for DeepSeek Harness",
+  "type": "module",
+  "main": "./lib/probe.js",
+  "types": "./lib/probe.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/probe.d.ts",
+      "default": "./lib/probe.js"
+    }
+  },
+  "files": [
+    "lib",
+    "config/cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./config/cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "pack:check": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

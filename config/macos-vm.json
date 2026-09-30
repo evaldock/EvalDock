@@ -1,0 +1,18 @@
+{
+  "runRoot": "var/batch-runtime/standalone/records",
+  "artifactRoot": "var/batch-runtime/standalone/artifacts",
+  "reportRoot": "var/batch-runtime/standalone/reports",
+  "resultRoot": "var/evaluation-results",
+  "workspaceRoot": "var/batch-runtime/standalone/workspaces",
+  "runtimeDshHomeRoot": "var/batch-runtime/standalone/runtime-homes",
+  "runDeadlineMs": 4200000,
+  "caseDeadlineMs": 3600000,
+  "stableWindowMs": 250,
+  "stableMaxWaitMs": 5000,
+  "maxArtifactBytes": 67108864,
+  "contentMode": "DIGEST",
+  "allowedModelEndpoints": [],
+  "minimumIsolationLevel": "SESSION_SEPARATED",
+  "rendererVersion": "evaldock-static/v3",
+  "secretRefNames": []
+}

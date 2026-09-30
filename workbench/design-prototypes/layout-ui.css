@@ -1,0 +1,35 @@
+/* Bounded content width and persistent, adjustable navigation. */
+:root{--nav-preferred-width:246px;--nav-width:clamp(200px,var(--nav-preferred-width),min(480px,40vw))}
+.shell>.sidebar{width:var(--nav-width);flex-basis:var(--nav-width);flex-shrink:0}
+.main>.page{width:100%;max-width:none;margin-inline:0;padding-inline:max(var(--page-gutter,22px),calc((100% - 1556px)/2))}
+@media(max-width:1200px){.main>.page{--page-gutter:16px}}
+@media(max-width:700px){.main>.page{--page-gutter:12px}}
+.sidebar-resizer{position:fixed;top:0;bottom:0;left:calc(var(--nav-width) - 4px);width:8px;z-index:15;cursor:col-resize;touch-action:none;outline:none}
+.sidebar-resizer::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:transparent;transition:background .15s}
+.sidebar-resizer:hover::after,.sidebar-resizer:focus-visible::after,.sidebar-resizing .sidebar-resizer::after{background:#428261}
+.sidebar-resizing,.sidebar-resizing *{cursor:col-resize!important;user-select:none!important}
+@media(max-width:700px){.sidebar-resizer{display:none}}
+
+.tree-item .agent-running-spinner{display:inline-block;width:13px;height:13px;flex:0 0 13px;margin-left:auto;border:2px solid #d7e6dd;border-top-color:#18724f;border-right-color:#18724f;border-radius:50%;animation:agent-evaluating-spin .9s linear infinite}
+@keyframes agent-evaluating-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.tree-item .agent-running-spinner{animation:none}}
+
+/* Sidebar readability and consistent disclosure alignment. */
+.sidebar .nav{font-size:14px}
+.sidebar .group-nav{font-size:14px;align-items:center;gap:8px;line-height:20px}
+.sidebar .tree-item{font-size:13px;line-height:20px}
+.sidebar .tree-item small,.sidebar .nav-count{font-size:11px}
+.sidebar .nav-search input{font-size:12px}
+.sidebar .group-nav>svg{margin-right:0;width:17px;height:17px}
+.sidebar .group-nav>.chevron{display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;width:16px;height:20px;font-size:0;line-height:0}
+.sidebar .group-nav>.chevron::before{content:"";display:block;width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg)}
+.sidebar .group-nav[aria-expanded="true"]>.chevron::before{transform:translateY(-2px) rotate(45deg)}
+.sidebar [data-group="environment"],.sidebar .environment-tree{display:none}
+
+/* Console children scroll independently, using the existing sidebar tree state. */
+.console-tree,.agent-tree{max-height:clamp(160px,28vh,220px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#c3cac5 transparent}
+.console-tree .control-nav{margin:0;padding:9px 8px;min-height:40px;gap:10px}
+.console-tree .agent-logo{flex-shrink:0}
+.console-tree::-webkit-scrollbar,.agent-tree::-webkit-scrollbar{width:6px}
+.console-tree::-webkit-scrollbar-thumb,.agent-tree::-webkit-scrollbar-thumb{background:#c3cac5;border-radius:6px}
+.console-tree:focus-visible,.agent-tree:focus-visible{outline:2px solid #176b46;outline-offset:2px}

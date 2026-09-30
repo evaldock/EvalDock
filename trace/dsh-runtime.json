@@ -1,0 +1,33 @@
+{
+  "schema": "evaldock.agent-trace-source/v1",
+  "traceSourceId": "trace-source.dsh-runtime/v1",
+  "version": "1.0.0",
+  "producer": "dsh-runtime-probe",
+  "sourceRequirement": {
+    "sourceRequirementId": "source.dsh-probe.runtime/v1",
+    "sourceType": "DSH_PROBE",
+    "sensorImplementationId": "dsh-runtime-probe",
+    "sensorImplementationVersion": "1.0.0",
+    "sensorCapabilityDigest": {
+      "algorithm": "sha256",
+      "byteLength": 132,
+      "value": "11ab0f3b91fd3b28943640d97465e81d06d5baaa3af1eb1668014306e0506418"
+    },
+    "requiredCapabilities": [
+      "CONTENT_MODE_STRUCTURED",
+      "CONTIGUOUS_SEQUENCE",
+      "ONE_SHOT",
+      "PROBE_START_STOP",
+      "SESSION_LIFECYCLE",
+      "SOURCE_RUN_ID",
+      "TOOL_LIFECYCLE"
+    ],
+    "resourceBinding": "attempt.probe-jsonl",
+    "mandatory": true,
+    "minimumTrust": "COOPERATIVE",
+    "contentMode": "STRUCTURED",
+    "maxBytes": 67108864,
+    "timeoutMs": 5000,
+    "watermarkDefinition": "probe-stop-contiguous-seq/v1"
+  }
+}

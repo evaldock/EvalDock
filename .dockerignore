@@ -1,0 +1,26 @@
+.git
+node_modules
+dist
+var
+artifacts
+.pnpm-store
+.claude
+.env
+.env.*
+**/.env
+**/.env.*
+config/agents.json
+**/.venv
+**/__pycache__
+workbench/design-prototypes/reports
+workbench/design-prototypes/runtime-details
+workbench/design-prototypes/live-observation.json
+
+# Docker distribution: only examples/datasets/minimal may supply a bundled Case.
+# Existing benchmark content and generated question copies are not image inputs.
+datasets
+datasets-frozen
+workbench/design-prototypes/question-inventory
+planning/case-difficulty.json
+# Benchmark-specific assets/services are supplied with separate dataset packages.
+environments/*/

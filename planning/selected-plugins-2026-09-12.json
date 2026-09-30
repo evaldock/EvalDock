@@ -1,0 +1,359 @@
+{
+  "schema": "evaldock.selected-plugin-set/v1",
+  "source": "https://www.dsheval.ai/top100/",
+  "snapshot_date": "2026-09-12",
+  "selection_size": 50,
+  "selection_policy": "功能覆盖优先；44 个条目在网站显示有可解析安装源，另 6 个条目保留用于能力覆盖但需先做安装源 smoke test；同名仓库使用 owner/repo 唯一标识；清单是待测样本，不代表通过能力或安全审核。",
+  "plugins": [
+    {
+      "query": "dsh-plugin-shop",
+      "rank": 2,
+      "category": "基础与管理",
+      "focus": "插件发现、安装、启停与版本管理",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "WeKnora",
+      "rank": 7,
+      "category": "知识与研究",
+      "focus": "混合检索、全文阅读、带引用回答",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-market",
+      "rank": 9,
+      "category": "基础与管理",
+      "focus": "社区插件市场、搜索、一键安装、主题切换",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-web",
+      "rank": 10,
+      "category": "基础与管理",
+      "focus": "Web 聚合、任务看板、远程访问、SSH、会话归档",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "AI-Novel-Writer",
+      "rank": 12,
+      "category": "设计与内容",
+      "focus": "角色、大纲、章节写作与提案确认",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-redteam-model",
+      "rank": 15,
+      "category": "安全与评测",
+      "focus": "授权红队、渗透测试与代码审计工作流",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "ningbainb/deepseek-harness-desktop",
+      "rank": 16,
+      "category": "编程与工程",
+      "focus": "项目文件树、文件搜索、Git 变更和多标签预览",
+      "install_status": "来源预检未通过"
+    },
+    {
+      "query": "NanmiCoder/dsh-agent-teams",
+      "rank": 18,
+      "category": "多智能体与记忆",
+      "focus": "任务拆分、角色协作、消息协调与团队状态",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-commandcode-provider",
+      "rank": 20,
+      "category": "模型接入",
+      "focus": "Command Code Go/GOAT/Pro Plan 模型接入",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-pocket",
+      "rank": 25,
+      "category": "浏览器与远程",
+      "focus": "手机扫码远程会话、任务发送与审批",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-hub-cli",
+      "rank": 26,
+      "category": "基础与管理",
+      "focus": "插件组合规划、诊断、分享与回滚",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "BrowserSkill",
+      "rank": 30,
+      "category": "浏览器与远程",
+      "focus": "真实浏览器登录、表单操作与截图",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "hr98w/dsh-memory",
+      "rank": 31,
+      "category": "多智能体与记忆",
+      "focus": "本地 Markdown 长期记忆与会话整理",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-image-gen",
+      "rank": 33,
+      "category": "设计与视觉",
+      "focus": "图片生成、连续编辑、批量创作和模型对比",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "modsearch",
+      "rank": 34,
+      "category": "知识与研究",
+      "focus": "网页/X 搜索、抓取与来源结构化",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dream-num/dsh-univer-office",
+      "rank": 36,
+      "category": "办公与工程",
+      "focus": "表格、文档、幻灯片、画布与多智能体工作区",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-liketavern",
+      "rank": 38,
+      "category": "模型接入",
+      "focus": "模型配置与 Agent 运行时的对话界面",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "sandbase-skills",
+      "rank": 39,
+      "category": "知识与研究",
+      "focus": "研究、社交分析、营销和业务技能目录",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-im",
+      "rank": 41,
+      "category": "通信与远程",
+      "focus": "聊天渠道、机器人、工作区与会话绑定",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-workbuddy-connect",
+      "rank": 44,
+      "category": "模型接入",
+      "focus": "WorkBuddy 模型自动接入",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "Open Sea Skin",
+      "rank": 47,
+      "category": "外观",
+      "focus": "主题/外观扩展基线",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-industry-research",
+      "rank": 48,
+      "category": "知识与研究",
+      "focus": "产业链、政策新闻、公司卡片与可追溯报告",
+      "install_status": "未识别安装源"
+    },
+    {
+      "query": "dsh-pet",
+      "rank": 49,
+      "category": "外观",
+      "focus": "动画桌宠、拖拽互动与自定义素材",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-config-manager",
+      "rank": 50,
+      "category": "基础与管理",
+      "focus": "设置、模型、插件和工作区备份迁移",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-agy-link",
+      "rank": 51,
+      "category": "模型接入",
+      "focus": "Antigravity 模型、多账号与配额监控",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-cost-meter",
+      "rank": 52,
+      "category": "计费与可观测",
+      "focus": "会话成本、预算、余额、用量与提醒",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-codex-subscription",
+      "rank": 54,
+      "category": "模型接入",
+      "focus": "无 API Key 的 Codex 订阅模型接入",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "easyeda-agent",
+      "rank": 56,
+      "category": "编程与工程",
+      "focus": "原理图/PCB 自动化、门控、回读与规则检查",
+      "install_status": "未识别安装源"
+    },
+    {
+      "query": "dsh-context",
+      "rank": 57,
+      "category": "可观测性",
+      "focus": "上下文组成、令牌用量、文件活动与代理关系",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-imagegen",
+      "rank": 58,
+      "category": "设计与视觉",
+      "focus": "兼容接口图片生成、模板与图库",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-auto-continue",
+      "rank": 61,
+      "category": "可靠性",
+      "focus": "网络/超时中断后的续接、退避与通知",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "liustack/modlens",
+      "rank": 63,
+      "category": "多模态",
+      "focus": "图片理解、多图问答与截图识别",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-run2skill",
+      "rank": 64,
+      "category": "编程与工程",
+      "focus": "把纠正和工作流沉淀为可复用技能",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-web-startup-auth",
+      "rank": 66,
+      "category": "安全与远程",
+      "focus": "远程 Web 用户认证、登录会话与路由保护",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-genui",
+      "rank": 67,
+      "category": "交互与视觉",
+      "focus": "交互图表、表单、测验、示意图与 3D 场景",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-archive-manager",
+      "rank": 69,
+      "category": "基础与管理",
+      "focus": "归档会话搜索、恢复与清理",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-commandcode-go-provider",
+      "rank": 71,
+      "category": "模型接入",
+      "focus": "Command Code Go/GOAT/Pro Plan 流式接入",
+      "install_status": "安装后需配置"
+    },
+    {
+      "query": "dsh-plugin-hub",
+      "rank": 72,
+      "category": "基础与管理",
+      "focus": "社区插件市场、分类、来源与安装队列",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-remote",
+      "rank": 73,
+      "category": "浏览器与远程",
+      "focus": "多 SSH 主机、远程工作区、文件与命令",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-chat-import",
+      "rank": 77,
+      "category": "跨会话",
+      "focus": "导入其他 Agent 对话、续聊、导出与同步",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-mobile",
+      "rank": 78,
+      "category": "浏览器与远程",
+      "focus": "手机端安全、实时使用电脑 DSH",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-codex-connect",
+      "rank": 80,
+      "category": "模型接入",
+      "focus": "ChatGPT 订阅接入、图像生成与会话恢复",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-agency-agents",
+      "rank": 81,
+      "category": "多智能体与记忆",
+      "focus": "领域专家智能体、并发委派与结果汇总",
+      "install_status": "未识别安装源"
+    },
+    {
+      "query": "deepseek-harness-docker",
+      "rank": 85,
+      "category": "浏览器与远程",
+      "focus": "可移动 Chromium 面板与打开网址工具",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "MisakaNet",
+      "rank": 86,
+      "category": "工具",
+      "focus": "网络/工具扩展基线",
+      "install_status": "来源已预检"
+    },
+    {
+      "query": "dsh-codex-ui",
+      "rank": 91,
+      "category": "外观与管理",
+      "focus": "侧栏、工作区会话树、搜索与轮次导航",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-better-reasoning-effort",
+      "rank": 99,
+      "category": "模型与推理",
+      "focus": "推理强度、输入模态与模型适配",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-watcher",
+      "rank": 23,
+      "category": "可观测性",
+      "focus": "DeepSeek Harness Web 只读观测",
+      "install_status": "已识别安装源"
+    },
+    {
+      "query": "dsh-auto-memory",
+      "rank": 79,
+      "category": "多智能体与记忆",
+      "focus": "主动联想召回、自动整理与跨窗口任务上下文",
+      "install_status": "未识别安装源"
+    },
+    {
+      "query": "dsh-evolve-in-git",
+      "rank": 62,
+      "category": "编程与工程",
+      "focus": "Git 仓库长期记忆、版本追溯与会话经验延续",
+      "install_status": "未识别安装源"
+    }
+  ]
+}

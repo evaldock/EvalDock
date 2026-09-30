@@ -1,0 +1,3750 @@
+{
+  "source": "User-provided catalog and coverage chart, September 2026",
+  "total_entries": 144,
+  "total_cases": 1658,
+  "count_basis": "Catalog-declared availableCaseCount; not a claim of validated runtime or Judge support.",
+  "cross_category_duplicates_allowed": true,
+  "highlighted": [
+    "τ³-bench",
+    "ToolLLM",
+    "AgentBench",
+    "GAIA",
+    "BFCL V4 Multi-Turn",
+    "Terminal-Bench",
+    "SWE-bench Verified",
+    "SpreadsheetBench",
+    "DocVQA",
+    "Spider 2.0",
+    "HLE",
+    "ARC-AGI-2",
+    "GPQA Diamond"
+  ],
+  "sections": [
+    {
+      "name_en": "Agent capabilities",
+      "name_zh": "Agent 能力",
+      "categories": [
+        {
+          "name_en": "Reasoning & instruction following",
+          "name_zh": "推理规划与指令遵循",
+          "entry_count": 133,
+          "cases": 1568,
+          "series": {
+            "τ³-bench": 192,
+            "ToolLLM": 102,
+            "MCP-Atlas": 94,
+            "HLE": 89,
+            "BixBench": 85,
+            "MemoryAgentBench": 75,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "AgentBoard": 40,
+            "CRMArena-Pro": 40,
+            "EntCollabBench": 40,
+            "FeatureBench": 40,
+            "ARC-AGI-2": 35,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "AutomationBench": 29,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "PersonaMem": 22,
+            "SkillsBench": 22,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "Memory Temporal Reasoning": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-portfolio/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-pptagent/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tau3-retail-edits/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-telecom-mms/v1",
+              "cases": 21
+            },
+            {
+              "id": "dataset.automationbench-marketing-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-finance-expansion/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.frontier-eng-job-shop/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.agentboard-todo-query/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tau3-telecom-mobile-data/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.qcircuitbench/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.HLE-quantum-physics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-algebraic-geometry/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-mathematics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-fluid-dynamics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.agentboard-todo-update/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.memory-temporal-reasoning/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.terminal-bench-math-formal-linguistics/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.office-suite-spreadsheetbench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.entcollab-legal-vendor-procurement/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.office-suite-docvqa/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-data/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.entcollab-legal-external-content-publicity/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-analytics/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-sales-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-airline-mixed/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.frontier-eng-supply-chain/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.personamem-travel-planning/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.featurebench-mlflow-bedrock-autolog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.terminal-bench-industrial-logistics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.agentbench-db/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.terminal-bench-financial-services/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.gpqadiamond-organic/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.skillsbench-financial-data-processing/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.memoryagentbench-enterprise-office/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-it-operations/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-saas-customer-service/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.tau3-airline-policy/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-research/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tau3-airline-booking/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-airline-changes/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.bfcl-multiturn/v1",
+              "cases": 53
+            },
+            {
+              "id": "dataset.automationbench-sales/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.automationbench-hr-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-support-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-text/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.omnimath/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.automationbench-support/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.ops-agentops-reliability/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.office-suite-microsoft-ppteval/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.tau3-retail-inquiries/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.harbor-swesmith/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-retail-exchanges/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-workflow/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.entcollab-legal-ethics-anti-corruption/v1",
+              "cases": 18
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.mcp-atlas-real-estate/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.automationbench-operations-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.codepde-cns1d/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.automationbench-finance/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.skillsbench-finance-economics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.entcollab-legal-contracts-contractor/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.featurebench-mlflow-unity-catalog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spider2-customer-experience/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.spider2-social-media/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-security-infrastructure/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.personamem-food-recommendation/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.featurebench-scientific-computing/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.arcagi2-abstract-visual-reasoning/v2",
+              "cases": 35
+            },
+            {
+              "id": "dataset.tau3-banking-cards/v1",
+              "cases": 29
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentboard-sheet-analysis/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.featurebench-pytorch-lightning/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.terminal-bench-media-creative/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Task completion & deliverables",
+          "name_zh": "任务完成与产物交付",
+          "entry_count": 116,
+          "cases": 1378,
+          "series": {
+            "τ³-bench": 200,
+            "ToolLLM": 122,
+            "HLE": 89,
+            "BixBench": 85,
+            "MemoryAgentBench": 75,
+            "SWE-bench Verified": 57,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "CRMArena-Pro": 40,
+            "FeatureBench": 40,
+            "ARC-AGI-2": 35,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "SkillsBench": 22,
+            "AgentBench": 21,
+            "AgentBoard": 20,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "EntCollabBench": 14,
+            "CyberGym": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-portfolio/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-pptagent/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tau3-retail-edits/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-telecom-mms/v1",
+              "cases": 21
+            },
+            {
+              "id": "dataset.frontier-eng-job-shop/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-telecom-mobile-data/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.qcircuitbench/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.HLE-quantum-physics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-algebraic-geometry/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-mathematics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-fluid-dynamics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.terminal-bench-math-formal-linguistics/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.office-suite-spreadsheetbench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.office-suite-docvqa/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.entcollab-legal-external-content-publicity/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-analytics/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-demand-operations/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-text-nlp/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tau3-airline-mixed/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.frontier-eng-supply-chain/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.featurebench-mlflow-bedrock-autolog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.terminal-bench-industrial-logistics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.agentbench-db/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.terminal-bench-financial-services/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.gpqadiamond-organic/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.skillsbench-financial-data-processing/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.memoryagentbench-enterprise-office/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-it-operations/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-saas-customer-service/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.tau3-airline-policy/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.tau3-airline-booking/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-airline-changes/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-text/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.omnimath/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.office-suite-microsoft-ppteval/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tau3-retail-inquiries/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.harbor-swesmith/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-retail-exchanges/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-workflow/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.codepde-cns1d/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.skillsbench-finance-economics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.featurebench-mlflow-unity-catalog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spider2-customer-experience/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.spider2-social-media/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-security-infrastructure/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.featurebench-scientific-computing/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.arcagi2-abstract-visual-reasoning/v2",
+              "cases": 35
+            },
+            {
+              "id": "dataset.tau3-banking-cards/v1",
+              "cases": 29
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentboard-sheet-analysis/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.featurebench-pytorch-lightning/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.terminal-bench-media-creative/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Code & external tools",
+          "name_zh": "代码与外部工具执行",
+          "entry_count": 72,
+          "cases": 760,
+          "series": {
+            "ToolLLM": 105,
+            "BixBench": 85,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "AlgoTune": 41,
+            "CRMArena-Pro": 40,
+            "Spider 2.0": 34,
+            "AWS Multi-agent": 30,
+            "AutomationBench": 29,
+            "GSO": 23,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "Frontier-Eng": 15,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "SLDBench": 9,
+            "AgentBench": 5
+          },
+          "entries": [
+            {
+              "id": "dataset.automationbench-marketing-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-finance-expansion/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.frontier-eng-job-shop/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.qcircuitbench/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-math-formal-linguistics/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-analytics/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-sales-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-demand-operations/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-text-nlp/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.terminal-bench-industrial-logistics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.terminal-bench-financial-services/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.bfcl-multiturn/v1",
+              "cases": 53
+            },
+            {
+              "id": "dataset.automationbench-sales/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.automationbench-hr-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-support-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-text/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.automationbench-support/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.ops-agentops-reliability/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.harbor-swesmith/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-workflow/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.automationbench-operations-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.codepde-cns1d/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.automationbench-finance/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spider2-customer-experience/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.spider2-social-media/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-security-infrastructure/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.terminal-bench-media-creative/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Data processing & analysis",
+          "name_zh": "数据处理与分析",
+          "entry_count": 64,
+          "cases": 753,
+          "series": {
+            "ToolLLM": 111,
+            "MCP-Atlas": 94,
+            "BixBench": 85,
+            "SWE-bench Verified": 57,
+            "DSBench": 50,
+            "AgentBoard": 40,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "Frontier-Eng": 30,
+            "Terminal-Bench": 28,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "AgentBench": 16,
+            "CRMArena-Pro": 15,
+            "OfficeBench": 15,
+            "CyberGym": 12,
+            "SciCode": 12,
+            "DA-Code": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-portfolio/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentboard-todo-query/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.agentboard-todo-update/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.office-suite-spreadsheetbench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-data/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-analytics/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-demand-operations/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-text-nlp/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.frontier-eng-supply-chain/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.agentbench-db/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-research/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.mcp-atlas-real-estate/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spider2-customer-experience/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.spider2-social-media/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.agentboard-sheet-analysis/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Retrieval & web interaction",
+          "name_zh": "信息检索与网页操作",
+          "entry_count": 30,
+          "cases": 344,
+          "series": {
+            "ToolLLM": 118,
+            "MCP-Atlas": 84,
+            "τ³-bench": 52,
+            "AgentBoard": 27,
+            "GAIA": 22,
+            "CRMArena-Pro": 15,
+            "EntCollabBench": 15,
+            "WideSearch": 11
+          },
+          "entries": [
+            {
+              "id": "dataset.agentboard-todo-query/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.entcollab-legal-vendor-procurement/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-research/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.entcollab-legal-privacy-data-requests/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-text/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.tau3-retail-inquiries/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.mcp-atlas-real-estate/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.tau3-banking-cards/v1",
+              "cases": 29
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.entcollab-legal-finance-disclosure-related-party/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Documents & office tools",
+          "name_zh": "文档与办公工具",
+          "entry_count": 15,
+          "cases": 161,
+          "series": {
+            "EntCollabBench": 52,
+            "SpreadsheetBench": 27,
+            "GAIA": 22,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15
+          },
+          "entries": [
+            {
+              "id": "dataset.office-suite-pptagent/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.office-suite-spreadsheetbench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.entcollab-legal-vendor-procurement/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.office-suite-docvqa/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.entcollab-legal-external-content-publicity/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.entcollab-legal-privacy-data-requests/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.office-suite-microsoft-ppteval/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.entcollab-legal-ethics-anti-corruption/v1",
+              "cases": 18
+            },
+            {
+              "id": "dataset.entcollab-legal-contracts-contractor/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.entcollab-legal-finance-disclosure-related-party/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Multimodal understanding",
+          "name_zh": "多模态理解",
+          "entry_count": 14,
+          "cases": 169,
+          "series": {
+            "HLE": 65,
+            "GAIA": 33,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "ToolLLM": 11
+          },
+          "entries": [
+            {
+              "id": "dataset.office-suite-pptagent/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.HLE-quantum-physics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-fluid-dynamics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-docvqa/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-microsoft-ppteval/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Memory",
+          "name_zh": "记忆管理",
+          "entry_count": 6,
+          "cases": 109,
+          "series": {
+            "MemoryAgentBench": 75,
+            "PersonaMem": 22,
+            "Memory Temporal Reasoning": 12
+          },
+          "entries": [
+            {
+              "id": "dataset.memory-temporal-reasoning/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.personamem-travel-planning/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.memoryagentbench-enterprise-office/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-it-operations/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-saas-customer-service/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.personamem-food-recommendation/v1",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Collaboration & delegation",
+          "name_zh": "协作与任务分工",
+          "entry_count": 10,
+          "cases": 135,
+          "series": {
+            "BFCL V4 Multi-Turn": 53,
+            "EntCollabBench": 52,
+            "AWS Multi-agent": 30
+          },
+          "entries": [
+            {
+              "id": "dataset.entcollab-legal-vendor-procurement/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.entcollab-legal-external-content-publicity/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.entcollab-legal-privacy-data-requests/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.bfcl-multiturn/v1",
+              "cases": 53
+            },
+            {
+              "id": "dataset.entcollab-legal-ethics-anti-corruption/v1",
+              "cases": 18
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.entcollab-legal-contracts-contractor/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.entcollab-legal-finance-disclosure-related-party/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            }
+          ]
+        },
+        {
+          "name_en": "Execution loops & state",
+          "name_zh": "执行闭环与状态维护",
+          "entry_count": 38,
+          "cases": 440,
+          "series": {
+            "τ³-bench": 162,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "AlgoTune": 41,
+            "AutomationBench": 29,
+            "GSO": 23,
+            "ReplicationBench": 20,
+            "AgentBoard": 17,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "AgentBench": 5
+          },
+          "entries": [
+            {
+              "id": "dataset.tau3-retail-edits/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-telecom-mms/v1",
+              "cases": 21
+            },
+            {
+              "id": "dataset.automationbench-marketing-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-finance-expansion/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-telecom-mobile-data/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.agentboard-todo-update/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.automationbench-sales-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-airline-mixed/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-airline-booking/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-airline-changes/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.bfcl-multiturn/v1",
+              "cases": 53
+            },
+            {
+              "id": "dataset.automationbench-sales/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.automationbench-hr-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.automationbench-support-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.automationbench-support/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.harbor-swesmith/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-retail-exchanges/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-operations-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.automationbench-finance/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Efficiency & reliability",
+          "name_zh": "成本效率与运行可靠性",
+          "entry_count": 97,
+          "cases": 1161,
+          "series": {
+            "τ³-bench": 200,
+            "ToolLLM": 122,
+            "MCP-Atlas": 94,
+            "HLE": 89,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "ARC-AGI-2": 35,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "GSO": 23,
+            "PersonaMem": 22,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "Memory Temporal Reasoning": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "Spider 2.0": 12,
+            "SpreadsheetBench": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9,
+            "BixBench": 5
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-portfolio/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tau3-retail-edits/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-telecom-mms/v1",
+              "cases": 21
+            },
+            {
+              "id": "dataset.frontier-eng-job-shop/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-telecom-mobile-data/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.HLE-quantum-physics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-algebraic-geometry/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-mathematics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-fluid-dynamics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.memory-temporal-reasoning/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-math-formal-linguistics/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-data/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-demand-operations/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-text-nlp/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tau3-airline-mixed/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.frontier-eng-supply-chain/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.personamem-travel-planning/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-industrial-logistics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.agentbench-db/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.terminal-bench-financial-services/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.gpqadiamond-organic/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-airline-policy/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-research/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tau3-airline-booking/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-airline-changes/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.bfcl-multiturn/v1",
+              "cases": 53
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.omnimath/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.ops-agentops-reliability/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.tau3-retail-inquiries/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-retail-exchanges/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.mcp-atlas-real-estate/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.codepde-cns1d/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.terminal-bench-security-infrastructure/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.personamem-food-recommendation/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.arcagi2-abstract-visual-reasoning/v2",
+              "cases": 35
+            },
+            {
+              "id": "dataset.tau3-banking-cards/v1",
+              "cases": 29
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-media-creative/v1",
+              "cases": 4
+            }
+          ]
+        },
+        {
+          "name_en": "Safety & permissions",
+          "name_zh": "安全与权限边界",
+          "entry_count": 12,
+          "cases": 150,
+          "series": {
+            "τ³-bench": 76,
+            "ToolLLM": 35,
+            "EntCollabBench": 27,
+            "AgentOps-Bench": 12
+          },
+          "entries": [
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-airline-policy/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.entcollab-legal-privacy-data-requests/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.ops-agentops-reliability/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.entcollab-legal-ethics-anti-corruption/v1",
+              "cases": 18
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name_en": "Industry scenarios",
+      "name_zh": "行业场景",
+      "categories": [
+        {
+          "name_en": "Finance & insurance",
+          "name_zh": "金融、银行与保险",
+          "entry_count": 14,
+          "cases": 157,
+          "series": {
+            "τ³-bench": 50,
+            "ToolLLM": 44,
+            "SkillsBench": 22,
+            "AWS Multi-agent": 15,
+            "Frontier-Eng": 15,
+            "AutomationBench": 4,
+            "Terminal-Bench": 4,
+            "EntCollabBench": 3
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-portfolio/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-finance-expansion/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.toolllm-financial/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-financial-services/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.tau3-banking-accounts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.skillsbench-financial-data-processing/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-payments/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-finance/v3",
+              "cases": 31
+            },
+            {
+              "id": "dataset.automationbench-finance/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.skillsbench-finance-economics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-banking-security/v1",
+              "cases": 8
+            },
+            {
+              "id": "dataset.tau3-banking-cards/v1",
+              "cases": 29
+            },
+            {
+              "id": "dataset.entcollab-legal-finance-disclosure-related-party/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.aws-multiagent-mortgage/v1",
+              "cases": 15
+            }
+          ]
+        },
+        {
+          "name_en": "Retail & customer service",
+          "name_zh": "零售电商与客户服务",
+          "entry_count": 12,
+          "cases": 130,
+          "series": {
+            "τ³-bench": 50,
+            "MCP-Atlas": 30,
+            "MemoryAgentBench": 25,
+            "Spider 2.0": 11,
+            "ToolLLM": 9,
+            "AutomationBench": 5
+          },
+          "entries": [
+            {
+              "id": "dataset.tau3-retail-edits/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-ecommerce/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.memoryagentbench-saas-customer-service/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.automationbench-support-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.tau3-retail-accounts/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.automationbench-support/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.tau3-retail-inquiries/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.tau3-retail-exchanges/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.spider2-customer-experience/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-retail-returns/v1",
+              "cases": 23
+            }
+          ]
+        },
+        {
+          "name_en": "Sales & marketing",
+          "name_zh": "销售、广告与营销",
+          "entry_count": 14,
+          "cases": 155,
+          "series": {
+            "MCP-Atlas": 81,
+            "CRMArena-Pro": 40,
+            "ToolLLM": 24,
+            "AutomationBench": 10
+          },
+          "entries": [
+            {
+              "id": "dataset.automationbench-marketing-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-data/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-data/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-analytics/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-sales-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-research/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.automationbench-sales/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-text/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.mcp-atlas-retail-ecommerce-research/v1",
+              "cases": 23
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.crmarena-pro-sales-workflow/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.toolllm-business/v3",
+              "cases": 9
+            },
+            {
+              "id": "dataset.mcp-atlas-advertising-marketing-data/v1",
+              "cases": 7
+            }
+          ]
+        },
+        {
+          "name_en": "Legal, privacy & compliance",
+          "name_zh": "法务、隐私与合规",
+          "entry_count": 8,
+          "cases": 57,
+          "series": {
+            "EntCollabBench": 52,
+            "Terminal-Bench": 5
+          },
+          "entries": [
+            {
+              "id": "dataset.entcollab-legal-vendor-procurement/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.entcollab-legal-external-content-publicity/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.entcollab-legal-privacy-data-requests/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.entcollab-legal-ethics-anti-corruption/v1",
+              "cases": 18
+            },
+            {
+              "id": "dataset.entcollab-legal-contracts-contractor/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.entcollab-legal-finance-disclosure-related-party/v1",
+              "cases": 3
+            }
+          ]
+        },
+        {
+          "name_en": "Business & human resources",
+          "name_zh": "企业办公与人力资源",
+          "entry_count": 15,
+          "cases": 177,
+          "series": {
+            "AgentBoard": 40,
+            "SpreadsheetBench": 27,
+            "MemoryAgentBench": 25,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "GAIA": 11,
+            "AutomationBench": 10,
+            "ToolLLM": 4
+          },
+          "entries": [
+            {
+              "id": "dataset.office-suite-pptagent/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentboard-todo-query/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.agentboard-todo-update/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.spreadsheetbench/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.agentboard-sheet-edit/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.office-suite-spreadsheetbench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-officebench/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.office-suite-docvqa/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.memoryagentbench-enterprise-office/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.automationbench-hr-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.toolllm-email/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.office-suite-microsoft-ppteval/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.automationbench-operations-expansion/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.agentboard-sheet-analysis/v1",
+              "cases": 8
+            }
+          ]
+        },
+        {
+          "name_en": "Software, IT & cybersecurity",
+          "name_zh": "软件、IT 与网络安全",
+          "entry_count": 25,
+          "cases": 290,
+          "series": {
+            "SWE-bench Verified": 57,
+            "MemoryAgentBench": 50,
+            "FeatureBench": 40,
+            "Terminal-Bench": 26,
+            "GSO": 23,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "SWE-Smith": 11,
+            "SLDBench": 9,
+            "AutomationBench": 5,
+            "ToolLLM": 4
+          },
+          "entries": [
+            {
+              "id": "dataset.agentbench-os/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.gso/v2",
+              "cases": 23
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.cybergym-software/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.tb/v2",
+              "cases": 3
+            },
+            {
+              "id": "dataset.featurebench-mlflow-bedrock-autolog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.agentbench-db/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.memoryagentbench-it-operations/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.memoryagentbench-saas-customer-service/v1",
+              "cases": 25
+            },
+            {
+              "id": "dataset.automationbench-support-expansion/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.swebenchverified-data-visualization/v2",
+              "cases": 14
+            },
+            {
+              "id": "dataset.swebenchverified-web-orm/v2",
+              "cases": 15
+            },
+            {
+              "id": "dataset.swebenchverified-documentation/v2",
+              "cases": 22
+            },
+            {
+              "id": "dataset.swebenchverified-developer-tools/v2",
+              "cases": 6
+            },
+            {
+              "id": "dataset.automationbench-support/v1",
+              "cases": 2
+            },
+            {
+              "id": "dataset.ops-agentops-reliability/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.harbor-swesmith/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.terminal-bench-information-technology/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.featurebench-mlflow-unity-catalog/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.terminal-bench-security-infrastructure/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.featurebench-scientific-computing/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.featurebench-pytorch-lightning/v1",
+              "cases": 10
+            }
+          ]
+        },
+        {
+          "name_en": "Telecom & utilities",
+          "name_zh": "通信与公共事业",
+          "entry_count": 5,
+          "cases": 59,
+          "series": {
+            "τ³-bench": 50,
+            "Terminal-Bench": 5,
+            "ToolLLM": 4
+          },
+          "entries": [
+            {
+              "id": "dataset.tau3-telecom-mms/v1",
+              "cases": 21
+            },
+            {
+              "id": "dataset.tau3-telecom-mobile-data/v1",
+              "cases": 16
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.terminal-bench-utilities-public-sector/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-telecom-service/v1",
+              "cases": 13
+            }
+          ]
+        },
+        {
+          "name_en": "Manufacturing & supply chain",
+          "name_zh": "制造、物流与供应链",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "MCP-Atlas": 34,
+            "DSBench": 30,
+            "Frontier-Eng": 30,
+            "AlgoTune": 13,
+            "Spider 2.0": 12,
+            "WideSearch": 11,
+            "Terminal-Bench": 5,
+            "ToolLLM": 4,
+            "EntCollabBench": 3
+          },
+          "entries": [
+            {
+              "id": "dataset.frontier-eng-job-shop/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-data/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-demand-operations/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.frontier-eng-supply-chain/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.terminal-bench-industrial-logistics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.entcollab-legal-trade-export-records/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-energy/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.mcp-atlas-automotive-research/v1",
+              "cases": 31
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            }
+          ]
+        },
+        {
+          "name_en": "Healthcare & life sciences",
+          "name_zh": "医疗、生命科学与化学",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "BixBench": 85,
+            "AlgoTune": 13,
+            "HLE": 13,
+            "GPQA Diamond": 11,
+            "DSBench": 10,
+            "Terminal-Bench": 6,
+            "ToolLLM": 4
+          },
+          "entries": [
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.terminal-bench-life-sciences/v1",
+              "cases": 6
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.gpqadiamond-organic/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.toolllm-health_and_fitness/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Research, mathematics & education",
+          "name_zh": "科研、数学与教育",
+          "entry_count": 39,
+          "cases": 460,
+          "series": {
+            "HLE": 89,
+            "BixBench": 85,
+            "AlgoTune": 41,
+            "ARC-AGI-2": 35,
+            "Build Word2Vec": 20,
+            "DSBench": 20,
+            "FeatureBench": 20,
+            "ReplicationBench": 20,
+            "AgentBoard": 15,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GAIA": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "USACO": 11,
+            "SLDBench": 9,
+            "ToolLLM": 9,
+            "Terminal-Bench": 7
+          },
+          "entries": [
+            {
+              "id": "dataset.agentboard-todo-query/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.qcircuitbench/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.HLE-quantum-physics/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-chemistry/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-algebraic-geometry/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-mathematics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.HLE-fluid-dynamics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.scicode/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.terminal-bench-math-formal-linguistics/v1",
+              "cases": 3
+            },
+            {
+              "id": "dataset.toolllm-artificial_intelligence_machine_learning/v3",
+              "cases": 4
+            },
+            {
+              "id": "dataset.terminal-bench-ai-ml-hpc/v1",
+              "cases": 4
+            },
+            {
+              "id": "dataset.toolllm-education/v3",
+              "cases": 5
+            },
+            {
+              "id": "dataset.dsbench-health-life-science/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.dsbench-food-agri-quality/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.gpqadiamond-organic/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.usaco-algorithm-programming/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.omnimath/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.algotune-biomedical-life-science/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-control-signal-engineering/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.algotune-numerical-linear-optimization/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.bix/v2",
+              "cases": 5
+            },
+            {
+              "id": "dataset.dacode-education/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.build-word2vec-nlp/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.codepde-cns1d/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.sldbench-ai-ml/v2",
+              "cases": 9
+            },
+            {
+              "id": "dataset.gaia-research-academic/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.replicationbench-astrophysics/v2",
+              "cases": 20
+            },
+            {
+              "id": "dataset.featurebench-scientific-computing/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.arcagi2-abstract-visual-reasoning/v2",
+              "cases": 35
+            },
+            {
+              "id": "dataset.featurebench-pytorch-lightning/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.BixBench-Clinical-Statistics/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.BixBench-Epigenomics/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Genomics/v1",
+              "cases": 12
+            },
+            {
+              "id": "dataset.BixBench-Imaging/v1",
+              "cases": 14
+            },
+            {
+              "id": "dataset.BixBench-Immunology/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.BixBench-Transcriptomics/v1",
+              "cases": 12
+            }
+          ]
+        },
+        {
+          "name_en": "Media & everyday services",
+          "name_zh": "文娱、媒体与生活服务",
+          "entry_count": 12,
+          "cases": 132,
+          "series": {
+            "ToolLLM": 39,
+            "HLE": 35,
+            "GAIA": 22,
+            "PersonaMem": 11,
+            "Spider 2.0": 11,
+            "DSBench": 10,
+            "Terminal-Bench": 4
+          },
+          "entries": [
+            {
+              "id": "dataset.toolllm-video_images/v3",
+              "cases": 11
+            },
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.HLE-history-archaeology/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.HLE-linguistics-manuscripts/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.toolllm-news_media/v3",
+              "cases": 13
+            },
+            {
+              "id": "dataset.dsbench-text-nlp/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.toolllm-social/v3",
+              "cases": 15
+            },
+            {
+              "id": "dataset.spider2-social-media/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.personamem-food-recommendation/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-sports-entertainment/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.terminal-bench-media-creative/v1",
+              "cases": 4
+            }
+          ]
+        },
+        {
+          "name_en": "Transport, travel & real estate",
+          "name_zh": "交通、旅游与房地产",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "τ³-bench": 50,
+            "AWS Multi-agent": 15,
+            "MCP-Atlas": 13,
+            "Spider 2.0": 12,
+            "GAIA": 11,
+            "PersonaMem": 11,
+            "WideSearch": 11,
+            "DSBench": 10,
+            "HLE": 9
+          },
+          "entries": [
+            {
+              "id": "dataset.HLE-geography-city/v1",
+              "cases": 9
+            },
+            {
+              "id": "dataset.dsbench-transport-urban-risk/v1",
+              "cases": 10
+            },
+            {
+              "id": "dataset.tau3-airline-mixed/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.personamem-travel-planning/v1",
+              "cases": 11
+            },
+            {
+              "id": "dataset.tau3-airline-policy/v1",
+              "cases": 7
+            },
+            {
+              "id": "dataset.tau3-airline-booking/v1",
+              "cases": 5
+            },
+            {
+              "id": "dataset.tau3-airline-changes/v1",
+              "cases": 20
+            },
+            {
+              "id": "dataset.mcp-atlas-real-estate/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.aws-multiagent-travel/v1",
+              "cases": 15
+            },
+            {
+              "id": "dataset.spider2-transportation/v2",
+              "cases": 12
+            },
+            {
+              "id": "dataset.tau3-airline-cancellations/v1",
+              "cases": 13
+            },
+            {
+              "id": "dataset.widesearch-infrastructure-transport-realestate/v2",
+              "cases": 11
+            },
+            {
+              "id": "dataset.gaia-general-information/v1",
+              "cases": 11
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "industry_unassigned": [
+    {
+      "id": "dataset.memory-temporal-reasoning/v1",
+      "cases": 12
+    },
+    {
+      "id": "dataset.bfcl-multiturn/v1",
+      "cases": 53
+    }
+  ]
+}

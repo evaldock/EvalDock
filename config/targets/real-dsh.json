@@ -1,0 +1,11 @@
+{
+  "schema": "evaldock.mvp.target-descriptor/v1",
+  "targetId": "vm.real-dsh-web",
+  "targetType": "FULL_AGENT",
+  "sourceRoot": "/opt/homebrew/lib/node_modules/@deepseek-ai/dsh",
+  "dshExecutable": "lib/bin.js",
+  "dshHome": "/Users/dsheval/.dsh",
+  "profile": "web",
+  "targetIdentity": "evaldock",
+  "webEndpoint": "http://127.0.0.1:3080"
+}

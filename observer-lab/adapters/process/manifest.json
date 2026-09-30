@@ -1,0 +1,19 @@
+{
+  "sourceType": "PROCESS",
+  "implementationId": "evaldock.macos-process-sensor",
+  "capabilities": [
+    "EXECUTABLE",
+    "PROCESS_ID",
+    "PROCESS_PARENT",
+    "PROCESS_STATE",
+    "READ_ERRORS",
+    "READ_ONLY",
+    "SNAPSHOT_AFTER",
+    "SNAPSHOT_BEFORE",
+    "SNAPSHOT_POST_RESET",
+    "START_TIME",
+    "USER_ID"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": false
+}

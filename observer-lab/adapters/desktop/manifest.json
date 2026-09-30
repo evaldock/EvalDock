@@ -1,0 +1,12 @@
+{
+  "sourceType": "DESKTOP",
+  "implementationId": "evaldock.macos-desktop-sensor",
+  "capabilities": [
+    "FRONTMOST_APPLICATION",
+    "SCREENSHOT",
+    "VISIBLE_APPLICATIONS",
+    "WINDOW_TITLES"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}
