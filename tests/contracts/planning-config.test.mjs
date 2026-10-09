@@ -62,3 +62,12 @@ test('workbench ignores old sizing settings when starting a normal run',async t=
  await control.run({revision:'current',evaluationConfig});
  assert.deepEqual(request,{action:'run',targetId:'agent',evaluationConfig});
 });
+
+test('default Planner supports a small local catalog without weakening explicit dataset counts',async()=>{
+ let calls=0,prompt;
+ const matcher=new OpenAiCompatibleDatasetMatcher({endpoint:'https://example.invalid/chat',apiKey:'test',model:'test',fetchImpl:async(_,request)=>{calls++;prompt=JSON.parse(JSON.parse(request.body).messages[0].content);return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({selected_datasets:[{dataset_id:candidates[0].datasetId,case_count:1,reason:'Only available demo'}]})}}]}));}});
+ const input={agentStaticInfo:info,availableDatasets:[candidates[0]],profile:'STANDARD'};
+ const plan=await matcher.select(input);assert.equal(plan.totalCaseCount,1);assert.equal(prompt.inputs.policy.min_datasets,1);
+ await assert.rejects(matcher.select({...input,testSize:{datasetCount:3}}),/requires at least 3/);
+ await assert.rejects(matcher.select({...input,availableDatasets:[]}),/requires at least/);assert.equal(calls,1);
+});

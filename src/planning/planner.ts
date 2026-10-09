@@ -157,6 +157,11 @@ function prepareSelection(
     }));
   }
   candidates.sort((left, right) => left.datasetId.localeCompare(right.datasetId, "en"));
+  // Default coverage adapts to a small local catalog; explicit requests remain strict.
+  if (candidates.length > 0 && input.testSize?.datasetCount === undefined) {
+    policy = {...policy, minDatasets: Math.min(policy.minDatasets, candidates.length),
+      maxDatasets: Math.min(policy.maxDatasets, candidates.length)};
+  }
   if (candidates.length < policy.minDatasets) {
     throw new Error(`${input.profile} requires at least ${policy.minDatasets} available Datasets`);
   }
