@@ -33,3 +33,8 @@
 .console-tree::-webkit-scrollbar,.agent-tree::-webkit-scrollbar{width:6px}
 .console-tree::-webkit-scrollbar-thumb,.agent-tree::-webkit-scrollbar-thumb{background:#c3cac5;border-radius:6px}
 .console-tree:focus-visible,.agent-tree:focus-visible{outline:2px solid #176b46;outline-offset:2px}
+
+/* Keep the exit from the advanced workbench outside the scrolling navigation. */
+.sidebar>.workbench-home{display:flex;align-items:center;flex-shrink:0;margin:16px 0 0;padding:10px 12px;border:1px solid #dbe5de;border-radius:8px;background:#f1f6f2;color:#245d43;font-size:13px;font-weight:600;text-decoration:none;-webkit-app-region:no-drag}
+.sidebar>.workbench-home:hover{background:#e5efe8}
+.sidebar>.workbench-home:focus-visible{outline:2px solid #176b46;outline-offset:2px}
