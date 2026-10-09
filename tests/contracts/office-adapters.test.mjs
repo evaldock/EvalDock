@@ -91,3 +91,12 @@ test('office launch does not inherit the desktop server Node mode',async()=>{
   await adapter.launch();assert.ok(options.env);assert.equal(options.env.ELECTRON_RUN_AS_NODE,undefined);assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1');
  }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
 });
+
+test('office version support preserves old releases and still probes the interface',async()=>{
+ const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');let version='1.2.5',calls=0,broken=false;
+ const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1.2.1',supportedVersions:['1.2.1','1.2.5'],Desktop:{connect:async()=>{calls++;if(broken)throw Error('AGENT_INTERFACE_CHANGED');return {authenticated:async()=>true,close(){}};}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:version})})});
+ assert.equal((await adapter.inspect()).evaluationReady,true);
+ version='1.2.1';assert.equal((await adapter.inspect()).evaluationReady,true);
+ version='1.2.6';assert.equal((await adapter.inspect()).reasonCode,'AGENT_VERSION_UNVERIFIED');assert.equal(calls,2);
+ version='1.2.5';broken=true;const failed=await adapter.inspect();assert.equal(failed.evaluationReady,false);assert.equal(failed.reasonCode,'AGENT_INTERFACE_CHANGED');
+});

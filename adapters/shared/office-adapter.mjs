@@ -3,12 +3,12 @@ import {promisify} from 'node:util';
 import {normalizedEvent} from './capture.mjs';
 import {staticInfo} from './registry.mjs';
 const exec=promisify(execFile);
-export function createOfficeAdapter(target,{app,bundle,version,port,Desktop,run,limitations,workspaceDescription},{execCommand=exec,spawnProcess=spawn}={}){
+export function createOfficeAdapter(target,{app,bundle,version,supportedVersions=[version],port,Desktop,run,limitations,workspaceDescription},{execCommand=exec,spawnProcess=spawn}={}){
   const inspect=async()=>{
     const status={agentKind:target.kind,name:target.name,environment:'macOS',installRoot:app,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'DESKTOP_EVENT_PUSH',permissionPreset:'APPLICATION_DEFAULT',components:[],toolSchemas:[],limitations,checkedAt:new Date().toISOString()};let desktop;
     try{
       const info=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000})).stdout);status.version=info.CFBundleShortVersionString;
-      if(info.CFBundleIdentifier!==bundle||status.version!==version){status.status='INCOMPATIBLE';status.reasonCode='AGENT_VERSION_UNVERIFIED';return status;}
+      if(info.CFBundleIdentifier!==bundle||!supportedVersions.includes(status.version)){status.status='INCOMPATIBLE';status.reasonCode='AGENT_VERSION_UNVERIFIED';return status;}
       status.status='NOT_CONNECTED';desktop=await Desktop.connect();status.executionReady=true;status.probeReady=true;
       const authenticated=await desktop.authenticated();status.evaluationReady=authenticated;status.status=authenticated?'READY':'LOGIN_REQUIRED';if(!authenticated)status.reasonCode='AGENT_LOGIN_REQUIRED';
       if(authenticated&&desktop.readiness){const runtime=await desktop.readiness();if(!runtime.ready){status.evaluationReady=false;status.status='RUNTIME_NOT_READY';status.reasonCode=runtime.reasonCode;}}
