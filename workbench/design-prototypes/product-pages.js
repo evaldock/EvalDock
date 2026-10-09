@@ -23,7 +23,7 @@ export function renderHome({summary,catalog,settings,discovery}){
 }
 export function friendlyMessage(message){
  const value=String(message??'');
- const translations={AGENT_VERSION_UNVERIFIED:'这个助手的当前版本还未适配。请到「我的 Agent」选择其他可用助手。',WORKBUDDY_VERSION_UNVERIFIED:'WorkBuddy 的当前版本还未适配。你可以先使用其他已就绪的助手。',AGENT_NOT_CONNECTED:'还没有连接到助手。请到「我的 Agent」点击「启动连接」。',AGENT_LOGIN_REQUIRED:'助手需要先登录。请打开对应应用完成登录，再回来继续。',AGENT_WINDOW_NOT_READY:'助手正在启动，请稍等片刻后重试。',AGENT_NOT_READY:'助手还没准备好。请到「我的 Agent」检查连接和登录状态。'};
+ const translations={WORKBUDDY_NOT_CONNECTED:'尚未连接 WorkBuddy，请在「我的 Agent」启动连接。',WORKBUDDY_LOGIN_REQUIRED:'请打开 WorkBuddy 完成登录后重试。',WORKBUDDY_INTERFACE_CHANGED:'WorkBuddy 调用接口不可用，需要检查适配。',WORKBUDDY_EVENT_TRANSPORT_UNAVAILABLE:'WorkBuddy 事件传输接口不可用，暂时无法采集评测过程。',AGENT_VERSION_UNVERIFIED:'这个助手的当前版本还未适配。请到「我的 Agent」选择其他可用助手。',WORKBUDDY_VERSION_UNVERIFIED:'WorkBuddy 的当前版本还未适配。你可以先使用其他已就绪的助手。',AGENT_NOT_CONNECTED:'还没有连接到助手。请到「我的 Agent」点击「启动连接」。',AGENT_LOGIN_REQUIRED:'助手需要先登录。请打开对应应用完成登录，再回来继续。',AGENT_WINDOW_NOT_READY:'助手正在启动，请稍等片刻后重试。',AGENT_NOT_READY:'助手还没准备好。请到「我的 Agent」检查连接和登录状态。'};
  for(const [code,text] of Object.entries(translations))if(value.includes(code))return text;
  return /^[A-Z][A-Z0-9_]+$/.test(value)?'这次操作没有完成，请稍后重试。具体原因可展开下方详情查看。':value;
 }

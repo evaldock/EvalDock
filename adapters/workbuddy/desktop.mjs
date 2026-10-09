@@ -1,4 +1,4 @@
-/** Version-bound CLI transport to the actual WorkBuddy desktop, not a standalone CodeBuddy process. */
+/** Interface-checked CLI transport to the actual WorkBuddy desktop, not a standalone CodeBuddy process. */
 const endpoint='http://127.0.0.1:18491';
 const channels=new Set(['auth:getAccount','session:create','session:sendMessage','session:cancel','session:destroy','session:notifyListenerReady']);
 export class Desktop {
@@ -12,7 +12,7 @@ export class Desktop {
     if(!t)throw new Error('WORKBUDDY_WINDOW_NOT_READY');
     const url=new URL(t.webSocketDebuggerUrl);if(url.hostname!=='127.0.0.1'||url.port!=='18491')throw new Error('WORKBUDDY_INVALID_ENDPOINT');
     const ws=new WebSocket(url);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.close();reject(new Error('WORKBUDDY_CONNECT_TIMEOUT'));},3000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('WORKBUDDY_CONNECT_FAILED'));},{once:true});});
-    const client=new Desktop(ws);try{if(!await client.evaluate('typeof window.__wbInvoke === "function"'))throw new Error('WORKBUDDY_INTERFACE_CHANGED');return client;}catch(e){client.close();throw e;}
+    const client=new Desktop(ws);try{await client.checkInterfaces();return client;}catch(e){client.close();throw e;}
   }
   async evaluate(expression,timeout=10000,signal){
     if(signal?.aborted)throw new Error('WORKBUDDY_CANCELLED');
@@ -29,6 +29,10 @@ export class Desktop {
     if(r.exceptionDetails)throw new Error('WORKBUDDY_RPC_REJECTED');return r.result?.value;
   }
   async invoke(channel,...args){if(!channels.has(channel))throw new Error('WORKBUDDY_CHANNEL_NOT_ALLOWED');const r=await this.evaluate(`window.__wbInvoke(${JSON.stringify(channel)}, {}, ...${JSON.stringify(args)})`,channel==='session:create'?60000:10000);if(r?.__wbError)throw new Error(/Authentication required/i.test(r.message??'')?'WORKBUDDY_LOGIN_REQUIRED':'WORKBUDDY_RPC_REJECTED');return r;}
+  async checkInterfaces(){
+    if(!await this.evaluate('typeof window.__wbInvoke === "function"'))throw new Error('WORKBUDDY_INTERFACE_CHANGED');
+    if(!await this.evaluate('typeof window.postMessage === "function" && typeof MessageChannel === "function"'))throw new Error('WORKBUDDY_EVENT_TRANSPORT_UNAVAILABLE');
+  }
   async authenticated(){return this.evaluate('window.__wbInvoke("auth:getAccount",{}).then(a=>!!a&&!a.__wbError)');}
   close(){this.ws.close();}
 }

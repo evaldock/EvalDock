@@ -8,5 +8,5 @@ export function normalizeEvent(record,sessionId,seq){
   return JSON.parse(JSON.stringify({at:record.at,kind:'workbuddy/acp',data:{sessionId,event:{...event,seq}},provenance:{nativeType:type??null,channel:'session:event (MessagePort)'}}));
 }
 
-export const workbuddyTrace={kind:'workbuddy',sourceType:'WORKBUDDY_PROBE',externalSchema:'workbuddy.desktop.session-event/5.5.6',blindSpots:['TOKEN_THOUGHT_STREAM_OMITTED','INTERMEDIATE_ASSISTANT_TEXT_OMITTED','TOOL_INVENTORY_NOT_EXPOSED','DESKTOP_BRIDGE_IS_VERSION_BOUND'],normalizeEvent};
+export const workbuddyTrace={kind:'workbuddy',sourceType:'WORKBUDDY_PROBE',externalSchema:'workbuddy.desktop.session-event/v1',blindSpots:['TOKEN_THOUGHT_STREAM_OMITTED','INTERMEDIATE_ASSISTANT_TEXT_OMITTED','TOOL_INVENTORY_NOT_EXPOSED','SESSION_EVENT_CONTRACT_VALIDATED_AT_RUNTIME'],normalizeEvent};
 export const buildTrace=input=>assemble({...input,agent:workbuddyTrace});

@@ -34,10 +34,10 @@ function agentCards(){
    const version=installed.find(d=>d.version)?.version;
    const needsVersion=connected.some(t=>/VERSION_UNVERIFIED/.test(t.reasonCode??''));
    const waiting=connected.find(t=>!t.evaluationReady);
-   const descriptions={AGENT_NOT_CONNECTED:'已接入，启动连接后即可检查登录状态',AGENT_LOGIN_REQUIRED:'请在 Agent 应用中完成登录',AGENT_WINDOW_NOT_READY:'等待 Agent 窗口加载完成'};
+   const descriptions={AGENT_NOT_CONNECTED:'已接入，启动连接后即可检查登录状态',AGENT_LOGIN_REQUIRED:'请在 Agent 应用中完成登录',AGENT_WINDOW_NOT_READY:'等待 Agent 窗口加载完成',WORKBUDDY_NOT_CONNECTED:'尚未连接 WorkBuddy，请启动连接',WORKBUDDY_LOGIN_REQUIRED:'请在 WorkBuddy 中完成登录',WORKBUDDY_WINDOW_NOT_READY:'等待 WorkBuddy 窗口加载完成',WORKBUDDY_INTERFACE_CHANGED:'WorkBuddy 调用接口不可用，需检查适配',WORKBUDDY_EVENT_TRANSPORT_UNAVAILABLE:'WorkBuddy 事件传输接口不可用',WORKBUDDY_APP_ID_MISMATCH:'安装的应用标识与 WorkBuddy 不符',WORKBUDDY_INSPECTION_FAILED:'WorkBuddy 接口检查失败，请重新检查连接'};
    const description=needsVersion?'当前版本尚未通过适配验证':descriptions[waiting?.reasonCode]||brand.description;
    const available=installed.find(d=>d.target&&!connected.some(t=>t.id==='local-'+d.kind+'-'+d.id||t.installRoot===d.path||d.target?.sourceRoot&&t.installRoot===d.target.sourceRoot));
-   const launchable=['qwenwork','doubaowork'].includes(brand.kind)&&waiting?.reasonCode==='AGENT_NOT_CONNECTED';
+   const launchable=['qwenwork','doubaowork'].includes(brand.kind)&&waiting?.reasonCode==='AGENT_NOT_CONNECTED'||brand.kind==='workbuddy'&&waiting?.reasonCode==='WORKBUDDY_NOT_CONNECTED';
    const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}">启动连接</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
 
    return `<article class="agent-card ${ready.length?'is-ready':installed.length?'is-discovered':''}"><div class="agent-card-heading"><img src="assets/agents/${brand.kind}.${brand.format}" width="28" height="28" alt=""><h3>${brand.name}</h3><span class="pill ${ready.length?'ready':installed.length?'discovered':''}">${state}</span></div><p class="agent-description">${escape(description)}</p><div class="agent-card-footer"><span>${escape(version|| (installed.length?'版本未读取':brand.planned?'计划接入':'已支持'))}${installed.length>1?' · '+installed.length+' 个安装':''}</span>${action}</div></article>`;
@@ -90,7 +90,7 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-clear-selection')){ui.selection.clear();render();}
  if(button.hasAttribute('data-start-selection'))openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
  if(button.hasAttribute('data-scan')){scanning=true;render();try{discovery=await api('discovery/scan',{});notice(`扫描完成，发现 ${discovery.agents.length} 个安装入口。`);}finally{scanning=false;render();}}
- if(button.hasAttribute('data-open-agent')){button.disabled=true;await api(button.dataset.kind+'/open',{targetId:button.dataset.openAgent});notice('已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');await refresh();}
+ if(button.hasAttribute('data-open-agent')){button.disabled=true;await api(button.dataset.kind+'/open',button.dataset.kind==='workbuddy'?{}:{targetId:button.dataset.openAgent});notice('已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');await refresh();}
  if(button.hasAttribute('data-connect')){button.disabled=true;await api('discovery/connect',{id:button.dataset.connect});notice('已接入，正在检查运行条件。');await refresh();}
  if(button.hasAttribute('data-start'))openEvaluation(button.dataset.target,button.dataset.dataset);
  if(button.hasAttribute('data-import')){button.disabled=true;const result=await desktop('importLibrary');if(result){notice(`已导入 ${result.datasets} 个测试集，共 ${result.cases} 题。`);await refresh();}}
