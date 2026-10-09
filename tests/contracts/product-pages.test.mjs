@@ -42,5 +42,7 @@ test('home always offers evaluation without repeating connection setup',async()=
  data.settings={judge:{keyConfigured:true},planner:{keyConfigured:true}};
  assert.match(renderHome(data),/data-start/);
  assert.doesNotMatch(friendlyMessage('AGENT_VERSION_UNVERIFIED'),/AGENT_VERSION/);
- assert.match(friendlyMessage('AGENT_VERSION_UNVERIFIED'),/未适配/);
+ assert.match(friendlyMessage('AGENT_VERSION_UNVERIFIED'),/重新检查接口/);
+ assert.match(friendlyMessage('AGENT_INTERFACE_CHANGED'),/接口不可用/);
+ assert.match(friendlyMessage('AGENT_LOCAL_RUNTIME_UNAVAILABLE'),/执行环境尚未就绪/);
 });

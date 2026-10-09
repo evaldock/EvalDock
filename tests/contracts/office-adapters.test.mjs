@@ -68,7 +68,7 @@ test('Qwen orchestration uses a local project, records ownership and blocks on u
 });
 
 test('Qwen SuperJSON null is decoded as null, rather than as a live stream object',async()=>{
- let listener;const ctx=vm.createContext({window:{desktopApi:{onChatStreamChunk(){}},electronTRPC:{onMessage:fn=>{listener=fn;},sendMessage:frame=>listener({id:frame.operation.id,result:{data:{json:null}}})}},setTimeout,clearTimeout});
+ let listener;const ctx=vm.createContext({window:{desktopApi:{onChatStreamChunk(){},onChatStreamComplete(){},onChatStreamError(){}},electronTRPC:{onMessage:fn=>{listener=fn;},sendMessage:frame=>listener({id:frame.operation.id,result:{data:{json:null}}})}},setTimeout,clearTimeout});
  vm.runInContext(`(${installBridge.toString()})()`,ctx);assert.equal(await ctx.window.__evaldockQwenRPC('agent.getStreamingState','query',{subChatId:'owned'}),null);
 });
 test('Qwen projected patches merge snapshots and retain final answer after empty current-text reset',async()=>{
@@ -92,11 +92,39 @@ test('office launch does not inherit the desktop server Node mode',async()=>{
  }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
 });
 
-test('office version support preserves old releases and still probes the interface',async()=>{
- const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');let version='1.2.5',calls=0,broken=false;
- const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1.2.1',supportedVersions:['1.2.1','1.2.5'],Desktop:{connect:async()=>{calls++;if(broken)throw Error('AGENT_INTERFACE_CHANGED');return {authenticated:async()=>true,close(){}};}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:version})})});
- assert.equal((await adapter.inspect()).evaluationReady,true);
- version='1.2.1';assert.equal((await adapter.inspect()).evaluationReady,true);
- version='1.2.6';assert.equal((await adapter.inspect()).reasonCode,'AGENT_VERSION_UNVERIFIED');assert.equal(calls,2);
- version='1.2.5';broken=true;const failed=await adapter.inspect();assert.equal(failed.evaluationReady,false);assert.equal(failed.reasonCode,'AGENT_INTERFACE_CHANGED');
+test('office admission depends on interfaces and readiness, not release numbers',async()=>{
+ const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');
+ for(const kind of ['qwenwork','doubaowork']){
+  let version='1.2.1',bundle='test',error=null,loggedIn=true,runtimeReady=true,closed=0,calls=0;
+  const adapter=createOfficeAdapter({kind,id:'test'},{app:'/Applications/Test.app',bundle:'test',port:18492,Desktop:{connect:async()=>{calls++;if(error)throw Error(error);return {authenticated:async()=>loggedIn,readiness:async()=>({ready:runtimeReady,reasonCode:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'}),close(){closed++;}};}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:bundle,CFBundleShortVersionString:version})})});
+  for(version of ['1.2.1','1.2.5','2.31.3','99.0.0']){const s=await adapter.inspect();assert.equal(s.version,version);assert.equal(s.evaluationReady,true);}
+  assert.equal(closed,4);
+  error='AGENT_INTERFACE_CHANGED';assert.equal((await adapter.inspect()).reasonCode,error);
+  error=null;loggedIn=false;assert.equal((await adapter.inspect()).reasonCode,'AGENT_LOGIN_REQUIRED');
+  loggedIn=true;runtimeReady=false;assert.equal((await adapter.inspect()).reasonCode,'AGENT_LOCAL_RUNTIME_UNAVAILABLE');
+  bundle='wrong';const before=calls;assert.equal((await adapter.inspect()).reasonCode,'AGENT_APP_ID_MISMATCH');assert.equal(calls,before);
+ }
+});
+
+test('office readiness exceptions cannot leave an Agent evaluable',async()=>{
+ const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');let closed=false;
+ const adapter=createOfficeAdapter({kind:'doubaowork',id:'test'},{app:'/Applications/Test.app',bundle:'test',Desktop:{connect:async()=>({authenticated:async()=>true,readiness:async()=>{throw Error('AGENT_RPC_REJECTED');},close(){closed=true;}})},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'99'})})});
+ const s=await adapter.inspect();assert.equal(s.evaluationReady,false);assert.equal(s.executionReady,false);assert.equal(s.probeReady,false);assert.equal(s.reasonCode,'AGENT_RPC_REJECTED');assert.equal(closed,true);
+});
+
+test('Qwen checks every bridge and stream interface and retries after a failed check',()=>{
+ for(const [owner,key] of [['electronTRPC','sendMessage'],['electronTRPC','onMessage'],['desktopApi','onChatStreamChunk'],['desktopApi','onChatStreamComplete'],['desktopApi','onChatStreamError']]){
+  const window={electronTRPC:{sendMessage(){},onMessage(){}},desktopApi:{onChatStreamChunk(){},onChatStreamComplete(){},onChatStreamError(){}}};
+  const original=window[owner][key];window[owner][key]=true;
+  const ctx=vm.createContext({window,setTimeout,clearTimeout}),check=()=>vm.runInContext(`(${installBridge.toString()})()`,ctx);
+  assert.equal(check(),false);assert.equal(window.__evaldockQwenRPCVersion,undefined);
+  window[owner][key]=original;assert.equal(check(),true);assert.equal(check(),true);
+  delete window[owner][key];assert.equal(check(),false);
+ }
+});
+
+test('office preparation rechecks the runtime before admitting a task',async()=>{
+ const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');let closed=false;
+ const adapter=createOfficeAdapter({kind:'doubaowork',id:'test'},{Desktop:{connect:async()=>({authenticated:async()=>true,readiness:async()=>({ready:false,reasonCode:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'}),close(){closed=true;}})},limitations:[]});
+ await assert.rejects(adapter.prepare(),{message:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'});assert.equal(closed,true);
 });

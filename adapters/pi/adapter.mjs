@@ -21,7 +21,7 @@ export function piEvent(row,capture){
   else if(row.type==='session')capture.nativeSessionId=row.id;
   else {capture.seen++;capture.noise++;}
 }
-export async function inspectPi(target){
+export async function inspectPi(target,{preflight=preflightPi,loadEnvironment=loadAgentEnvironment}={}){
   const status={agentKind:'pi',name:target.name,version:null,installRoot:target.sourceRoot,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'PI_JSON_STREAM',permissionPreset:target.permissionPreset??'PI_DEFAULT_TOOLS',toolSchemas:['read','bash','edit','write'].map(name=>({name,source:'PI_BUILTIN_DECLARATION'})),components:[],limitations:['观测 Pi JSON 事件流；内部推理、Extension 内部 hook 与未暴露事件不推断。','只投递文本与工作目录文件；不自动重置全局系统和账号。','使用独立 Home 与会话，关闭自动发现；仅加载明确选中的 Extension。']};
   try{
     const pkg=JSON.parse(await readFile(path.join(target.packageRoot??path.join(target.sourceRoot,'packages/coding-agent'),'package.json'),'utf8'));
@@ -33,8 +33,8 @@ export async function inspectPi(target){
       status.extensions.push({name:pkg.name,version:pkg.version,path:item.path,entries,enabled:(target.extensions??[]).includes(pkg.name)});
     }
     status.components=status.extensions.filter(e=>e.enabled).map(e=>({name:e.name,version:e.version,kind:'EXTENSION'}));
-    await loadAgentEnvironment();status.status='READY';status.evaluationReady=true;
-  }catch(error){status.status=status.executionReady?'UNAVAILABLE':'NOT_INSTALLED';status.reasonCode=error.message==='AGENT_MODEL_KEY_MISSING'?error.message:'PI_CONFIGURATION_UNAVAILABLE';}
+    await loadEnvironment();status.evaluationReady=true;const check=await preflight(target,status);status.preflight=check;if(check.status!=='PASSED'){status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.status='UNAVAILABLE';status.reasonCode=check.issues?.[0]?.code??'PI_STARTUP_FAILED';return status;}status.status='READY';
+  }catch(error){status.status=status.executionReady?'UNAVAILABLE':'NOT_INSTALLED';status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.reasonCode=error.message==='AGENT_MODEL_KEY_MISSING'?error.message:'PI_CONFIGURATION_UNAVAILABLE';}
   return status;
 }
 export function createPiAdapter(target){

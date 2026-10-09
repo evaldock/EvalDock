@@ -2,15 +2,14 @@ import {createRendererCapture} from '../shared/renderer-capture.mjs';
 import {Desktop} from '../shared/desktop.mjs';
 const routes=new Set(['auth.authCheck','localProjects.create','chats.create','chats.get','agent.submitMessage','agent.cancelStream','agent.getStreamingState']);
 export function installBridge(){
-  if(window.__evaldockQwenRPCVersion===2)return true;
-  window.__evaldockQwenRPCVersion=2;
-  if(!window.electronTRPC?.sendMessage||!window.desktopApi?.onChatStreamChunk)return false;
+  if(!['sendMessage','onMessage'].every(key=>typeof window.electronTRPC?.[key]==='function')||!['onChatStreamChunk','onChatStreamComplete','onChatStreamError'].every(key=>typeof window.desktopApi?.[key]==='function'))return false;
+  if(window.__evaldockQwenRPCVersion===2&&typeof window.__evaldockQwenRPC==='function')return true;
   const pending=new Map();let seq=0;
   window.electronTRPC.onMessage(message=>{const p=pending.get(message.id);if(!p)return;pending.delete(message.id);clearTimeout(p.timer);const error=message.error?.json??message.error;if(error)p.reject(new Error(error.data?.code??'AGENT_RPC_REJECTED'));else p.resolve(message.result?.data&&Object.hasOwn(message.result.data,'json')?message.result.data.json:message.result?.data);});
   window.__evaldockQwenRPC=(path,type,input)=>new Promise((resolve,reject)=>{
     const id='evaldock-'+Date.now()+'-'+(++seq),timer=setTimeout(()=>{pending.delete(id);reject(new Error('AGENT_RPC_TIMEOUT'));},45000);
     pending.set(id,{resolve,reject,timer});window.electronTRPC.sendMessage({method:'request',operation:{id,path,type,input:input===undefined?undefined:{json:input}}});
-  });return true;
+  });window.__evaldockQwenRPCVersion=2;return true;
 }
 export class QwenDesktop extends Desktop {
   static async connect(){const client=await Desktop.connect({port:18492,match:t=>t.url.startsWith('file:///Applications/QwenWorkCN.app/Contents/Resources/app.asar/out/renderer/index.html')});Object.setPrototypeOf(client,QwenDesktop.prototype);try{if(!await client.evaluate(`(${installBridge.toString()})()`))throw Error('AGENT_INTERFACE_CHANGED');return client;}catch(e){client.close();throw e;}}

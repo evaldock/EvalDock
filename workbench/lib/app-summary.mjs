@@ -4,7 +4,7 @@ export async function appSummary({control,workbuddy,agents}) {
   const statuses=await Promise.all(entries.map(async([kind,c])=>{
     try {
       const value=await c.status();
-      if(kind==='dsh')return {kind,targets:[{id:'dsh',name:'DSH',evaluationReady:value.status==='RUNNING'&&!value.error,reasonCode:value.error??'请在高级工作台检查 DSH 配置'}],advanced:true};
+      if(kind==='dsh')return {kind,targets:[{id:'dsh',name:'DSH',evaluationReady:value.status==='RUNNING'&&!value.error&&value.modelReady===true&&!value.needsRestart&&!value.busy&&!value.externalEval&&!(value.runningSessions>0),reasonCode:value.error??(value.needsRestart?'DSH 配置已变化，请重启服务':!value.modelReady?'请配置 Planner / Judge 模型':value.busy||value.externalEval||value.runningSessions>0?'DSH 正在执行任务或操作':'请在高级工作台检查 DSH 配置')}],advanced:true};
       return {kind,targets:value.targets??[{id:kind,name:'WorkBuddy',...value}],active:!!c.active};
     } catch {return {kind,advanced:kind==='dsh',targets:[],error:'尚未配置或暂时无法连接'};}
   }));

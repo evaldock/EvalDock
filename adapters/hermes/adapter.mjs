@@ -1,3 +1,4 @@
+import {checkCliInterface} from '../shared/cli-interface.mjs';
 import path from 'node:path';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
@@ -17,10 +18,10 @@ export function hermesEvent(row,capture){
   if(row.exit_code!==0){capture.error='HERMES_EXECUTION_FAILED';capture.add('runtime/error',{message:row.error??'Hermes did not complete',exitCode:row.exit_code},at);}
  }else{capture.seen++;capture.noise++;}
 }
-export async function inspectHermes(target){
+export async function inspectHermes(target,{execCommand=exec,loadEnvironment=loadAgentEnvironment}={}){
  const result={agentKind:'hermes',name:target.name,installRoot:target.sourceRoot,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'HERMES_JSON_STREAM',permissionPreset:'CLI_NONINTERACTIVE',components:[],toolSchemas:['terminal','read_file','write_file','patch'].map(name=>({name,source:'HERMES_TOOLSET_DECLARATION'})),limitations:['原生 JSON 事件推送；仅保留工具调用、结果、最终回答与真实用量。','原生工具输出最多 5000 字符；逐 token 文本和内部推理不保留。','每题独立 Hermes 状态与工作目录；进程隔离不等于系统沙箱。','无原生调用 ID 时不推断工具调用与结果的对应关系。']};
- try{const r=await exec(target.executable,['--version'],{timeout:12000,maxBuffer:65536});result.version=r.stdout.trim().split("\n")[0];result.executionReady=true;result.probeReady=true;await loadAgentEnvironment();result.status='READY';result.evaluationReady=true;}
- catch(e){result.reasonCode=e.message==='AGENT_MODEL_KEY_MISSING'?e.message:'HERMES_CONFIGURATION_UNAVAILABLE';}
+ try{const r=await execCommand(target.executable,['--version'],{timeout:12000,maxBuffer:65536}).catch(()=>({stdout:''}));result.version=r.stdout.trim().split("\n")[0]||null;result.status='INSTALLED';await checkCliInterface({command:target.executable,args:['chat','--help'],required:['--query-file', '--oneshot', '--format', '--provider', '--model', '--toolsets', '--ignore-rules', '--max-turns', '--run-budget'],execCommand});result.executionReady=true;result.probeReady=true;await loadEnvironment();result.status='READY';result.evaluationReady=true;}
+ catch(e){result.evaluationReady=false;result.executionReady=false;result.probeReady=false;if(result.status!=='NOT_INSTALLED')result.status='UNAVAILABLE';result.reasonCode=/^AGENT_[A-Z_]+$/.test(e.message)?e.message:'HERMES_CONFIGURATION_UNAVAILABLE';}
  return result;
 }
 export function createHermesAdapter(target){return {

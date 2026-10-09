@@ -12,7 +12,7 @@ for(const file of tracked){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 // New product files are explicit, so staging also works before the first commit.
-for(const file of ['workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
+for(const file of ['adapters/langgraph/preflight.py','adapters/shared/cli-interface.mjs','workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('dist',path.join(out,'dist'),{recursive:true});

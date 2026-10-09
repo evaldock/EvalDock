@@ -104,6 +104,11 @@ async def _materialize_graph_async(value: Any, config: dict[str, Any]) -> tuple[
             context = value
             value = sync_enter()
     if not any(callable(getattr(value, name, None)) for name in GRAPH_METHODS):
+        if context is not None:
+            if hasattr(context, "__aexit__"):
+                await context.__aexit__(None, None, None)
+            else:
+                context.__exit__(None, None, None)
         raise TypeError("graph factory must return an object with stream, astream, astream_events, invoke or ainvoke")
     return value, context
 
