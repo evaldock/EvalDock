@@ -13,5 +13,5 @@ export async function piLaunch(target,inspection,home,{mode='json',env={}}={}) {
     await writeFile(path.join(policyDir,'config.json'),JSON.stringify({permission:{'*':'allow'},yoloMode:true,permissionReviewLog:true}),{mode:0o600});
   }
   const extensions=inspection.extensions.filter(e=>e.enabled).flatMap(e=>e.entries.map(entry=>path.resolve(e.path,entry)));
-  return {command:process.execPath,args:[target.executable,'--mode',mode,...mode==='json'?['--print']:[],'--no-session','--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files','--provider','deepseek-evaldock','--model',model,'--thinking','off',...extensions.flatMap(x=>['--extension',x])],env:{...env,HOME:home,PI_CODING_AGENT_DIR:agentHome,PI_OFFLINE:'1'}};
+  return {command:process.execPath,args:[target.executable,'--mode',mode,...mode==='json'?['--print']:[],'--no-session','--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files','--provider','deepseek-evaldock','--model',model,'--thinking','off',...extensions.flatMap(x=>['--extension',x])],env:{...env,...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{}),HOME:home,PI_CODING_AGENT_DIR:agentHome,PI_OFFLINE:'1'}};
 }

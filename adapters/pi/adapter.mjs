@@ -24,7 +24,7 @@ export function piEvent(row,capture){
 export async function inspectPi(target){
   const status={agentKind:'pi',name:target.name,version:null,installRoot:target.sourceRoot,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'PI_JSON_STREAM',permissionPreset:target.permissionPreset??'PI_DEFAULT_TOOLS',toolSchemas:['read','bash','edit','write'].map(name=>({name,source:'PI_BUILTIN_DECLARATION'})),components:[],limitations:['观测 Pi JSON 事件流；内部推理、Extension 内部 hook 与未暴露事件不推断。','只投递文本与工作目录文件；不自动重置全局系统和账号。','使用独立 Home 与会话，关闭自动发现；仅加载明确选中的 Extension。']};
   try{
-    const pkg=JSON.parse(await readFile(path.join(target.sourceRoot,'packages/coding-agent/package.json'),'utf8'));
+    const pkg=JSON.parse(await readFile(path.join(target.packageRoot??path.join(target.sourceRoot,'packages/coding-agent'),'package.json'),'utf8'));
     await access(target.executable);status.version=pkg.version;status.executionReady=true;status.probeReady=true;
     status.extensions=[];
     for(const item of target.extensionCatalog??[]){
