@@ -3,11 +3,11 @@ import {promisify} from 'node:util';
 import {normalizedEvent} from './capture.mjs';
 import {staticInfo} from './registry.mjs';
 const exec=promisify(execFile);
-export function createOfficeAdapter(target,{app,bundle,version,port,Desktop,run,limitations,workspaceDescription}){
+export function createOfficeAdapter(target,{app,bundle,version,port,Desktop,run,limitations,workspaceDescription},{execCommand=exec,spawnProcess=spawn}={}){
   const inspect=async()=>{
     const status={agentKind:target.kind,name:target.name,environment:'macOS',installRoot:app,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'DESKTOP_EVENT_PUSH',permissionPreset:'APPLICATION_DEFAULT',components:[],toolSchemas:[],limitations,checkedAt:new Date().toISOString()};let desktop;
     try{
-      const info=JSON.parse((await exec('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000})).stdout);status.version=info.CFBundleShortVersionString;
+      const info=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000})).stdout);status.version=info.CFBundleShortVersionString;
       if(info.CFBundleIdentifier!==bundle||status.version!==version){status.status='INCOMPATIBLE';status.reasonCode='AGENT_VERSION_UNVERIFIED';return status;}
       status.status='NOT_CONNECTED';desktop=await Desktop.connect();status.executionReady=true;status.probeReady=true;
       const authenticated=await desktop.authenticated();status.evaluationReady=authenticated;status.status=authenticated?'READY':'LOGIN_REQUIRED';if(!authenticated)status.reasonCode='AGENT_LOGIN_REQUIRED';
@@ -25,7 +25,8 @@ export function createOfficeAdapter(target,{app,bundle,version,port,Desktop,run,
     async launch(){
       const s=await inspect();if(s.probeReady)return s;if(s.status==='INCOMPATIBLE'||s.status==='NOT_INSTALLED')throw Error(s.reasonCode);
       const executable=app+'/Contents/MacOS/'+app.split('/').at(-1).replace(/\.app$/,'');
-      const child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+port],{detached:true,stdio:'ignore'});
+      const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+      const child=spawnProcess(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+port],{detached:true,stdio:'ignore',env});
       await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',()=>reject(Error('AGENT_LAUNCH_FAILED')));});child.unref();return {status:'LAUNCH_REQUESTED'};
     },
   };

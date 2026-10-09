@@ -80,3 +80,14 @@ test('Qwen projected patches merge snapshots and retain final answer after empty
  push([{type:'set-current-text',currentTextAcc:'Final answer'}]);push([{type:'append-parts',parts:[{type:'text',text:'Final answer'}]},{type:'set-current-text',currentTextAcc:''}]);handlers.onChatStreamComplete({subChatId:'owned'});
  const c=ctx.window.__evaldockQwenSessions.owned;await c.wait;const out=c.extract();assert.equal(out.final,'Final answer');assert.equal(out.queue.length,2);assert.ok(out.duplicates>90);
 });
+
+test('office launch does not inherit the desktop server Node mode',async()=>{
+ const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');
+ const {EventEmitter}=await import('node:events');
+ const previous=process.env.ELECTRON_RUN_AS_NODE;process.env.ELECTRON_RUN_AS_NODE='1';
+ try{
+  let options;
+  const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1',port:18492,Desktop:{connect:async()=>{throw Error('AGENT_NOT_CONNECTED');}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1'})}),spawnProcess:(file,args,opts)=>{options=opts;const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;}});
+  await adapter.launch();assert.ok(options.env);assert.equal(options.env.ELECTRON_RUN_AS_NODE,undefined);assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1');
+ }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
+});
