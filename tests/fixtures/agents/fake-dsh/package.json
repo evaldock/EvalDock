@@ -1,0 +1,9 @@
+{
+  "name": "@evaldock/fixture-dsh",
+  "version": "0.1.1-rc.2",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "dsh": "./fake-dsh.mjs"
+  }
+}

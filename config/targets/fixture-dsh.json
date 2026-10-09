@@ -1,0 +1,10 @@
+{
+  "schema": "evaldock.mvp.target-descriptor/v1",
+  "targetId": "fixture.attention-agent",
+  "targetType": "FULL_AGENT",
+  "sourceRoot": "../../tests/fixtures/agents/fake-dsh",
+  "dshExecutable": "fake-dsh.mjs",
+  "dshHome": ".dsh",
+  "profile": "fixture-attention",
+  "targetIdentity": "fixture-agent"
+}

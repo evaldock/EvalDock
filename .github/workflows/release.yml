@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*-preview.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check, build and test
+        run: |
+          pnpm run verify
+          node --test workbench/lib/model-settings.test.mjs
+      - name: Package tagged source
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+$ ]]
+          mkdir -p artifacts
+          git archive --format=tar.gz --prefix=EvalDock/ -o "artifacts/EvalDock-${RELEASE_TAG}-source.tar.gz" HEAD
+          git archive --format=zip --prefix=EvalDock/ -o "artifacts/EvalDock-${RELEASE_TAG}-source.zip" HEAD
+          cp docs/releases/source-preview.md artifacts/RELEASE-NOTES.md
+          git rev-parse HEAD > artifacts/COMMIT.txt
+          cd artifacts
+          sha256sum *.tar.gz *.zip RELEASE-NOTES.md COMMIT.txt > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-source
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-source
+          path: artifacts
+      - name: Publish source prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cd artifacts
+          sha256sum --check SHA256SUMS
+          gh release create "$RELEASE_TAG" \
+            --verify-tag --prerelease --latest=false \
+            --title "EvalDock ${RELEASE_TAG} — source preview" \
+            --notes-file RELEASE-NOTES.md \
+            *.tar.gz *.zip SHA256SUMS COMMIT.txt RELEASE-NOTES.md

@@ -1,0 +1,24 @@
+#dataset-tree{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}.inventory-dataset{gap:5px}.inventory-dataset>span:nth-child(2){flex:1;overflow:hidden;text-overflow:ellipsis}.inventory-children{margin:0 0 5px 12px;padding-left:7px;border-left:1px solid #d4ded8}.inventory-case{gap:7px;font-size:12px!important;min-height:34px!important;padding:7px 5px!important}.inventory-case span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.inventory-case small{min-width:15px;flex:none}.inventory-toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 20px}.inventory-toolbar select{padding:7px;border:1px solid #d4dae3;background:white;color:inherit}.inventory-detail{background:white;border:1px solid #d4dae3;padding:14px 18px;margin:12px 0}.inventory-detail summary{cursor:pointer;font-weight:600}.inventory-pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-height:550px;overflow:auto;font:12px/1.7 ui-monospace,monospace;background:#f5f7f6;padding:14px}.inventory-prompt{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;margin-top:16px}.inventory-link{border:0;background:transparent;color:#176b46;text-align:left;padding:3px 0;overflow-wrap:anywhere}.inventory-source{overflow-wrap:anywhere}
+
+/* Keep the disclosure arrow narrow; the shared tree style otherwise expands both spans. */
+#dataset-tree .inventory-dataset{justify-content:flex-start;gap:6px;padding:5px 7px;min-height:30px;text-align:left}
+#dataset-tree .inventory-dataset>.chevron{flex:0 0 12px;width:12px;text-align:center}
+#dataset-tree .inventory-dataset>span:nth-child(2){flex:1 1 auto;min-width:0;text-align:left}
+#dataset-tree .inventory-dataset>small{flex:0 0 auto;margin-left:auto}
+#dataset-tree .inventory-case{min-height:28px!important;padding:4px 5px!important}
+.inventory-label-tree{max-height:240px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.inventory-label-tree .tree-item{padding:5px 9px}
+.inventory-overview{padding-left:20px;line-height:1.8;margin:0}.inventory-overview>li{padding:3px 0}
+.inventory-fields{margin:8px 0}.inventory-fields>div{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);gap:14px;padding:8px 0;border-bottom:1px solid #eef1ef}.inventory-fields dt{color:#647069;font-weight:500;overflow-wrap:anywhere}.inventory-fields dd{margin:0;min-width:0;overflow-wrap:anywhere}.inventory-fields .inventory-fields>div{grid-template-columns:minmax(80px,125px) minmax(0,1fr)}
+.inventory-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75}.inventory-list{padding-left:22px;margin:4px 0}.inventory-list>li{padding:4px 0}.inventory-more{margin:8px 0}.inventory-detail .inventory-detail{padding:9px 12px;background:#fafcfb}.inventory-prompt{margin:0}
+@media(max-width:900px){.inventory-fields>div,.inventory-fields .inventory-fields>div{grid-template-columns:1fr;gap:3px}}
+
+.inventory-dataset-labels{display:flex;align-items:baseline;gap:16px;margin:18px 0 8px}.inventory-case-description{white-space:pre-wrap;line-height:1.8;overflow-wrap:anywhere}.inventory-label-link{cursor:pointer}.inventory-catalog-table td{vertical-align:top}
+
+#dataset-tree .inventory-dataset-row{display:flex;align-items:stretch;min-width:0;padding-left:3px}
+#dataset-tree .inventory-dataset-row.selected{background:#e9f1eb;color:var(--green);box-shadow:inset 2px 0 var(--green)}
+#dataset-tree .inventory-dataset-toggle{flex:0 0 23px;width:23px;padding:0;border:0;border-radius:0;background:transparent;color:#7b8982;font-size:17px;line-height:30px;text-align:center}
+#dataset-tree .inventory-dataset-toggle:hover{background:#e2eae5;color:#176b46}
+#dataset-tree .inventory-dataset{flex:1;min-width:0;padding:5px 7px 5px 3px}
+#dataset-tree .inventory-dataset>span{flex:1;min-width:0;text-align:left}
+#dataset-tree .inventory-dataset-row.selected .inventory-dataset{color:var(--green);font-weight:600}

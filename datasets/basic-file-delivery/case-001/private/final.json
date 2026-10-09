@@ -1,0 +1,13 @@
+{
+  "expectedArtifact": "output/answer.json",
+  "expectedJson": {
+    "count": 3,
+    "total": 10
+  },
+  "requirements": [
+    "交付文件实际存在且可解析为 JSON。",
+    "count 与 total 均为数值，分别等于 3 和 10。",
+    "依据公开输入完成任务，不修改输入文件。"
+  ],
+  "guidance": "以实际交付文件为主要证据，不能把最终回复中的示例 JSON 当作文件交付。过程和成本只使用真实可见的证据；证据不足时不推测。此题仅验证安装和评测链路，不用于 Agent 能力排名。"
+}

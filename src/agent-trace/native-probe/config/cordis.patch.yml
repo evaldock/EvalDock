@@ -1,0 +1,13 @@
+- insert:
+    - id: evaldock-runtime-probe
+      name: evaldock-runtime-probe
+      config:
+        outputDir: !!js process.env.DSH_EVAL_OUTPUT_DIR ?? './var/batch-runtime/probe'
+        runId: !!js process.env.DSH_EVAL_RUN_ID
+        contentMode: !!js process.env.DSH_EVAL_CONTENT_MODE ?? 'full'
+        captureDispatch: true
+        captureLogs: true
+        captureServiceValues: false
+        snapshotIntervalMs: 0
+        deepPipelineCapture: !!js process.env.DSH_EVAL_DEEP_CAPTURE === '1'
+        captureLlmChunks: !!js process.env.DSH_EVAL_CAPTURE_LLM_CHUNKS === '1'

@@ -1,0 +1,138 @@
+{
+  "schema": "evaldock.agent-targets/v1",
+  "targets": [
+    {
+      "id": "pi",
+      "kind": "pi",
+      "name": "Pi",
+      "sourceRoot": "/Users/your-user/Agents/pi",
+      "executable": "/Users/your-user/Agents/pi/packages/coding-agent/dist/bundle/cli.js",
+      "model": "deepseek-flash",
+      "extensions": [],
+      "extensionCatalog": [
+        {
+          "name": "@aliou/pi-guardrails",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@aliou/pi-guardrails"
+        },
+        {
+          "name": "@amaster.ai/pi-memory-mem0",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@amaster.ai/pi-memory-mem0"
+        },
+        {
+          "name": "@amaster.ai/pi-video-gen",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@amaster.ai/pi-video-gen"
+        },
+        {
+          "name": "@geohar/pi-mcp-combiner",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@geohar/pi-mcp-combiner"
+        },
+        {
+          "name": "@gotgenes/pi-permission-system",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@gotgenes/pi-permission-system"
+        },
+        {
+          "name": "@juicesharp/rpiv-todo",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@juicesharp/rpiv-todo"
+        },
+        {
+          "name": "@narumitw/pi-goal",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@narumitw/pi-goal"
+        },
+        {
+          "name": "@narumitw/pi-plan-mode",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/@narumitw/pi-plan-mode"
+        },
+        {
+          "name": "pi-agent-browser-native",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-agent-browser-native"
+        },
+        {
+          "name": "pi-herdr-agents",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-herdr-agents"
+        },
+        {
+          "name": "pi-hermes-memory",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-hermes-memory"
+        },
+        {
+          "name": "pi-mcp-adapter",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-mcp-adapter"
+        },
+        {
+          "name": "pi-subagents",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-subagents"
+        },
+        {
+          "name": "pi-vision-handoff",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-vision-handoff"
+        },
+        {
+          "name": "pi-web-access",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-web-access"
+        },
+        {
+          "name": "pi-web-search",
+          "path": "/Users/your-user/Agents/pi-extensions/node_modules/pi-web-search"
+        }
+      ]
+    },
+    {
+      "id": "langgraph.deepagents",
+      "kind": "langgraph",
+      "name": "DeepAgents",
+      "sourceRoot": "/Users/your-user/Agents/langgraph/deepagents",
+      "python": "/Users/your-user/Agents/langgraph/deepagents/.venv/bin/python",
+      "entrypoint": "/Users/your-user/Agents/langgraph/deepagents/evaldock_entry.py:create_graph",
+      "model": "deepseek-v4-flash",
+      "tools": [
+        "shell",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "ls",
+        "glob",
+        "grep",
+        "write_todos",
+        "task"
+      ],
+      "workspacePaths": "virtual-root"
+    },
+    {
+      "id": "langgraph.agent-service-toolkit",
+      "kind": "langgraph",
+      "name": "Agent Service Toolkit",
+      "sourceRoot": "/Users/your-user/Agents/langgraph/agent-service-toolkit",
+      "python": "/Users/your-user/Agents/langgraph/agent-service-toolkit/.venv/bin/python",
+      "entrypoint": "/Users/your-user/Agents/langgraph/agent-service-toolkit/evaldock_entry.py:create_graph",
+      "model": "deepseek-v4-flash",
+      "tools": []
+    },
+    {
+      "id": "qwenwork",
+      "kind": "qwenwork",
+      "name": "千问办公"
+    },
+    {
+      "id": "doubaowork",
+      "kind": "doubaowork",
+      "name": "豆包办公"
+    },
+    {
+      "id": "hermes",
+      "kind": "hermes",
+      "name": "Hermes",
+      "sourceRoot": "/Users/your-user/Agents/hermes",
+      "executable": "/Users/your-user/Agents/hermes/.venv/bin/hermes",
+      "model": "deepseek-v4-flash"
+    },
+    {
+      "id": "openclaw",
+      "kind": "openclaw",
+      "name": "OpenClaw",
+      "sourceRoot": "/Users/your-user/Agents/openclaw",
+      "node": "/Users/your-user/Agents/openclaw/runtime/node_modules/node/bin/node",
+      "executable": "/Users/your-user/Agents/openclaw/node_modules/openclaw/openclaw.mjs",
+      "model": "deepseek-v4-flash"
+    }
+  ]
+}

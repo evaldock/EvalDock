@@ -1,0 +1,58 @@
+node_modules/
+dist/
+src/agent-trace/native-probe/lib/
+var/
+*.tsbuildinfo
+.DS_Store
+
+# Local document/presentation generation workspaces and exported artifacts
+.codex-build/
+.codex-finalizer/
+outputs/
+
+# VM-local caches, tool preferences, and synchronization backups
+.pnpm-store/
+.codex-sync-backups/
+.claude/settings.local.json
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Mutable benchmark environment data (prepared locally)
+/environments/tau-bench/data/
+/environments/tau2-bench/data/
+
+.evaldock/
+.dsh-project-memory/
+workbench/design-prototypes/runtime-details/
+workbench/design-prototypes/reports/
+
+# Local state, documentation and backups excluded from publication
+.dsheval/
+/docs-simple/
+/Backups/
+/workbench/design-prototypes/live-observation.json
+
+# Credentials and local virtual environments must never be published
+/.ssh/
+/.dsh/
+/secrets/
+/credentials/
+.venv/
+venv/
+
+# User-owned Agent paths and release artifacts
+/config/agents.json
+artifacts/
+
+# Reviewed public downloads, imported runtime tasks and private evaluator bundles
+/datasets/*
+!/datasets/catalog.md
+!/datasets/README.md
+!/datasets/basic-file-delivery/
+/environments/*
+!/environments/macos.json
+/workbench/design-prototypes/question-inventory/cases/

@@ -1,0 +1,43 @@
+{
+  "schema": "evaldock.label/v2",
+  "version": "3.0.0",
+  "labelId": "label.efficiency-cost/v1",
+  "title": "efficiency.cost",
+  "judge": {
+    "modelRole": "你是 EvalDock 的逐标签评测 Judge，负责评价被测 Agent 的 token 用量和使用时间。",
+    "instructions": [
+      "结合本题参考与本标签五条要求，综合给出 0–100 分（最多两位小数），不逐项机械加权；未涉及的要求不扣分，也不要求额外动作。",
+      "Agent 行为只依据可见 trace；参考答案不是完成证据。证据不足返回 UNASSESSABLE 和 null，有证据的失败正常给低分。",
+      "只输出指定 JSON，简短说明主要得分与扣分依据，并引用真实证据 ID。"
+    ]
+  },
+  "scoringStandard": {
+    "format": "agent_label_scoring_standard",
+    "version": "3.0",
+    "label": "efficiency.cost",
+    "title": "Token 用量与使用时间",
+    "scoring_scale": {
+      "min": 0,
+      "max": 100,
+      "decimal_places": 2
+    },
+    "sections": [
+      {
+        "heading": "五条评分要求",
+        "content": [
+          "依据运行时真实 token/usage 判断必要消耗与浪费；不以字符数、trace 大小或 Agent 自述估算。",
+          "依据实际执行时长判断等待是否必要；不将排队、Planner、Judge 或采集窗口等同于 Agent 执行耗时。",
+          "对重复快照、镜像及累计用量去重，区分输入、输出、缓存等口径；并行时长不简单相加。",
+          "结合任务复杂度与完成质量判断成本是否合理，不设统一 token/秒数门槛；快速失败不算高效率。",
+          "只有一类成本证据时说明评分范围，两类都不足则不评分；未知不当作零，不虚构基线或完整成本。"
+        ]
+      },
+      {
+        "heading": "分数参考与满分条件",
+        "content": [
+          "0–59：未完成或有明显缺陷；60–74：核心基本完成，仍有明显不足；75–89：完成良好，有少量可指出的不足；90–99：完成充分、可靠且验证扎实。100：五条中全部适用要求均高质量满足，关键结果及相关边界有直接可复核证据，无实质缺陷。普通成功不自动满分；分数按证据判断，不为满足分布而抬分或压分。"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "rubric": "Implement scaled dot-product attention using PyTorch and demonstrate execution.",
+  "criteria": [
+    "QK^T/sqrt(dk)",
+    "softmax",
+    "weights multiplied by V"
+  ],
+  "answer": null
+}

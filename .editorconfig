@@ -1,0 +1,17 @@
+# 与仓库现有代码风格保持一致：LF 换行、2 空格缩进、UTF-8、文件末尾保留换行。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Markdown 用行尾两个空格表示换行，不能裁剪。
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
