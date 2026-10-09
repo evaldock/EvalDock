@@ -1,0 +1,11 @@
+const fs=require('node:fs');
+const path=require('node:path');
+module.exports=async function verifyDesktopPackage(context){
+  const runtime=path.join(context.appOutDir,'EvalDock.app/Contents/Resources/runtime');
+  for(const relative of ['desktop/server.mjs','workbench/control-server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/product-pages.js','workbench/lib/app-summary.mjs','workbench/lib/agent-discovery.mjs','dist/src/datasets/loader.js','node_modules/typescript/lib/typescript.js','node_modules/@deepseek-ai/schemastery/lib/index.mjs','datasets/catalog.md']){
+    if(!fs.existsSync(path.join(runtime,relative)))throw Error('Desktop package is missing '+relative);
+  }
+  for(const relative of ['var','config/agents.json','.env']){
+    if(fs.existsSync(path.join(runtime,relative)))throw Error('Desktop package contains user state: '+relative);
+  }
+};
