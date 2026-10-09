@@ -1,4 +1,8 @@
 import {ModelSettings} from './lib/model-settings.mjs';
+import {appSummary} from './lib/app-summary.mjs';
+import {AgentDiscovery} from './lib/agent-discovery.mjs';
+import {loadTargets} from '../adapters/shared/registry.mjs';
+import {atomic as saveDiscoveryConfig} from '../adapters/shared/evaluation.mjs';
 import {projectPaths} from './lib/paths.mjs';
 import {spawn as spawnLiveObserver} from 'node:child_process';
 import http from 'node:http';
@@ -15,13 +19,14 @@ import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-confi
 import {confined,token} from './lib/files.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const json=(res,status,value)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
-export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers}={}){
+export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService}={}){
   const control=controller??new DshControl(root);if(!controller)await control.init();
   const workbuddy=workbuddyController??new WorkBuddyControl({root});if(!workbuddyController)await workbuddy.init();
   const agents=agentControllers??await initializeAgentControllers(root);
   const others=()=>[workbuddy,...Object.values(agents)];
   const modelSettings=new ModelSettings({controllers:[control,...others()]});await modelSettings.init();
   const pendingMutations=new Set();
+  const discovery=discoveryService??new AgentDiscovery();
   const csrf=randomBytes(32).toString('hex'),preview=path.join(root,'workbench/design-prototypes');
   const server=http.createServer(async(req,res)=>{
     try{
@@ -29,6 +34,8 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
       if(!hosts.includes(req.headers.host)||req.headers.origin&&!hosts.map(h=>'http://'+h).includes(req.headers.origin)||req.headers['sec-fetch-site']==='cross-site'){json(res,403,{error:'请求来源不允许'});return;}
       const u=new URL(req.url,'http://'+req.headers.host);
       if(u.pathname.startsWith('/api/control/')){
+        if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}
+        if(req.method==='GET'&&u.pathname==='/api/control/app'){json(res,200,{...await appSummary({control,workbuddy,agents}),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/model-settings'){json(res,200,{settings:await modelSettings.get(),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/evaluation-catalog'){json(res,200,await evaluationCatalog(root));return;}
         const agentRoute=u.pathname.match(/^\/api\/control\/(pi|langgraph|qwenwork|doubaowork|hermes|openclaw)\/status$/);
@@ -61,6 +68,24 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           let input;try{input=JSON.parse(raw);}catch{json(res,400,{error:'无效 JSON'});return;}
           if(!input||typeof input!=='object'||Array.isArray(input)){json(res,400,{error:'无效参数'});return;}
           const route=u.pathname.slice('/api/control/'.length);
+          if(route==='discovery/scan'){
+            if(Object.keys(input).length)throw Error('扫描不接受路径或命令参数');
+            json(res,200,await discovery.scan(true));return;
+          }
+          if(route==='discovery/connect'){
+            if(Object.keys(input).some(k=>k!=='id')||typeof input.id!=='string')throw Error('请选择一个扫描结果');
+            if(pendingMutations.size||Object.values(agents).some(c=>c.active))throw Error('请等待当前操作或评测完成后接入');
+            pendingMutations.add('discovery');
+            try{
+              const match=(await discovery.scan(true)).agents.find(a=>a.id===input.id);
+              if(!match?.target)throw Error('安装已变化或尚不能自动接入，请重新扫描');
+              const targets=await loadTargets(root),target={...match.target,id:match.target.id+'-'+match.id};
+              const existing=targets.find(t=>t.id===target.id||t.kind===target.kind&&(target.executable?t.executable===target.executable:!t.executable));
+              if(!existing)await saveDiscoveryConfig(path.join(root,'config/agents.json'),{schema:'evaldock.agent-targets/v1',targets:[...targets,target]});
+              await agents[target.kind].refreshTargets();
+              json(res,200,{ok:true,targetId:existing?.id??target.id});return;
+            }finally{pendingMutations.delete('discovery');}
+          }
           if(route==='model-settings'){try{json(res,200,{ok:true,settings:await modelSettings.save(input)});}catch(e){json(res,e.statusCode??500,{error:e.statusCode?e.message:'保存配置失败，请检查服务端文件权限或磁盘空间'});}return;}
           const runtimeMatch=route.match(/^(pi|langgraph|qwenwork|doubaowork|hermes|openclaw)\/(run|validate|cancel|extensions|preflight|open)$/);
           const fields=runtimeMatch?({open:['targetId'],run:['targetId','evaluationConfig'],validate:['targetId','datasetCount','caseCount','datasetIds'],cancel:['id'],extensions:['targetId','extensions'],preflight:['targetId','extensions']}[runtimeMatch[2]]):{preflight:['revision','plugins'],service:['action'],plugins:['plugins','revision'],run:['datasetCount','caseCount','revision','allDatasets','casesPerDataset','evaluationConfig'],cancel:['id'],'session-cancel':['sessionId'],'workbuddy/validate':['datasetCount','caseCount','datasetIds'],'workbuddy/run':['evaluationConfig'],'workbuddy/cancel':['id'],'workbuddy/open':[],'workbuddy/recover':[]}[route];
@@ -69,6 +94,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           if(input.evaluationConfig!==undefined)input.evaluationConfig=await validateEvaluationConfig(root,input.evaluationConfig);
           // Each controller owns one active run. Serialize its mutations without blocking independent Agents.
           const owner=runtimeMatch?runtimeMatch[1]:route.startsWith('workbuddy/')?'workbuddy':'dsh';
+          if(pendingMutations.has('discovery')){json(res,409,{error:'正在接入 Agent，请稍后重试'});return;}
           if(pendingMutations.has(owner)){json(res,409,{error:'该 Agent 有操作正在处理，请稍后重试'});return;}
           pendingMutations.add(owner);
           try{

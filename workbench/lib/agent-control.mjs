@@ -31,6 +31,17 @@ export class AgentControl {
     this.results=new ControlResults(this.root);await this.jobs.init();
   }
   get active(){return this.starting||!!this.jobs?.children.size;}
+  async refreshTargets(){
+    if(this.active)throw Error('请等待该 Agent 的评测结束后接入');
+    const state=path.join(projectPaths(this.root).workbench,this.kind+'-control');
+    const targets=(await loadTargets(this.root)).filter(t=>t.kind===this.kind),jobs=[];
+    for(const target of targets){
+      const descriptor=path.join(state,target.id+'.json');
+      await atomic(descriptor,{agentKind:this.kind,targetId:target.id});
+      jobs.push({id:target.id,name:target.name,config:path.join(state,'config.json'),descriptor,fixture:false});
+    }
+    this.targets=targets;this.jobs.targets=jobs;this.cacheUntil=0;
+  }
   async pendingCleanup(){
     const targets=new Set();
     for(const job of this.jobs?.jobs.values()??[]){
