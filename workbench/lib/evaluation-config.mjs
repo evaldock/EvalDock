@@ -14,9 +14,9 @@ export async function evaluationCatalog(root){
     const slug=String(item.datasetId).replace(/^dataset\./,'').replace(/\/v[1-9][0-9]*$/,'');
     const cases=await Promise.all(files.map(async(file,index)=>{
       const question=JSON.parse(await readFile(file,'utf8'));
-      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160)};
+      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160),version:String(question.version??''),instructions:String(question.task?.instructions??'').slice(0,12000),timeoutSeconds:question.environment?.timeoutSeconds,dependencies:(question.environment?.dependencies??[]).map(d=>typeof d==='string'?d:String(d.name??d.id??'外部依赖'))};
     }));
-    datasets.push({id:item.datasetId,name:item.name,description:item.description,cases});
+    datasets.push({id:item.datasetId,name:item.name,description:item.description,labelIds:item.labelIds,cases});
   }
   return {schema:'evaldock.workbench.evaluation-catalog/v1',datasets};
 }
