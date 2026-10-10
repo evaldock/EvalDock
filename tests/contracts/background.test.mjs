@@ -88,7 +88,7 @@ test('lightweight activity revision is stable while idle and changes with job st
  assert.deepEqual(await control.activity(),after);
 });
 
-test('collector keeps three simultaneous Case histories attached to the correct session',async t=>{
+for(const failedSession of [null,'session-2'])test(`collector keeps concurrent histories isolated (${failedSession?'one history fails':'all histories succeed'})`,async t=>{
  const root=await temporary(t),currentCases=[1,2,3].map(ordinal=>({ordinal,caseId:'case-'+ordinal})),queried=[];
  const job={runId:'parallel',targetId:'agent',state:'RUNNING',events:[],progress:{active:true,current:currentCases[0],currentCases,total:3}};
  const server=http.createServer(async(req,res)=>{
@@ -97,6 +97,7 @@ test('collector keeps three simultaneous Case histories attached to the correct 
   if(req.url==='/api/control/status')return res.end(JSON.stringify({jobs:[job],endpoint:'http://127.0.0.1:'+server.address().port,activeSessions:currentCases.map(c=>({id:'session-'+c.ordinal,title:c.caseId,cwd:`/var/parallel/parallel.c${c.ordinal}/workspaces`}))}));
   if(req.url==='/api/session.history'){
    let body='';for await(const chunk of req)body+=chunk;const id=JSON.parse(body).payload.sessionId;queried.push(id);
+   if(id===failedSession){res.statusCode=503;return res.end('{}');}
    return res.end(JSON.stringify({result:{ok:true,value:{events:[{type:'assistant/message',seq:1,data:{message:{content:[{type:'text',text:'answer from '+id}]}}}]}}}));
   }
   res.statusCode=404;res.end('{}');
@@ -104,9 +105,11 @@ test('collector keeps three simultaneous Case histories attached to the correct 
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
  await startCollector({root,home:root,port:server.address().port,once:true});
  const value=JSON.parse(await readFile(path.join(root,'var/workbench/cache/live-observation.json'),'utf8'));
+ assert.equal(value.liveCases.length,3);
+ for(const c of value.liveCases)assert.equal(c.error,c.sessionId===failedSession?'DSH_HTTP_503':null,`session ${c.sessionId}: ${c.error}`);
  assert.deepEqual(queried.sort(),['session-1','session-2','session-3']);
- assert.equal(value.liveCases.length,3);assert.equal(value.updates[0].run.cases.length,3);
- for(const c of value.liveCases){assert.equal(c.sessionId,'session-'+c.ordinal);assert.equal(c.entries[0].text,'answer from '+c.sessionId);}
+ assert.equal(value.updates[0].run.cases.length,3);
+ for(const c of value.liveCases){assert.equal(c.sessionId,'session-'+c.ordinal);if(c.sessionId===failedSession){assert.deepEqual(c.entries,[]);assert.equal(c.phase,'实时观测暂不可用');}else assert.equal(c.entries[0].text,'answer from '+c.sessionId);}
  const writer=observationWriter(path.join(root,'var/workbench/cache/live-observation.json'));
  assert.equal(await writer({...value,observedAt:Date.now()+100,live:{...value.live,observedAt:Date.now()+100},liveCases:value.liveCases.map(c=>({...c,observedAt:Date.now()+100}))}),false);
 });
