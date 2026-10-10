@@ -53,3 +53,35 @@ DSH Web、Headless 与共享适配器参加该检查；Headless 使用独立进�
 Headless 的正式合成评测 `compat-headless-e2e-20261010` 通过兼容性准入后，
 在规划阶段因当前安装目录缺少旧流程要求的 `effective-config.json` 停止；
 本轮未完成该目标的 Judge 与报告验收，不能将上述固定检查视为完整链路通过。
+
+## 2026-10-10 扩展版本实测
+
+以下为 Mac mini 独立安装的本地验收索引，原始结果不进入公共仓库。通过项均完成
+v1 兼容性检查，以及 `dataset.basic-file-delivery/v1` Case 0 的执行、Trace、
+两项 Judge 评分和报告；不代表业务题库或所有未来版本均兼容。
+
+| 目标 | 实际版本 | 结论 | 运行索引 |
+| --- | --- | --- | --- |
+| DSH Headless | 0.1.2-rc.1 | 完整通过 | `matrix-dsh-0.1.2-rc.1-v4-regression-20261010` |
+| DSH Headless | 0.2.0-rc.2 | 补齐 v4 归档及工具消息后完整通过 | `matrix-dsh-0.2.0-rc.2-v4-20261010` |
+| Hermes | 0.21.3 | 不兼容：CLI 缺少 `--format`，未进入正式评测 | `matrix-hermes-0.21.3-1791618448380` |
+| Hermes | 0.21.6 | 完整通过 | `matrix-hermes-0.21.6-1791618853260` |
+| DeepAgents | 0.7.16 | 完整通过 | `matrix-deepagents-0.7.16-1791618640122` |
+| DeepAgents | 0.7.23 | 完整通过 | `matrix-deepagents-0.7.23-1791618781599` |
+| LangGraph / Agent Service Toolkit | 1.2.7 | 完整通过 | `matrix-langgraph-1.2.7-1791618841873` |
+| LangGraph / Agent Service Toolkit | 1.2.14 | 完整通过 | `matrix-langgraph-1.2.14-1791618925468` |
+| WorkBuddy | 5.7.7 | 完整通过 | `matrix-workbuddy-5.7.7-1791619118858` |
+| WorkBuddy | 5.5.5 | 环境阻塞：会话 RPC 拒绝，取消与清理未通过 | `matrix-workbuddy-5.5.5-1791619591105` |
+| DSH Headless（现用回归） | 0.1.5-rc.1 | 完整通过 | `matrix-dsh-0.1.5-rc.1-v4-regression-20261010` |
+| WorkBuddy（现用回归） | 5.5.6 | 完整通过 | `matrix-workbuddy-5.5.6-1791619245022` |
+
+Hermes 0.21.6 使用官方标签源码、官方安装戳脚本及 Python 3.14.7；旧版使用
+Python 3.12。安装戳引用已核对的发布提交，不修改协议或伪装其他版本。
+DeepAgents 两版均搭配 LangGraph 1.2.12；框架版本对照则使用相同的 Agent Service
+Toolkit graph。依赖按各版本约束解析并保存锁定清单，因此这些是实际安装组合验证，
+并非严格的单变量实验。Graph 取消验证基于观测到的 graph 活动，不涵盖 Shell 子进程。
+
+WorkBuddy 5.5.5 曾通过文本、两次文件会话及工具证据，但创建取消测试会话时被拒绝；
+重启独立实例后仍有 RPC 失败，不能登记为支持。磁盘不足导致的早期失败也保留，
+不能当作协议不兼容。额外桌面实例已停止，现用安装与用户配置保留。
+本轮不测试千问办公、豆包办公，不包含后台升级或自动编码修复。

@@ -4,9 +4,9 @@ import {Desktop,runSession} from './desktop.mjs';
 import {inspectWorkBuddy} from './status.mjs';
 import {workbuddyTrace} from './evidence.mjs';
 
-export function createWorkBuddyAdapter({inspect=inspectWorkBuddy,driverFactory=()=>Desktop.connect()}={}) {
+export function createWorkBuddyAdapter({appPath,endpoint,targetId='workbuddy',inspect=()=>inspectWorkBuddy({appPath,endpoint}),driverFactory=()=>Desktop.connect({appPath,endpoint})}={}) {
   return {
-    kind:'workbuddy',targetId:'workbuddy',name:'WorkBuddy',supportsAttachments:false,
+    configuration:{appPath,endpoint},kind:'workbuddy',targetId,name:'WorkBuddy',supportsAttachments:false,
     promptRoot:path.join(path.dirname(fileURLToPath(import.meta.url)),'prompts'),
     trace:workbuddyTrace,
     inspect,

@@ -112,13 +112,15 @@ test('headless acceptance requires valid session ownership, sequence and complet
 });
 
 
-test('DSH resolves v3 archives while retaining legacy support and rejecting unsafe sources',async t=>{
+test('DSH resolves v4 then v3 archives while retaining legacy support and rejecting unsafe sources',async t=>{
  const {resolveDshSessionArchive}=await import('../../dist/src/runtime/dsh-session-trace.js');
  const {symlink}=await import('node:fs/promises');const root=await temporary(t);
  const legacy=path.join(root,'session.jsonl.zstd'),current=path.join(root,'session.v3.jsonl.zstd');
  await assert.rejects(resolveDshSessionArchive(legacy),/ARCHIVE_MISSING/);
  await writeFile(legacy,'old');assert.equal(await resolveDshSessionArchive(legacy),legacy);
  await writeFile(current,'current');assert.equal(await resolveDshSessionArchive(legacy),current);
+ const latest=path.join(root,'session.v4.jsonl.zstd');await writeFile(latest,'latest');assert.equal(await resolveDshSessionArchive(legacy),latest);
+ await rm(latest);await symlink(legacy,latest);await assert.rejects(resolveDshSessionArchive(legacy),/ARCHIVE_UNSAFE/);await rm(latest);
  await rm(current);await symlink(legacy,current);await assert.rejects(resolveDshSessionArchive(legacy),/ARCHIVE_UNSAFE/);
 });
 
@@ -158,4 +160,22 @@ test('text-only Graph cancellation waits for actual graph activity after startup
   return {sessionId,queue:[],final:'EVALDOCK_COMPAT_OK',result:{stopReason:'end_turn'},cleanup:'STOPPED'};
  };
  const result=await ensureCompatibility({root,adapter});assert.equal(result.status,'COMPATIBLE');assert.equal(result.checks.at(-1).cancelMode,'OBSERVED_GRAPH_ACTIVITY');
+});
+
+test('DSH v4 tool messages retain result content, error status and call ownership',async()=>{
+ const {captureDshArchive}=await import('../../adapters/compatibility/dsh.mjs');
+ const at=new Date().toISOString();
+ const capture=message=>captureDshArchive({sessionId:'session-v4',jsonl:[
+  {type:'session',version:4,id:'session-v4',cwd:'/synthetic'},
+  {type:'tool/call',seq:0,time:1,data:{callId:'a',name:'read',arguments:{path:'input/challenge.txt'}}},
+  {type:'tool/result',seq:1,time:2,data:{message}},
+  {type:'turn/end',seq:2,time:3,data:{reason:{kind:'completed'}}}
+ ].map(JSON.stringify).join('\n'),result:{terminationKind:'EXITED',startedAt:at,endedAt:at},cleanup:'STOPPED'});
+ const message={role:'tool',source:{kind:'tool',callId:'a'},toolCallId:'a',content:[{type:'text',text:'synthetic-secret'}],isError:false};
+ const good=capture(message);
+ assert.equal(good.error,null);
+ assert.deepEqual(good.queue[1].event.data,{callId:'a',result:message.content,status:'completed'});
+ assert.equal(capture({...message,isError:true}).queue[1].event.data.status,'failed');
+ assert.equal(capture({...message,toolCallId:'foreign'}).error,'AGENT_TOOL_CONTRACT_BROKEN');
+ assert.equal(capture({...message,content:null}).error,'AGENT_TOOL_CONTRACT_BROKEN');
 });

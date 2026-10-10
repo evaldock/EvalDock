@@ -136,9 +136,10 @@ Real validation still requires execution → collection → Judge → report on 
 configured machine. Passing the synthetic suite or the offline mutation tests does
 not certify untested product versions or capability combinations.
 
-DSH accepts both `session.v3.jsonl.zstd` and legacy `session.jsonl.zstd` archives,
-preferring v3 when present. A corrupt current archive never falls back to stale legacy
-evidence. Tool-result message blocks and compacted argument references are resolved
+DSH accepts `session.v4.jsonl.zstd`, `session.v3.jsonl.zstd` and legacy
+`session.jsonl.zstd` archives, preferring the newest known format when present. A corrupt current archive never falls back to stale legacy
+evidence. Both legacy tool-result blocks and v4 tool messages preserve result content,
+error status and call ownership. Compacted argument references are resolved
 before acceptance. The configured DSH home is used consistently for Headless checks
 and formal session-separated runs. HTTP 401/403 from Web is an authentication
 blocker; the checker does not disable authentication or change a running service.

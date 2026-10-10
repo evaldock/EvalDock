@@ -1,16 +1,23 @@
 /** Interface-checked CLI transport to the actual WorkBuddy desktop, not a standalone CodeBuddy process. */
-const endpoint='http://127.0.0.1:18491';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+export function desktopConnection({appPath='/Applications/WorkBuddy.app',endpoint='http://127.0.0.1:18491'}={}){
+ const url=new URL(endpoint);
+ if(url.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!path.isAbsolute(appPath)||!appPath.endsWith('.app'))throw Error('WORKBUDDY_INVALID_ENDPOINT');
+ return {endpoint:url.origin,renderer:pathToFileURL(path.join(appPath,'Contents/Resources/app.asar/renderer/index.html')).href};
+}
 const channels=new Set(['auth:getAccount','session:create','session:sendMessage','session:cancel','session:destroy','session:notifyListenerReady']);
 export class Desktop {
   constructor(ws){this.ws=ws;this.next=0;this.pending=new Map();
     ws.addEventListener('message',event=>{let m;try{m=JSON.parse(event.data);}catch{return;}const p=this.pending.get(m.id);if(!p)return;this.pending.delete(m.id);p.dispose();m.error?p.reject(new Error('WORKBUDDY_TRANSPORT_ERROR')):p.resolve(m.result);});
     ws.addEventListener('close',()=>{for(const p of this.pending.values()){p.dispose();p.reject(new Error('WORKBUDDY_DISCONNECTED'));}this.pending.clear();});
   }
-  static async connect(){
+  static async connect(options){
+    const {endpoint,renderer}=desktopConnection(options);
     let targets;try{const r=await fetch(endpoint+'/json/list',{signal:AbortSignal.timeout(2500)});if(!r.ok)throw Error();targets=await r.json();}catch{throw new Error('WORKBUDDY_NOT_CONNECTED');}
-    const t=targets.find(x=>x.type==='page'&&x.url?.startsWith('file:///Applications/WorkBuddy.app/Contents/Resources/app.asar/renderer/index.html'));
+    const t=targets.find(x=>x.type==='page'&&x.url?.split(/[?#]/,1)[0]===renderer);
     if(!t)throw new Error('WORKBUDDY_WINDOW_NOT_READY');
-    const url=new URL(t.webSocketDebuggerUrl);if(url.hostname!=='127.0.0.1'||url.port!=='18491')throw new Error('WORKBUDDY_INVALID_ENDPOINT');
+    const url=new URL(t.webSocketDebuggerUrl);if(url.protocol!=='ws:'||url.host!==new URL(endpoint).host||url.username||url.password)throw new Error('WORKBUDDY_INVALID_ENDPOINT');
     const ws=new WebSocket(url);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.close();reject(new Error('WORKBUDDY_CONNECT_TIMEOUT'));},3000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('WORKBUDDY_CONNECT_FAILED'));},{once:true});});
     const client=new Desktop(ws);try{await client.checkInterfaces();return client;}catch(e){client.close();throw e;}
   }

@@ -59,6 +59,11 @@ export function captureDshArchive({sessionId,jsonl,truncated=false,result,cleanu
   else if(e.type==='tool/result'){
    const data=expand(e.data);
    if(data.callId&&Object.hasOwn(data,'result'))capture.add(e.type,data);
+   else if(data.message?.role==='tool' && typeof data.message.toolCallId==='string' && data.message.toolCallId.length && Array.isArray(data.message.content)){
+    const message=data.message;
+    if(message.source?.callId!==undefined && message.source.callId!==message.toolCallId)capture.error='AGENT_TOOL_CONTRACT_BROKEN';
+    else capture.add(e.type,{callId:message.toolCallId,result:message.content,status:message.isError?'failed':'completed'});
+   }
    else {
     const blocks=data.message?.content?.filter(b=>b.type==='tool-result')??[];
     if(!blocks.length)capture.error='AGENT_TOOL_CONTRACT_BROKEN';

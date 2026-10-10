@@ -145,10 +145,10 @@ export function dshSessionsToProbeJsonl(input: DshSessionTraceInput): Buffer {
   return Buffer.from(`${envelopes.map((envelope) => JSON.stringify(envelope)).join("\n")}\n`, "utf8");
 }
 
-/** Prefer the current v3 archive; never fall back from a present but corrupt archive. */
+/** Prefer the newest known archive (v4, then v3); never fall back from a present but corrupt archive. */
 export async function resolveDshSessionArchive(archivePath: string): Promise<string> {
   const candidates = path.basename(archivePath) === "session.jsonl.zstd"
-    ? [path.join(path.dirname(archivePath), "session.v3.jsonl.zstd"), archivePath]
+    ? [path.join(path.dirname(archivePath), "session.v4.jsonl.zstd"), path.join(path.dirname(archivePath), "session.v3.jsonl.zstd"), archivePath]
     : [archivePath];
   for (const candidate of candidates) {
     const stat = await lstat(candidate).catch((error: NodeJS.ErrnoException) => {
