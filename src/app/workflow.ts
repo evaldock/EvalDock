@@ -1,3 +1,4 @@
+import {inspectHeadlessInstallation} from "../runtime/headless-inspection.js";
 import {selectAllDatasets} from "../planning/all-datasets.js";
 import { submissionContent, submissionIndex, SUBMISSION_CONTENT_BUDGET_BYTES } from "../all-trace/submission.js";
 /**
@@ -209,6 +210,7 @@ export interface FixtureHooks {
 export interface RunWorkflowInput {
   /** Host-owned compatibility lease checks before execution and before evidence grading. */
   readonly verifyCompatibility?: () => Promise<void>;
+  readonly headlessRuntimeFacts?: {permissionPreset:string;sandboxMode:string};
   readonly cwd: string;
   readonly descriptor: TargetDescriptor;
   readonly labelJudge?: LabelJudge;
@@ -497,7 +499,8 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
     markStep(facts, 1, "RUNNING");
     await save.immutable(services.config, services.config.configId);
     await save.immutable(input.descriptor, input.descriptor.targetId);
-    const effectiveTargetConfig = input.descriptor.webEndpoint ? await inspectWebTarget(input.descriptor) : JSON.parse(await readFile(path.join(input.descriptor.sourceRoot, "effective-config.json"), "utf8")) as JsonObject;
+    if(input.headlessRuntimeFacts){if(!input.verifyCompatibility)throw Error("DSH_COMPATIBILITY_RECEIPT_REQUIRED");await input.verifyCompatibility();}
+    const effectiveTargetConfig = input.descriptor.webEndpoint ? await inspectWebTarget(input.descriptor) : await readFile(path.join(input.descriptor.sourceRoot, "effective-config.json"), "utf8").then(value=>JSON.parse(value) as JsonObject).catch((error:NodeJS.ErrnoException)=>{if(error.code==="ENOENT"&&sessionSeparatedMode)return inspectHeadlessInstallation(input.descriptor,input.headlessRuntimeFacts);throw error;});
     // 将 Target 冻结阶段产生的输入和清单提交为 Artifact，并建立本次 Run 的内存索引。
     const planningArtifactCommit = async (
       request: PlanningArtifactCommitRequest,
@@ -815,7 +818,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
         runId,
         caseId: ids.caseId,
         attemptId: ids.attemptId,
-        ...(input.descriptor.webEndpoint ? {} : {
+        ...(sessionSeparatedMode || input.descriptor.webEndpoint ? {} : {
           sourceDshHome: path.resolve(input.descriptor.sourceRoot, input.descriptor.dshHome),
           profile: input.descriptor.profile,
         }),
@@ -836,7 +839,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
       });
       throw error;
     }
-    const stagedTarget = input.descriptor.webEndpoint ? {stagedExecutablePath:target.dshExecutablePath} : await stageTargetRuntime({
+    const stagedTarget = sessionSeparatedMode || input.descriptor.webEndpoint ? {stagedExecutablePath:target.dshExecutablePath} : await stageTargetRuntime({
       sourceRoot: input.descriptor.sourceRoot,
       executablePath: target.dshExecutablePath,
       expectedExecutableSha256: target.dshEntrypointDigest.value,

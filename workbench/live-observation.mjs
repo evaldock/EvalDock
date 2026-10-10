@@ -1,3 +1,4 @@
+import {authenticateDshWeb,webFetch} from "../dist/src/runtime/web-auth.js";
 import {toolAttribution} from '../dist/src/reporting/tool-attribution.js';
 import {projectPaths} from './lib/paths.mjs';
 import path from 'node:path';
@@ -47,8 +48,10 @@ export function sessionForJob(sessions,job){
 }
 async function json(file){try{return JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code==='ENOENT'||e instanceof SyntaxError)return null;throw e;}}
 async function files(dir){try{return await readdir(dir);}catch(e){if(e.code==='ENOENT')return [];throw e;}}
-async function rpc(endpoint,method,payload){
- const r=await fetch(endpoint+'/api/'+method,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:randomUUID(),method,payload}),signal:AbortSignal.timeout(12000)});
+async function rpc(endpoint,method,payload,home){
+ const request=()=>webFetch(endpoint,'/api/'+method,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:randomUUID(),method,payload}),signal:AbortSignal.timeout(12000)});
+ let r=await request();
+ if(r.status===401){await r.body?.cancel();await authenticateDshWeb(endpoint,path.join(home,'evaldock-control/web/service.log'));r=await request();}
  if(!r.ok)throw new Error('DSH_HTTP_'+r.status);const d=await r.json();if(!d.result?.ok)throw new Error('DSH_RPC_UNAVAILABLE');return d.result.value;
 }
 export async function collectNames(home){
@@ -134,7 +137,7 @@ export async function startCollector({root,port=18767,home=path.join(os.homedir(
      if(session){
       if(value.sessionId!==session.id){value.entries=[];value.lastActivity=null;}
       value.sessionId=session.id;value.sessionTitle=session.title;
-      try{Object.assign(value,projectHistory(await rpc(s.endpoint,'session.history',{sessionId:session.id,maxMessages:2}),value));}
+      try{Object.assign(value,projectHistory(await rpc(s.endpoint,'session.history',{sessionId:session.id,maxMessages:2},home),value));}
       catch(e){value.error=e.message;value.phase='实时观测暂不可用';}
      }
     }

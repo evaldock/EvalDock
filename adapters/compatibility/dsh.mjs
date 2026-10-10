@@ -68,6 +68,9 @@ export function captureDshArchive({sessionId,jsonl,truncated=false,result,cleanu
  }}catch(e){capture.error=e.message;}
  const final=[...events].reverse().find(e=>e.type==='assistant/message');
  capture.finalText((final?.data?.message?.content??[]).filter(p=>p.type==='text').map(p=>p.text).join('\n'));
+ const permission=[...events].reverse().find(e=>e.type==='permission/preset')?.data?.preset;
+ const sandbox=[...events].reverse().find(e=>e.type==='sandbox/mode')?.data?.mode;
+ if(typeof permission==='string'&&typeof sandbox==='string')capture.runtimeFacts={permissionPreset:permission,sandboxMode:sandbox};
  const end=[...events].reverse().find(e=>e.type==='turn/end');
  if(result.terminationKind==='CANCELLED')capture.error??='AGENT_CANCELLED';
  else if(result.terminationKind==='EXITED'&&end?.data?.reason?.kind==='completed')capture.result={stopReason:'end_turn'};

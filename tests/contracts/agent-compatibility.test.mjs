@@ -145,3 +145,17 @@ test('DSH Headless aliases share the profile lease',async()=>{
  const a={kind:'dsh-headless',targetId:'a',configuration:{dshHome:'/synthetic/headless',profile:'headless'}},b={...a,targetId:'b',configuration:{...a.configuration,targetId:'b'}};
  const release=await acquire(a);try{await assert.rejects(acquire(b),/BUSY/);}finally{await release();}
 });
+
+test('text-only Graph cancellation waits for actual graph activity after startup',async t=>{
+ const root=await temporary(t),adapter=fixture();adapter.kind='langgraph';adapter.configuration={tools:[]};
+ adapter.run=async({caseDirectory,onActivity,onSession,signal})=>{
+  const sessionId=path.basename(caseDirectory);await onSession(sessionId);
+  if(sessionId==='cancel'){
+   await new Promise(r=>setTimeout(r,1100));assert.equal(signal.aborted,false);
+   onActivity();assert.equal(signal.aborted,true);
+   return {sessionId,queue:[],seen:1,error:'AGENT_CANCELLED',cleanup:'STOPPED'};
+  }
+  return {sessionId,queue:[],final:'EVALDOCK_COMPAT_OK',result:{stopReason:'end_turn'},cleanup:'STOPPED'};
+ };
+ const result=await ensureCompatibility({root,adapter});assert.equal(result.status,'COMPATIBLE');assert.equal(result.checks.at(-1).cancelMode,'OBSERVED_GRAPH_ACTIVITY');
+});

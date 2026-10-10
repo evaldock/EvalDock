@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      undici:
+        specifier: 7.30.0
+        version: 7.30.0
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: 4.0.1
@@ -2200,8 +2204,7 @@ snapshots:
 
   undici@6.29.0: {}
 
-  undici@7.30.0:
-    optional: true
+  undici@7.30.0: {}
 
   universalify@0.1.2: {}
 

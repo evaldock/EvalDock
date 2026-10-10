@@ -1,3 +1,4 @@
+import {authenticateDshWeb,webFetch} from "../../dist/src/runtime/web-auth.js";
 import {projectPaths} from './paths.mjs';
 import path from 'node:path';
 import {readFile,writeFile,mkdir,rename,stat,realpath,access,readdir} from 'node:fs/promises';
@@ -65,7 +66,9 @@ export class DshControl {
     return {catalog,profile,revision:hash(raw+JSON.stringify(catalog.map(p=>[p.name,p.version])))};
   }
   async rpc(method,payload={}){
-    const r=await fetch(this.descriptor.webEndpoint+'/api/'+method,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:randomUUID(),method,payload}),signal:AbortSignal.timeout(8000)});
+    const request=()=>webFetch(this.descriptor.webEndpoint,'/api/'+method,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:randomUUID(),method,payload}),signal:AbortSignal.timeout(8000)});
+    let r=await request();
+    if(r.status===401){await r.body?.cancel();await authenticateDshWeb(this.descriptor.webEndpoint,path.join(this.descriptor.dshHome,'evaldock-control',this.descriptor.profile,'service.log'));r=await request();}
     const body=await r.json();if(!r.ok||!body.result?.ok)throw new Error('DSH 接口暂不可用');return body.result.value;
   }
   async foreignEval(){

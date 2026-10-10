@@ -69,5 +69,8 @@
     },
     "afterPack": "scripts/verify-desktop-package.cjs"
   },
-  "description": "Local desktop evaluation for agents and plugins"
+  "description": "Local desktop evaluation for agents and plugins",
+  "dependencies": {
+    "undici": "7.30.0"
+  }
 }

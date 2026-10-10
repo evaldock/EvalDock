@@ -35,14 +35,14 @@ export function createLangGraphAdapter(target){
     inspect:()=>inspectLangGraph(target),staticInfo:s=>staticInfo(target,s),
     trace:{kind:'langgraph',sourceType:'LANGGRAPH_PROBE',externalSchema:'evaldock.langgraph.events/v1',normalizeEvent:normalizedEvent,blindSpots:['TOKEN_STREAM_OMITTED','STATE_SNAPSHOTS_OMITTED','ONLY_EXPOSED_GRAPH_EVENTS']},
     async prepare(){const s=await inspectLangGraph(target);if(!s.evaluationReady)throw Error(s.reasonCode);return {env:await loadAgentEnvironment()};},
-    async run({context,caseDirectory,cwd,prompt,deadlineMs,signal,onSession}){
+    async run({context,caseDirectory,cwd,prompt,deadlineMs,signal,onSession,onActivity}){
       const home=path.join(caseDirectory,'runtime-home');await mkdir(home,{recursive:true,mode:0o700});
       const input=path.join(caseDirectory,'agent-input.json');
       await writeFile(input,JSON.stringify({task:prompt}),{mode:0o600});
       const capture=new Capture('langgraph');
       const args=['-u',path.join(here,'runner.py'),'--graph',target.entrypoint,'--input',input,'--thread',capture.sessionId];
       const env={...context.env,HOME:home,PYTHONPATH:path.join(target.sourceRoot,'src'),PYTHONUNBUFFERED:'1',EVALDOCK_WORKSPACE:cwd,DEFAULT_MODEL:target.model??'deepseek-v4-flash',LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',ANONYMIZED_TELEMETRY:'False',USE_FAKE_MODEL:'false'};
-      return runProcess({command:target.python,args,cwd,env,deadlineMs,signal,capture,onEvent:langGraphEvent,onSession});
+      return runProcess({command:target.python,args,cwd,env,deadlineMs,signal,capture,onEvent:(row,c)=>{langGraphEvent(row,c);if(row.type==='node/start')onActivity?.();},onSession});
     },
     dispose(){},
   };

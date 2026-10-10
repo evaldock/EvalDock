@@ -12,7 +12,7 @@ for(const file of tracked){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 // New product files are explicit, so staging also works before the first commit.
-for(const file of ['adapters/compatibility/dsh.mjs','adapters/shared/factory.mjs','adapters/compatibility/contracts.mjs','adapters/compatibility/identity.mjs','adapters/compatibility/store.mjs','adapters/compatibility/check.mjs','adapters/compatibility/cli.mjs','adapters/langgraph/preflight.py','adapters/shared/cli-interface.mjs','workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
+for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility/dsh.mjs','adapters/shared/factory.mjs','adapters/compatibility/contracts.mjs','adapters/compatibility/identity.mjs','adapters/compatibility/store.mjs','adapters/compatibility/check.mjs','adapters/compatibility/cli.mjs','adapters/langgraph/preflight.py','adapters/shared/cli-interface.mjs','workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('dist',path.join(out,'dist'),{recursive:true});
@@ -33,3 +33,5 @@ async function copyDependency(name,from=path.resolve('package.json')){
   for(const dependency of Object.keys(pkg.dependencies??{}))await copyDependency(dependency,manifest);
 }
 await copyDependency('typescript');await copyDependency('@deepseek-ai/schemastery');
+
+await copyDependency('undici');

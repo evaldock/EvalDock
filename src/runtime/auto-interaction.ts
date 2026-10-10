@@ -1,3 +1,5 @@
+import {WebSocket} from "undici";
+import {webFetch,webAuthHeaders} from "./web-auth.js";
 /** Unattended DSH interaction adapter. Uses the real server's answer protocol, not UI clicks. */
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -62,7 +64,7 @@ export function startAutoInteraction(options: AutoInteractionOptions): {
   const processFrame=async(frame:Obj)=>{
   const reply=automaticResponse(frame,options.sessionId);
   if(!reply || handled.has(String(reply.rpcId)))return;
-  const answer=await fetch(url.origin+"/api/respond",{method:"POST",headers:{"content-type":"application/json"},
+  const answer=await webFetch(url.origin,"/api/respond",{method:"POST",headers:{"content-type":"application/json"},
     body:JSON.stringify(reply),signal:AbortSignal.any([signal,AbortSignal.timeout(10000)])});
   if(!answer.ok)throw new Error("DSH_AUTO_RESPONSE_HTTP_"+answer.status);
   const receipt=await answer.json() as Obj;
@@ -88,7 +90,7 @@ export function startAutoInteraction(options: AutoInteractionOptions): {
         const connect = new AbortController();
         const timer = setTimeout(()=>connect.abort(),15000);
         let response: Response;
-        try { response = await fetch(url.origin+"/api/events.mux",{signal:AbortSignal.any([signal,connect.signal])}); }
+        try { response = await webFetch(url.origin,"/api/events.mux",{signal:AbortSignal.any([signal,connect.signal])}); }
         finally { clearTimeout(timer); }
         if(response.status===426){
           await response.body?.cancel();websocket=true;continue;
@@ -129,7 +131,7 @@ export function startAutoInteraction(options: AutoInteractionOptions): {
 export function consumeWebSocket(url:string,signal:AbortSignal,onReady:()=>void,onFrame:(frame:Obj)=>Promise<void>):Promise<void>{
   signal.throwIfAborted();
   return new Promise((resolve,reject)=>{
-    const socket=new WebSocket(url);
+    const socket=new WebSocket(url,{headers:webAuthHeaders(new URL(url).origin.replace(/^ws:/,"http:"))});
     let settled=false,queued=0;
     let pending=Promise.resolve();
     const finish=(error?:Error)=>{

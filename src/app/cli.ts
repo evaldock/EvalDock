@@ -397,6 +397,7 @@ async function executeTargetCommand(
       const summary=await runEvaluationBatch({
         ...workflowInput,
         verifyCompatibility:compatibility.verify,
+        ...(!descriptor.webEndpoint&&compatibility.report.runtimeFacts?{headlessRuntimeFacts:compatibility.report.runtimeFacts}:{}),
         ...(command.selectedCaseId === undefined ? {} : { selectedCaseId: command.selectedCaseId }),
         ...(command.evaluationConfig===undefined?{}:{evaluationConfig:command.evaluationConfig}),
         ...(command.maxCases === undefined ? {} : { maxCases: command.maxCases }),

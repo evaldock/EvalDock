@@ -27,7 +27,7 @@ export async function ensureCompatibility({root,adapter,signal,force=false,requi
     const receipt=await readJSON(receiptFile);
     if(!force&&receipt?.status==='COMPATIBLE'&&receipt.suite===SUITE_VERSION&&receipt.fingerprint.digest===identity.digest&&Date.now()<Date.parse(receipt.expiresAt)&&required.every(x=>receipt.passedCapabilities.includes(x))){
       const evidence=await readJSON(path.join(dataRoot(root),'checks',receipt.id,'report.json'));
-      if(evidence&&hash(evidence)===receipt.reportDigest){report.reusedFrom=receipt.id;report.passedCapabilities=receipt.passedCapabilities;return save();}
+      if(evidence&&hash(evidence)===receipt.reportDigest){report.reusedFrom=receipt.id;if(evidence.runtimeFacts)report.runtimeFacts=evidence.runtimeFacts;report.passedCapabilities=receipt.passedCapabilities;return save();}
     }
     await rm(receiptFile,{force:true});
     context=await adapter.prepare({root,inspection,signal});
@@ -38,15 +38,17 @@ export async function ensureCompatibility({root,adapter,signal,force=false,requi
       const secret='compat-'+randomUUID();
       if(files)await writeFile(path.join(cwd,'input/challenge.txt'),secret+'\n',{mode:0o600});
       const controller=new AbortController(),abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
+      const delayedCancel=required.includes('files')&&(adapter.kind!=='langgraph'||(adapter.configuration?.tools??[]).some(name=>/shell|terminal|bash|exec/i.test(name)));
       let timer,watcher,cancelObserved=false,sessionId,cancelAt;
-      if(cancel&&required.includes('files')){watcher=setInterval(()=>{void ordinaryFile(path.join(cwd,'output/started.txt')).then(value=>{if(value?.trim()==='started'){cancelObserved=true;cancelAt??=Date.now();controller.abort();}}).catch(()=>{});},100);}
+      if(cancel&&delayedCancel){watcher=setInterval(()=>{void ordinaryFile(path.join(cwd,'output/started.txt')).then(value=>{if(value?.trim()==='started'){cancelObserved=true;cancelAt??=Date.now();controller.abort();}}).catch(()=>{});},100);}
       const task=prompt+'\n工作目录：'+(adapter.workspaceDescription?.(cwd)??cwd)+'\n仅操作本工作目录，不访问其他会话、账号或目录。';
       let capture;
       onProgress('[evaldock:compatibility] '+name);
       try{
         timer=setTimeout(abort,120000);
         capture=await adapter.run({context,root,cwd,caseDirectory,caseData:{inputs:[],allowedPaths:['output']},prompt:task,deadlineMs:120000,signal:controller.signal,
-          onSession:async id=>{sessionId=id;if(cancel&&!required.includes('files'))setTimeout(()=>{cancelObserved=true;controller.abort();},1000).unref();await atomic(path.join(caseDirectory,'session.json'),{sessionId:id,cleanup:'PENDING'});}});
+          onActivity:()=>{if(cancel&&!delayedCancel){cancelObserved=true;controller.abort();}},
+          onSession:async id=>{sessionId=id;await atomic(path.join(caseDirectory,'session.json'),{sessionId:id,cleanup:'PENDING'});}});
       }catch(e){capture={error:safeCode(e),cleanup:sessionId?'UNKNOWN':'NOT_STARTED',queue:[]};}
       finally{clearTimeout(timer);clearInterval(watcher);signal?.removeEventListener('abort',abort);}
       const issues=validateCapture(adapter,capture,{required:[...(files?['tools','files']:[]),...(subtasks?['subtasks']:[])],controlled:true,cancel});
@@ -65,13 +67,14 @@ export async function ensureCompatibility({root,adapter,signal,force=false,requi
       }
       if(cancel){
         if(cancelAt)await new Promise(resolve=>setTimeout(resolve,Math.max(0,cancelAt+4000-Date.now())));
-        if(!cancelObserved||!required.includes('files')&&!capture.seen)issues.push({code:'AGENT_CANCEL_BEHAVIOR_NOT_COVERED',status:'INDETERMINATE'});
-        if(await ordinaryFile(path.join(cwd,'output/late.txt'))!==null)issues.push({code:'AGENT_CANCEL_CONTRACT_BROKEN',status:'INCOMPATIBLE'});
+        if(!cancelObserved||!delayedCancel&&!capture.seen)issues.push({code:'AGENT_CANCEL_BEHAVIOR_NOT_COVERED',status:'INDETERMINATE'});
+        if(delayedCancel&&await ordinaryFile(path.join(cwd,'output/late.txt'))!==null)issues.push({code:'AGENT_CANCEL_CONTRACT_BROKEN',status:'INCOMPATIBLE'});
       }
       if(name==='text'&&!capture.final?.includes('EVALDOCK_COMPAT_OK'))issues.push({code:'AGENT_TEXT_BEHAVIOR_NOT_COVERED',status:'INDETERMINATE'});
+      if(name==='text'&&!issues.length&&adapter.kind==='dsh-headless'&&capture.runtimeFacts)report.runtimeFacts=capture.runtimeFacts;
       await atomic(path.join(caseDirectory,'capture.json'),excerpt(capture,65536));
       await atomic(path.join(caseDirectory,'session.json'),{sessionId:capture.sessionId??sessionId??null,cleanup:capture.cleanup});
-      report.checks.push({name,status:conclusion(issues),issues,sessionId:capture.sessionId??null});report.issues.push(...issues);
+      report.checks.push({name,...(cancel?{cancelMode:delayedCancel?'DELAYED_FILE_WRITE':'OBSERVED_GRAPH_ACTIVITY'}:{}),status:conclusion(issues),issues,sessionId:capture.sessionId??null});report.issues.push(...issues);
       if(capture.cleanup==='UNKNOWN'||capture.cleanup==='PENDING'){await quarantine(root,adapter,'AGENT_CLEANUP_UNCONFIRMED');throw Error('AGENT_CLEANUP_UNCONFIRMED');}
       return issues.length===0;
     }
@@ -83,7 +86,7 @@ export async function ensureCompatibility({root,adapter,signal,force=false,requi
       if(first&&second)report.passedCapabilities.push('files','tools','isolation');
     }else if(await execute('text-second','这是独立的新会话，仅回复 SECOND_SESSION_OK，不引用其他会话。'))report.passedCapabilities.push('isolation');
     if(required.includes('subtasks')&&await execute('subtasks','必须创建一个后台任务或子 Agent，由它实际读取 input/challenge.txt 并将内容原样写到 output/answer.txt。等待它真正完成后，在最终回复中给出文件内容。',{files:true,subtasks:true}))report.passedCapabilities.push('subtasks');
-    if(required.includes('cancel')&&await execute('cancel',required.includes('files')?'必须使用 Shell 执行：先写入 output/started.txt，内容为 started；随后 sleep 3；最后写入 output/late.txt。保持任务执行，不提前回复。':'请连续生成一万行不同的短句，直到任务被取消。',{cancel:true}))report.passedCapabilities.push('cancel');
+    if(required.includes('cancel')&&await execute('cancel',(required.includes('files')&&(adapter.kind!=='langgraph'||(adapter.configuration?.tools??[]).some(name=>/shell|terminal|bash|exec/i.test(name))))?'必须使用 Shell 执行：先写入 output/started.txt，内容为 started；随后 sleep 3；最后写入 output/late.txt。保持任务执行，不提前回复。':'请连续生成一万行不同的短句，直到任务被取消。',{cancel:true}))report.passedCapabilities.push('cancel');
     for(const capability of required)if(!report.passedCapabilities.includes(capability))report.issues.push({code:'AGENT_CAPABILITY_UNVERIFIED_'+capability.toUpperCase(),status:'INDETERMINATE'});
     await adapter.dispose(context);context=undefined;
     if((await fingerprint(adapter,await adapter.inspect())).digest!==identity.digest)throw Error('AGENT_IDENTITY_CHANGED');

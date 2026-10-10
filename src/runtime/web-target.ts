@@ -1,3 +1,4 @@
+import {authenticateDshWeb,webFetch} from "./web-auth.js";
 import {latestCompletedTurn,historySequence,cancelSessionAndWait} from "./session-lifecycle.js";
 import {reserveRunDisplay,evalSessionTitle} from "./session-naming.js";
 /** Execute a real Case through the existing DSH Web service. No substitute agent or profile. */
@@ -17,9 +18,10 @@ function endpoint(descriptor:TargetDescriptor):string {
   return u.origin;
 }
 export async function rpc(base:string,method:string,payload:Obj,signal?:AbortSignal):Promise<any> {
-  const response=await fetch(base+"/api/"+method,{method:"POST",headers:{"content-type":"application/json"},
+  const response=await webFetch(base,"/api/"+method,{method:"POST",headers:{"content-type":"application/json"},
     body:JSON.stringify({type:"client-request",rpcId:randomUUID(),method,payload}),
     signal:signal?AbortSignal.any([signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
+  if(response.status===404)throw new Error("DSH_WEB_INTERFACE_CHANGED");
   if(!response.ok)throw new Error("DSH_WEB_HTTP_"+response.status);
   const data=await response.json() as Obj;
   if(!data.result?.ok)throw new Error("DSH_WEB_RPC_"+method+"_"+String(data.result?.error?.code??"INVALID"));
@@ -42,6 +44,8 @@ export async function liveIdentity(descriptor:TargetDescriptor):Promise<{pid:num
   // Inspect only the effective DSH_HOME name; never return or log the process environment.
   const environment=(await exec("/bin/ps",["eww","-p",String(pid),"-o","command="])).stdout;
   const home=environment.match(/(?:^|\s)DSH_HOME=([^\s]+)/)?.[1];
+  if(home && await realpath(home)!==await realpath(descriptor.dshHome))throw new Error("DSH_WEB_HOME_MISMATCH");
+  await authenticateDshWeb(base,path.join(descriptor.dshHome,"evaldock-control",descriptor.profile,"service.log"));
   const host=await rpc(base,"host.describe",{});
   const effectiveHome=home??path.join(host.home,".dsh");
   if(await realpath(effectiveHome)!==await realpath(descriptor.dshHome))throw new Error("DSH_WEB_HOME_MISMATCH");

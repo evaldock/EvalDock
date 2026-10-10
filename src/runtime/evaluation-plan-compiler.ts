@@ -54,8 +54,6 @@ import type {
   TargetSnapshot,
 } from "../core/models.js";
 
-/** V0.1 Planner 接受并要求 Inspector 确认的 DSH 包版本。 */
-const REQUIRED_DSH_VERSION = "0.1.1-rc.2";
 /** V0.1 Planner 接受并要求已配置的 Runtime Probe schema。 */
 const REQUIRED_PROBE_SCHEMA = "dsh-eval.probe/v1";
 
@@ -374,14 +372,14 @@ export function findPlanGaps(
   );
   const inspectedVersion = inspectionVersion(inspectionSnapshot.dshVersionStatus);
   if (
-    targetSnapshot.dshPackageVersion !== REQUIRED_DSH_VERSION ||
+    !targetSnapshot.dshPackageVersion ||
     status !== "KNOWN" ||
-    inspectedVersion !== REQUIRED_DSH_VERSION
+    inspectedVersion !== targetSnapshot.dshPackageVersion
   ) {
     gaps.push(
       gap(
         "DSH_VERSION_UNSATISFIED",
-        `DSH ${REQUIRED_DSH_VERSION} must be frozen and confirmed by Inspector`,
+        `DSH package version must be frozen and match the Inspector`,
       ),
     );
   }

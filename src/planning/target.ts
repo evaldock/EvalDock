@@ -908,8 +908,8 @@ export async function freezeTarget(
   if (!executableMetadata.isFile()) {
     throw new TargetFreezeError("TARGET_ENTRYPOINT_INVALID", `dshExecutable must be a regular file`);
   }
-  const dshHome = descriptor.webEndpoint
-    ? await realpath(descriptor.dshHome)
+  const dshHome = descriptor.webEndpoint || config.minimumIsolationLevel === "SESSION_SEPARATED"
+    ? await realpath(resolve(sourceRoot,descriptor.dshHome))
     : await resolveTargetPath(sourceRoot, descriptor.dshHome, "dshHome");
   const dshHomeMetadata = await lstat(dshHome);
   if (!dshHomeMetadata.isDirectory()) {
@@ -965,7 +965,7 @@ export async function freezeTarget(
     stdoutSemantics:"FINAL_ASSISTANT_TEXT",
     workspaceSemantics:"SESSION_CREATE_CWD",
     profileMutationSemantics:"EXISTING_PROFILE_UNCHANGED",
-  }) : baseDriver;
+  }) : config.minimumIsolationLevel === "SESSION_SEPARATED" ? Object.freeze({...baseDriver,profileMutationSemantics:"EXISTING_PROFILE_UNCHANGED"}) : baseDriver;
   const semanticIdentity = {
     targetId: descriptor.targetId,
     sourceManifestDigest: digestValue(sourceManifest),

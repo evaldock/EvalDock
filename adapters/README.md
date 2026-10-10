@@ -140,3 +140,13 @@ evidence. Tool-result message blocks and compacted argument references are resol
 before acceptance. The configured DSH home is used consistently for Headless checks
 and formal session-separated runs. HTTP 401/403 from Web is an authentication
 blocker; the checker does not disable authentication or change a running service.
+
+### 已安装版本的补充适配
+
+DSH Headless 在 `SESSION_SEPARATED` 模式下使用已安装的可执行文件与现有 Headless profile；缺少生成式 `effective-config.json` 时读取安装清单，并从绑定当前指纹的兼容性验收会话获取实际权限和沙箱信息。没有真实信息时保留 `UNKNOWN`，不能推断为通过。Planner 核对冻结版本与 Inspector 的版本一致，不再硬编码旧版本号；更强隔离模式仍保留原有运行时暂存要求。
+
+Hermes CLI 缺少工具调用 ID 时，只从本题独立状态目录的原生会话数据库恢复 ID 与工具结果。数据库证据数量、工具名与 CLI 记录必须一致，不能按到达顺序猜测并行工具的配对；缺失时停止准入。
+
+LangGraph 有 Shell 工具时用延迟写入验证取消；没有 Shell 时等真实节点开始事件后取消，报告注明 `OBSERVED_GRAPH_ACTIVITY`。后者不代表已验证 Shell 子进程清理；纯聊天 Graph 也不声明文件能力。
+
+DSH Web 支持从本地受控服务日志的同源启动链接交换登录 Cookie，凭据仅存内存，不进入报告。已登录后 RPC 端点返回 404 会报告接口变化并停止。当前 DSH 0.1.5-rc.1 Web 的新版 RPC 尚未完成适配，不等同于同版本 Headless 的验收结果。
