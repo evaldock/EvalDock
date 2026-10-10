@@ -73,6 +73,8 @@ CSRF protection and cross-Agent run exclusion. Real validation must additionally
 exercise Planner -> target execution -> Trace -> Judge -> report for each concrete
 target. Fixture tests never substitute for that check.
 
+真实多版本回归的安装隔离、验证步骤与结论边界见[跨版本实测流程](../docs/AGENT_VERSION_VALIDATION.md)。
+
 ## Version compatibility admission
 
 Before a formal run, the shared runner executes the host-owned `adapters/compatibility/`
