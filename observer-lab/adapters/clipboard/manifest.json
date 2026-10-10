@@ -1,0 +1,11 @@
+{
+  "sourceType": "CLIPBOARD",
+  "implementationId": "evaldock.macos-clipboard-sensor",
+  "capabilities": [
+    "BYTE_LENGTH",
+    "CONTENT_DIGEST",
+    "READ_ONLY"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

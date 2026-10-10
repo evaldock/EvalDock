@@ -1,0 +1,32 @@
+{
+  "schema": "evaldock.question/v1",
+  "id": "basic-file-delivery-001",
+  "version": "1.0.0",
+  "title": "基础模板：读取数字并交付 JSON",
+  "capabilityLabels": [
+    "artifact-delivery",
+    "efficiency-cost"
+  ],
+  "task": {
+    "instructions": "读取 input/numbers.json 中的 numbers 数组，计算元素个数与总和，并创建 output/answer.json。文件必须是 JSON 对象，包含 count 和 total 两个数值字段。请实际写入文件，最后简要说明交付路径。无需访问网络、安装依赖或修改输入文件。"
+  },
+  "environment": {
+    "platform": "portable",
+    "timeoutSeconds": 120,
+    "dependencies": [],
+    "allowedEdits": [
+      "output/**"
+    ]
+  },
+  "inputs": [
+    {
+      "source": "input/numbers.json",
+      "destination": "input/numbers.json",
+      "delivery": "workspace",
+      "sha256": "879f0b1729dd958c2e56eb72c0932fb90374a8281139f78163116356b8cd2c91"
+    }
+  ],
+  "grading": {
+    "reference": "private/final.json"
+  }
+}

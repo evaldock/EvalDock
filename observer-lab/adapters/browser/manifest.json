@@ -1,0 +1,12 @@
+{
+  "sourceType": "BROWSER",
+  "implementationId": "evaldock.macos-browser-sensor",
+  "capabilities": [
+    "ACTIVE_URL",
+    "BROWSER_RUNNING",
+    "TAB_TITLES",
+    "TAB_URLS"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

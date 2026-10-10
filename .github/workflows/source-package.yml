@@ -1,0 +1,32 @@
+name: Source package
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run verify
+      - run: node --test workbench/lib/model-settings.test.mjs
+      - name: Package committed source
+        run: |
+          mkdir -p artifacts
+          git archive --format=tar.gz --prefix=EvalDock/ -o artifacts/EvalDock-source.tar.gz HEAD
+          cd artifacts
+          sha256sum EvalDock-source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EvalDock-source-${{ github.sha }}
+          path: artifacts/
+          retention-days: 30

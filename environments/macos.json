@@ -1,0 +1,327 @@
+{
+  "schema": "evaldock.environment/v1",
+  "environmentId": "environment.macos/v1",
+  "version": "1.0.0",
+  "platform": "darwin",
+  "components": {
+    "workspace": {
+      "type": "filesystem",
+      "observerAdapter": "evaldock.file-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.filesystem.workspace/v1",
+        "sourceType": "FILESYSTEM",
+        "sensorImplementationId": "evaldock.file-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 140,
+          "value": "166aa91b9f679a4085d090a650e238b244c3f317f0bca923bb13b944db4a5dd4"
+        },
+        "requiredCapabilities": [
+          "FILE_TYPE",
+          "READ_ERRORS",
+          "READ_ONLY",
+          "SHA256",
+          "SNAPSHOT_AFTER",
+          "SNAPSHOT_BEFORE",
+          "SNAPSHOT_POST_RESET",
+          "STABLE_WINDOW",
+          "SYMLINK_BOUNDARY"
+        ],
+        "resourceBinding": "attempt.workspace",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "SHA256",
+        "maxBytes": 1048576,
+        "timeoutMs": 5000,
+        "watermarkDefinition": "before-after-stable-window/v1"
+      }
+    },
+    "processes": {
+      "type": "process",
+      "observerAdapter": "evaldock.macos-process-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.process.target-user/v1",
+        "sourceType": "PROCESS",
+        "sensorImplementationId": "evaldock.macos-process-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 166,
+          "value": "d579f56ba73da27609209bf62bec95ad1edc1a112eeb4a1d33ce3755bd282b53"
+        },
+        "requiredCapabilities": [
+          "EXECUTABLE",
+          "PROCESS_ID",
+          "PROCESS_PARENT",
+          "PROCESS_STATE",
+          "READ_ERRORS",
+          "READ_ONLY",
+          "SNAPSHOT_AFTER",
+          "SNAPSHOT_BEFORE",
+          "SNAPSHOT_POST_RESET",
+          "START_TIME",
+          "USER_ID"
+        ],
+        "resourceBinding": "target.uid.processes",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "METADATA_ONLY",
+        "maxBytes": 262144,
+        "timeoutMs": 5000,
+        "watermarkDefinition": "before-after/v1"
+      },
+      "enabled": false
+    },
+    "desktop": {
+      "enabled": true,
+      "type": "desktop",
+      "observerAdapter": "evaldock.macos-desktop-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.desktop.macos/v1",
+        "sourceType": "DESKTOP",
+        "sensorImplementationId": "evaldock.macos-desktop-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 77,
+          "value": "34feb6a1678b1e609b61d9318193f504f5f36adb5565e13a78cd33cc9b5762fa"
+        },
+        "requiredCapabilities": [
+          "FRONTMOST_APPLICATION",
+          "SCREENSHOT",
+          "VISIBLE_APPLICATIONS",
+          "WINDOW_TITLES"
+        ],
+        "resourceBinding": "environment.desktop",
+        "mandatory": false,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "browser": {
+      "type": "browser",
+      "observerAdapter": "evaldock.macos-browser-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.browser.macos/v1",
+        "sourceType": "BROWSER",
+        "sensorImplementationId": "evaldock.macos-browser-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 56,
+          "value": "8303a5fe24d7d39cd4417b7b905a64564fa1a5b1d1b9f310927e9d88454b6a41"
+        },
+        "requiredCapabilities": [
+          "ACTIVE_URL",
+          "BROWSER_RUNNING",
+          "TAB_TITLES",
+          "TAB_URLS"
+        ],
+        "resourceBinding": "environment.browser",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "database": {
+      "type": "database",
+      "observerAdapter": "evaldock.database-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.database.macos/v1",
+        "sourceType": "DATABASE",
+        "sensorImplementationId": "evaldock.database-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 71,
+          "value": "cd93bc66e093327abafc41d85dca03ce8ed1f2c3a25e49faf41e0c42cbbb110b"
+        },
+        "requiredCapabilities": [
+          "DATABASE_AVAILABILITY",
+          "QUERY_DIGEST",
+          "SCHEMA_STATE",
+          "SERVICE_STATE"
+        ],
+        "resourceBinding": "environment.database",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "network": {
+      "type": "network",
+      "observerAdapter": "evaldock.macos-network-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.network.macos/v1",
+        "sourceType": "NETWORK",
+        "sensorImplementationId": "evaldock.macos-network-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 51,
+          "value": "84bf4bce55cffd6edad1ca7f2fc9d4a530e7a7a36607a0ce6ec0590a9f5634cd"
+        },
+        "requiredCapabilities": [
+          "LISTENING_PORTS",
+          "TCP_ENDPOINTS",
+          "UDP_ENDPOINTS"
+        ],
+        "resourceBinding": "environment.network",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "externalApi": {
+      "type": "external-api",
+      "observerAdapter": "evaldock.external-api-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.external-api.macos/v1",
+        "sourceType": "EXTERNAL_API",
+        "sensorImplementationId": "evaldock.external-api-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 69,
+          "value": "992a1277a9f52ef3a5cb124de0cd97506724cca92cca53d7a26540349c409e3a"
+        },
+        "requiredCapabilities": [
+          "HTTP_STATUS",
+          "MOCK_REQUEST_LOG",
+          "RESPONSE_DIGEST",
+          "STATE_ENDPOINT"
+        ],
+        "resourceBinding": "environment.external-api",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "clipboard": {
+      "type": "clipboard",
+      "observerAdapter": "evaldock.macos-clipboard-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.clipboard.macos/v1",
+        "sourceType": "CLIPBOARD",
+        "sensorImplementationId": "evaldock.macos-clipboard-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 44,
+          "value": "5204664b6148ff289ccae0216365a98f573e3b8b82eff560d32e17afb14ab21e"
+        },
+        "requiredCapabilities": [
+          "BYTE_LENGTH",
+          "CONTENT_DIGEST",
+          "READ_ONLY"
+        ],
+        "resourceBinding": "environment.clipboard",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "application": {
+      "type": "application",
+      "observerAdapter": "evaldock.macos-application-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.application.macos/v1",
+        "sourceType": "APPLICATION",
+        "sensorImplementationId": "evaldock.macos-application-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 69,
+          "value": "c1137fc029d956db10048968dd76689454d3c1a29b26712e9c220620a76208b9"
+        },
+        "requiredCapabilities": [
+          "APPLICATION_PATHS",
+          "INSTALLED_APPLICATIONS",
+          "RUNNING_APPLICATIONS"
+        ],
+        "resourceBinding": "environment.application",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    },
+    "system": {
+      "type": "system",
+      "observerAdapter": "evaldock.macos-system-sensor",
+      "sourceRequirement": {
+        "sourceRequirementId": "source.system.macos/v1",
+        "sourceType": "SYSTEM",
+        "sensorImplementationId": "evaldock.macos-system-sensor",
+        "sensorImplementationVersion": "1.0.0",
+        "sensorCapabilityDigest": {
+          "algorithm": "sha256",
+          "byteLength": 62,
+          "value": "e101cefa7c418337a62c2038e9516c204520990b4450611e55a20d1562930fec"
+        },
+        "requiredCapabilities": [
+          "BOOT_TIME",
+          "BREW_SERVICES",
+          "LOCALE",
+          "OS_VERSION",
+          "TIMEZONE"
+        ],
+        "resourceBinding": "environment.system",
+        "mandatory": true,
+        "minimumTrust": "INDEPENDENT",
+        "contentMode": "STRUCTURED",
+        "maxBytes": 4194304,
+        "timeoutMs": 10000,
+        "watermarkDefinition": "state-change-250ms/v1"
+      }
+    }
+  },
+  "workspace": {
+    "workspaceBinding": "attempt.workspace",
+    "seedSpec": {
+      "entries": [
+        {
+          "entryType": "DIRECTORY",
+          "mode": "0555",
+          "portablePath": "input",
+          "readOnlyForTarget": true
+        },
+        {
+          "entryType": "DIRECTORY",
+          "mode": "0775",
+          "portablePath": "output",
+          "readOnlyForTarget": false
+        }
+      ]
+    },
+    "cleanState": {
+      "entries": [],
+      "scope": "WORKSPACE_GENERATION"
+    },
+    "resetRules": {
+      "removeWorkspaceGeneration": true,
+      "verificationSource": "FILESYSTEM"
+    }
+  }
+}

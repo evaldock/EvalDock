@@ -1,0 +1,1 @@
+{"schema": "evaldock.dataset-planner-catalog/v1", "version": "1", "datasets": [{"datasetId": "dataset.attention-pytorch/v1", "name": "Attention fixture", "description": "Controlled code and artifact fixture", "labelIds": ["label.artifact-delivery/v1", "label.tool-code/v1"], "availableCaseCount": 1}]}

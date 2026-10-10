@@ -1,0 +1,63 @@
+{
+  "schema": "evaldock.observer-lab.config/v1",
+  "components": {
+    "filesystem": {
+      "root": "/tmp/evaldock-observer-lab/workspace",
+      "maxFileBytes": 1048576
+    },
+    "process": {
+      "excludeExecutableContains": [
+        "/dsh",
+        "/evaldock"
+      ],
+      "enabled": false
+    },
+    "desktop": {
+      "enabled": true,
+      "windowTitles": true,
+      "screenshot": false
+    },
+    "browser": {
+      "applications": [
+        "Google Chrome",
+        "Safari"
+      ],
+      "appleEvents": true
+    },
+    "database": {
+      "timeoutMs": 5000,
+      "includeRows": false,
+      "postgres": {
+        "enabled": false
+      },
+      "mysql": {
+        "enabled": false
+      },
+      "redis": {
+        "enabled": false
+      },
+      "sqlite": {
+        "files": []
+      }
+    },
+    "network": {
+      "includeEstablished": false
+    },
+    "external-api": {
+      "timeoutMs": 5000,
+      "stateEndpoints": [],
+      "requestLogs": []
+    },
+    "clipboard": {
+      "includeContent": false
+    },
+    "application": {
+      "applicationRoots": [
+        "/Applications",
+        "/System/Applications",
+        "~/Applications"
+      ]
+    },
+    "system": {}
+  }
+}

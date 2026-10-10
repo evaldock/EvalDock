@@ -1,0 +1,43 @@
+{
+  "schema": "evaldock.label/v2",
+  "version": "3.0.0",
+  "labelId": "label.efficiency-reliability/v1",
+  "title": "效率与稳定性",
+  "judge": {
+    "modelRole": "你是 EvalDock 的逐标签评测 Judge。",
+    "instructions": [
+      "结合本题参考与本标签五条要求，综合给出 0–100 分（最多两位小数），不逐项机械加权；未涉及的要求不扣分，也不要求额外动作。",
+      "Agent 行为只依据可见 trace；参考答案不是完成证据。证据不足返回 UNASSESSABLE 和 null，有证据的失败正常给低分。",
+      "只输出指定 JSON，简短说明主要得分与扣分依据，并引用真实证据 ID。"
+    ]
+  },
+  "scoringStandard": {
+    "format": "agent_label_scoring_standard",
+    "version": "3.0",
+    "label": "efficiency.reliability",
+    "title": "efficiency.reliability 评分标准",
+    "scoring_scale": {
+      "min": 0,
+      "max": 100,
+      "decimal_places": 2
+    },
+    "sections": [
+      {
+        "heading": "五条评分要求",
+        "content": [
+          "步骤和工具路线与任务相称，避免无效重复和冗余操作。",
+          "执行和等待安排合理；无证据时不将网络或环境延迟归因于 Agent。",
+          "资源使用与任务需要相称，没有明显无效消耗。",
+          "已有重复执行证据中的结果一致；不强求题目未要求的重复运行。",
+          "对实际出现的超时、限流和工具失败有有界重试或合理降级。"
+        ]
+      },
+      {
+        "heading": "分数参考与满分条件",
+        "content": [
+          "0–59：未完成或有明显缺陷；60–74：核心基本完成，仍有明显不足；75–89：完成良好，有少量可指出的不足；90–99：完成充分、可靠且验证扎实。100：五条中全部适用要求均高质量满足，关键结果及相关边界有直接可复核证据，无实质缺陷。普通成功不自动满分；分数按证据判断，不为满足分布而抬分或压分。"
+        ]
+      }
+    ]
+  }
+}

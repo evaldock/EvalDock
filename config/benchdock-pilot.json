@@ -1,0 +1,68 @@
+{
+  "schema": "evaldock.benchdock-profile/v1",
+  "repo_id": "EvalDock/BenchDock",
+  "revision": "a27d5a593cb400ae94cbdeccff6224225a18f9f1",
+  "manifest_sha256": "8faa268c4534565646a1b54d857e8bbeb4ef4801954f0a28d91fb49a981472ac",
+  "tasks": [
+    {
+      "task_id": "local.qcircuitbench-postprocessing-01",
+      "task_path": "datasets/qcircuitbench/ternary-simon-post-01/task.json",
+      "capabilityLabels": [
+        "reasoning-planning",
+        "tool-code",
+        "artifact-delivery",
+        "efficiency-cost"
+      ],
+      "environment": {
+        "platform": "portable",
+        "timeoutSeconds": 1200,
+        "allowedEdits": [
+          "work/**",
+          "output/**"
+        ],
+        "dependencies": [
+          "python3>=3.10"
+        ]
+      }
+    },
+    {
+      "task_id": "local.qcircuitbench-postprocessing-02",
+      "task_path": "datasets/qcircuitbench/ternary-simon-post-02/task.json",
+      "capabilityLabels": [
+        "reasoning-planning",
+        "tool-code",
+        "artifact-delivery",
+        "efficiency-cost"
+      ],
+      "environment": {
+        "platform": "portable",
+        "timeoutSeconds": 1200,
+        "allowedEdits": [
+          "work/**",
+          "output/**"
+        ],
+        "dependencies": [
+          "python3>=3.10"
+        ]
+      }
+    },
+    {
+      "task_id": "omnimath-00020-finite-function-cover",
+      "task_path": "datasets/omnimath/omnimath-00020-finite-function-cover/task.json",
+      "capabilityLabels": [
+        "reasoning-planning",
+        "artifact-delivery",
+        "efficiency-cost"
+      ],
+      "environment": {
+        "platform": "portable",
+        "timeoutSeconds": 1200,
+        "allowedEdits": [
+          "work/**",
+          "output/**"
+        ],
+        "dependencies": []
+      }
+    }
+  ]
+}

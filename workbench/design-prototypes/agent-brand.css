@@ -1,0 +1,14 @@
+.agent-logo{display:inline-block;width:22px;height:22px;flex:0 0 22px;object-fit:contain;vertical-align:middle;color-scheme:light}
+.control-nav .agent-logo{margin-right:0}
+.control-title h1{display:flex;align-items:center;gap:10px}
+.control-title h1 .agent-logo{width:28px;height:28px;flex-basis:28px}
+.pi-validation{width:100%;margin-top:10px}
+
+/* Normalize the visible artwork, including padding baked into brand assets. */
+.agent-logo{transform:translate(var(--logo-x,0),var(--logo-y,0)) scale(var(--logo-scale,1));transform-origin:center}
+.agent-logo[data-agent-logo="dsh"]{--logo-scale:1.0345;--logo-x:-.35%;--logo-y:-.35%}
+.agent-logo[data-agent-logo="pi"]{--logo-scale:1.53}
+.agent-logo[data-agent-logo="qwenwork"]{--logo-scale:1.232;clip-path:inset(9.4%)}
+.agent-logo[data-agent-logo="doubaowork"]{--logo-scale:1.38;clip-path:inset(9.4%)}
+
+.agent-logo[data-agent-logo="hermes"]{--logo-scale:1.23}

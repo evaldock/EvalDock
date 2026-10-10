@@ -1,0 +1,11 @@
+{
+  "sourceType": "APPLICATION",
+  "implementationId": "evaldock.macos-application-sensor",
+  "capabilities": [
+    "APPLICATION_PATHS",
+    "INSTALLED_APPLICATIONS",
+    "RUNNING_APPLICATIONS"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

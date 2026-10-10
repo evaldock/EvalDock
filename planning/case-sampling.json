@@ -1,0 +1,14 @@
+{
+  "schema": "evaldock.case-sampling/v1",
+  "version": "1.0.0",
+  "enabled": true,
+  "percentages": {
+    "EASY": 20,
+    "MEDIUM": 40,
+    "HARD": 40
+  },
+  "rounding": "largest-remainder",
+  "shortage": "preserve-dataset-counts-and-fill",
+  "scope": "automatic-only",
+  "randomness": "new-seed-per-run-without-replacement"
+}

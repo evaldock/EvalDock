@@ -1,0 +1,12 @@
+{
+  "schema": "evaldock.dataset-test-policies/v1",
+  "profiles": {
+    "STANDARD": {
+      "minDatasets": 3,
+      "maxDatasets": 10,
+      "minCasesPerDataset": 3,
+      "maxCasesPerDataset": 7,
+      "maxTotalCases": 70
+    }
+  }
+}

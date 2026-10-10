@@ -1,0 +1,12 @@
+{
+  "sourceType": "EXTERNAL_API",
+  "implementationId": "evaldock.external-api-sensor",
+  "capabilities": [
+    "HTTP_STATUS",
+    "MOCK_REQUEST_LOG",
+    "RESPONSE_DIGEST",
+    "STATE_ENDPOINT"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

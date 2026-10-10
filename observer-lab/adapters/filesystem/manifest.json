@@ -1,0 +1,17 @@
+{
+  "sourceType": "FILESYSTEM",
+  "implementationId": "evaldock.file-sensor",
+  "capabilities": [
+    "FILE_TYPE",
+    "READ_ERRORS",
+    "READ_ONLY",
+    "SHA256",
+    "SNAPSHOT_AFTER",
+    "SNAPSHOT_BEFORE",
+    "SNAPSHOT_POST_RESET",
+    "STABLE_WINDOW",
+    "SYMLINK_BOUNDARY"
+  ],
+  "implementationVersion": "1.0.0",
+  "enabled": true
+}

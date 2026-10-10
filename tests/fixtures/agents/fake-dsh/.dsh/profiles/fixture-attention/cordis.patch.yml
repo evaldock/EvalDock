@@ -1,0 +1,8 @@
+# Explicitly a test-only profile; it is never counted as a real DSH acceptance.
+dsh-eval-probe:
+  schema: dsh-eval.probe/v1
+  order: before-headless
+  captureDispatch: true
+  captureLogs: true
+python-tool:
+  permissions: workspace-only
