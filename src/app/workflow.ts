@@ -208,6 +208,8 @@ export interface FixtureHooks {
 
 /** CLI 交给主 Workflow 的完整输入。stopAfter 复用前两段流程实现 inspect/plan。 */
 export interface RunWorkflowInput {
+  /** Host-owned compatibility lease checks before execution and before evidence grading. */
+  readonly verifyCompatibility?: () => Promise<void>;
   readonly cwd: string;
   readonly descriptor: TargetDescriptor;
   readonly labelJudge?: LabelJudge;
@@ -1207,6 +1209,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
         modelEnvironment[name] = value;
       }
       try {
+        await input.verifyCompatibility?.();
         const runTarget = input.descriptor.webEndpoint
           ? (request: Parameters<typeof executeTarget>[0]) => executeWebTarget(request, input.descriptor)
           : executeTarget;
@@ -1632,6 +1635,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
         await services.artifacts.readVerified(services.operation("EVIDENCE_PROCESSOR", "canonical-" + artifact.artifactId),
           artifact, artifact.scope, "EVIDENCE_CAPTURE")),
     });
+    await input.verifyCompatibility?.();
     // Judge reads the committed directory, so a broken/missing reference fails before any scoring call.
     facts.allTrace = await readTraceDirectory(evidenceDirectory, facts.allTraceRef, services.config.maxArtifactBytes);
     const traceRef=refForImmutable(facts.allTrace,validateStableId(facts.allTrace.traceId));

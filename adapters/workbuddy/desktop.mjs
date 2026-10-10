@@ -34,6 +34,11 @@ export class Desktop {
     if(!await this.evaluate('typeof window.postMessage === "function" && typeof MessageChannel === "function"'))throw new Error('WORKBUDDY_EVENT_TRANSPORT_UNAVAILABLE');
   }
   async authenticated(){return this.evaluate('window.__wbInvoke("auth:getAccount",{}).then(a=>!!a&&!a.__wbError)');}
+  async confirmStopped(sessionId){
+    // One state read after destroying our own session, never history polling.
+    const state=await this.evaluate(`window.__wbInvoke("session:get",{},${JSON.stringify(sessionId)})`);
+    return state===null||state?.__wbError&&state.code==='SESSION_NOT_FOUND'||state?.sessionId===sessionId&&(state.running===false||['completed','terminated'].includes(state.status));
+  }
   close(){this.ws.close();}
 }
 
@@ -77,7 +82,7 @@ export function installCapture(sessionId){
       for(const b of blocks){if(b?.type!=='text'||typeof b.text!=='string')continue;const wasTruncated=c.finalTruncated;setFinal(c.final+b.text);c.finalTruncated ||= wasTruncated;}
       return;
     }
-    if(type!=='tool_call'&&type!=='tool_call_update'){c.noise++;return;}
+    if(type!=='tool_call'&&type!=='tool_call_update'){c.noise++;if(!['agent_thought_chunk','usage_update','available_commands_update','current_mode_update'].includes(type)){c.unknownEvents??=[];if(c.unknownEvents.length<16)c.unknownEvents.push({type:String(type??'unknown').slice(0,80),keys:Object.keys(u).slice(0,16)});}return;}
     if(typeof u.toolCallId!=='string'){c.omitted++;return;}
     const at=new Date().toISOString(),id=u.toolCallId;let t=tools.get(id);
     if(!t){t={call:null,result:null,bytes:0};tools.set(id,t);}else c.mergedUpdates++;
@@ -145,7 +150,8 @@ export async function runSession(desktop,{cwd,prompt,deadlineMs,signal,onSession
   try{capture=await desktop.evaluate(`window.__evaldockWorkBuddy?.[${JSON.stringify(sessionId)}]?.extract() ?? null`);}
   catch{outcome??='WORKBUDDY_CAPTURE_FAILED';}
   // Stop only the owned runtime, retaining native conversation history for audit.
-  let cleanup='STOPPED';try{await desktop.invoke('session:destroy',sessionId);}catch{cleanup='UNKNOWN';outcome??='WORKBUDDY_CLEANUP_UNCONFIRMED';}
+  let cleanup='UNKNOWN';try{await desktop.invoke('session:destroy',sessionId);if(await desktop.confirmStopped?.(sessionId))cleanup='STOPPED';}catch{}
+  if(cleanup==='UNKNOWN')outcome??='WORKBUDDY_CLEANUP_UNCONFIRMED';
   if(!outcome&&(!capture?.done||!capture?.result?.stopReason))outcome='WORKBUDDY_COMPLETION_UNCONFIRMED';
   if(!outcome&&!capture?.seen)outcome='WORKBUDDY_CAPTURE_EMPTY';
   if(!outcome&&!['end_turn','stop_sequence','refusal'].includes(capture.result.stopReason))outcome='WORKBUDDY_TURN_INCOMPLETE';

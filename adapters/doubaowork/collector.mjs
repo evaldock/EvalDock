@@ -7,7 +7,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
  if(!r(63487).MR(mode,config.modeSelectConfigs))throw Error('AGENT_OFFICE_MODE_UNAVAILABLE');
  const taskParam=await prepareLocal({sessionId,cwd});
  const c=createCapture(sessionId),types=r(201753).zcD,threads=new Map(),store=r(734835).I;
- let chatTerminal=false,chatSuccess=false,disposed=false,submitted=false,subscription,unwatch,finalCheckScheduled=false,released=false,cancelling=false;
+ let chatTerminal=false,chatSuccess=false,disposed=false,submitted=false,subscription,unwatch,finalCheckScheduled=false,released=false,cancelling=false,unresolvedTask=false;
  const stateListeners=new Set(),notifyState=()=>{for(const fn of stateListeners)fn();};
  const terminalStatuses=new Set([2,3,4]);
  const finishIfReady=()=>{
@@ -16,6 +16,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   if([...threads.values()].some(t=>t.failed))return c.finish('AGENT_TASK_FAILED');
   const finals=[...threads.values()].filter(t=>t.kind!=='sub_agent'&&t.final).map(t=>t.final);
   if(finals.length)c.text(finals.join('\n\n'));
+  for(const t of threads.values())c.add('task/completed',{threadId:t.id,status:t.failed?'failed':'completed'});
   c.finish(c.final.trim()?null:'AGENT_RESPONSE_EMPTY');
  };
  const check=()=>{if(finalCheckScheduled)return;finalCheckScheduled=true;queueMicrotask(()=>{finalCheckScheduled=false;finishIfReady();});};
@@ -50,6 +51,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   for(const block of blocks){
    const content=block.content??{},data=block.content_obj??content.file_operation_block??content.super_task_tool_block??content.generic_tool_block??content.gui_tool_block;
    const delegated=content.complex_task_block??content.task_card_block;
+   if((delegated||block.block_type===types.BLOCK_COMPLEX_TASK)&&!delegated?.thread_id){unresolvedTask=true;c.add('contract/unknown-task',{blockType:block.block_type,keys:Object.keys(delegated??content).slice(0,16)});c.finish('AGENT_SUBTASK_CONTRACT_BROKEN');}
    if(delegated?.thread_id)follow(delegated.thread_id,delegated.display_type??'organizer');
    if(block.block_type===types.BLOCK_TEXT&&block.control_info?.is_visible!==false){const text=content.text_block?.text??block.content_obj?.text;if(typeof text==='string'&&text.trim())final=text;}
    if([types.BLOCK_SUPERTASK_TOOL,types.BLOCK_GENERICTOOL,types.BLOCK_GUI_TOOL,types.BLOCK_FILE_OPERATION].includes(block.block_type)){
@@ -71,7 +73,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   cancelling=true;
   for(const t of threads.values())if(!t.terminal){try{ts.markCurrentSessionUserCancel({threadId:t.id});const res=await r(609347).iv.AGWTaskTerminate({thread_id:t.id});const info=await r(639732).V({thread_id:t.id});const status=info.data?.thread_info?.ext?.thread_status;t.terminal ||= res.code===0&&['completed','failed','cancelled','canceled','terminated'].includes(status);}catch{}}
   if(submitted&&!chatTerminal){try{await service.breakMessage({session:service.lifecycleRegistry.getSession(sessionId)});}catch{}}
-  const confirmed=()=>(!submitted||chatTerminal)&&[...threads.values()].every(t=>t.terminal&&!t.loading);
+  const confirmed=()=>!unresolvedTask&&(!submitted||chatTerminal)&&[...threads.values()].every(t=>t.terminal&&!t.loading);
   if(!confirmed())await new Promise(resolve=>{const finish=()=>{clearTimeout(timer);stateListeners.delete(checkState);resolve();},checkState=()=>{if(confirmed())finish();};const timer=setTimeout(finish,12000);stateListeners.add(checkState);checkState();});
   const stopped=confirmed();
   c.finish('AGENT_CANCELLED');await release();return stopped;

@@ -30,7 +30,7 @@ export function langGraphEvent(row,capture){
 }
 export function createLangGraphAdapter(target){
   return {
-    kind:'langgraph',targetId:target.id,name:target.name,supportsAttachments:false,
+    configuration:target,kind:'langgraph',targetId:target.id,name:target.name,supportsAttachments:false,
     workspaceDescription:cwd=>target.workspacePaths==='virtual-root'?'当前任务的独立工作目录。文件工具使用以 / 为根的虚拟路径（如 /input/context.md、/output/answer.json）；shell 使用当前目录的相对路径。不要把宿主机绝对路径传入虚拟文件工具。':cwd,
     inspect:()=>inspectLangGraph(target),staticInfo:s=>staticInfo(target,s),
     trace:{kind:'langgraph',sourceType:'LANGGRAPH_PROBE',externalSchema:'evaldock.langgraph.events/v1',normalizeEvent:normalizedEvent,blindSpots:['TOKEN_STREAM_OMITTED','STATE_SNAPSHOTS_OMITTED','ONLY_EXPOSED_GRAPH_EVENTS']},

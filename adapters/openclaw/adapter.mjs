@@ -22,7 +22,7 @@ export async function inspectOpenClaw(target,{execCommand=exec,loadEnvironment=l
  return s;
 }
 export function createOpenClawAdapter(target){return {
- kind:'openclaw',targetId:target.id,name:target.name,supportsAttachments:false,
+ configuration:target,kind:'openclaw',targetId:target.id,name:target.name,supportsAttachments:false,
  inspect:()=>inspectOpenClaw(target),staticInfo:s=>{const info=staticInfo(target,s);return {...info,probe:{...info.probe,order_status:'COMPLETION_TRIGGERED'}};},
  trace:{kind:'openclaw',sourceType:'OPENCLAW_PROBE',externalSchema:'openclaw.transcript/2026.9.6',normalizeEvent:(r,id,seq)=>({...normalizedEvent(r,id,seq),provenance:{channel:'native transcript read once after process termination'}}),blindSpots:['INTERNAL_THOUGHT_NOT_OBSERVED','INTERMEDIATE_TEXT_OMITTED','COMPLETION_TRIGGERED_NOT_LIVE','BOUNDED_LAST_256_TRANSCRIPT_ROWS']},
  async prepare(){const s=await inspectOpenClaw(target);if(!s.evaluationReady)throw Error(s.reasonCode);return {env:await loadAgentEnvironment()};},

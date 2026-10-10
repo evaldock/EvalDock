@@ -7,16 +7,16 @@ export function createOfficeAdapter(target,{app,bundle,port,Desktop,run,limitati
   const inspect=async()=>{
     const status={agentKind:target.kind,name:target.name,environment:'macOS',installRoot:app,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'DESKTOP_EVENT_PUSH',permissionPreset:'APPLICATION_DEFAULT',components:[],toolSchemas:[],limitations,checkedAt:new Date().toISOString()};let desktop;
     try{
-      const info=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000})).stdout);status.version=info.CFBundleShortVersionString;
+      const info=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000})).stdout);status.version=info.CFBundleShortVersionString;status.build=info.CFBundleVersion;status.bundle=info.CFBundleIdentifier;
       if(info.CFBundleIdentifier!==bundle){status.status='INCOMPATIBLE';status.reasonCode='AGENT_APP_ID_MISMATCH';return status;}
-      status.status='NOT_CONNECTED';desktop=await Desktop.connect();status.executionReady=true;status.probeReady=true;
+      status.status='NOT_CONNECTED';desktop=await Desktop.connect();if(desktop.evaluate)status.runtimeIdentity=await desktop.evaluate('({startedAt:performance.timeOrigin})');status.executionReady=true;status.probeReady=true;
       const authenticated=await desktop.authenticated();status.evaluationReady=authenticated;status.status=authenticated?'READY':'LOGIN_REQUIRED';if(!authenticated)status.reasonCode='AGENT_LOGIN_REQUIRED';
       if(authenticated&&desktop.readiness){const runtime=await desktop.readiness();if(!runtime.ready){status.evaluationReady=false;status.status='RUNTIME_NOT_READY';status.reasonCode=runtime.reasonCode;}}
     }catch(e){status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.reasonCode=/^AGENT_[A-Z_]+$/.test(e.message)?e.message:status.status==='NOT_INSTALLED'?'AGENT_NOT_INSTALLED':'AGENT_INSPECTION_FAILED';if(status.status!=='NOT_INSTALLED')status.status='UNAVAILABLE';}
     finally{desktop?.close();}return status;
   };
   return {
-    kind:target.kind,targetId:target.id,name:target.name,supportsAttachments:false,inspect,
+    configuration:target,kind:target.kind,targetId:target.id,name:target.name,supportsAttachments:false,inspect,
     staticInfo:s=>({...staticInfo(target,s),plugins:[],tool_delta:{status:'NOT_APPLICABLE'},limitations:[...s.limitations,'Tool inventory is not exposed. Do not infer external accounts, connectors, internal reasoning or unavailable tools. Select only tasks supported by the stated input/output limitations.']}),
     trace:{kind:target.kind,sourceType:target.kind.toUpperCase()+'_PROBE',externalSchema:target.kind+'.desktop-events/v1',normalizeEvent:normalizedEvent,blindSpots:['INTERNAL_THOUGHT_NOT_OBSERVED','UNEXPOSED_TOOL_EVENTS_NOT_OBSERVED','INTERMEDIATE_TEXT_OMITTED']},
     workspaceDescription,

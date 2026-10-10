@@ -72,3 +72,62 @@ bounded/deduplicated event capture, cancellation/descendant cleanup, static iden
 CSRF protection and cross-Agent run exclusion. Real validation must additionally
 exercise Planner -> target execution -> Trace -> Judge -> report for each concrete
 target. Fixture tests never substitute for that check.
+
+## Version compatibility admission
+
+Before a formal run, the shared runner executes the host-owned `adapters/compatibility/`
+checks. This is also the entry point used by desktop/workbench jobs; direct adapter
+CLI runs cannot skip it. DSH's formal CLI uses the same gate with its native Web
+executor, and rechecks identity around each Case. Headless DSH has an explicit
+`AGENT_DSH_HEADLESS_SUITE_UNAVAILABLE` result until its specialist suite is available;
+it is not implicitly certified by the Web checks.
+
+```sh
+pnpm run build
+pnpm run compatibility --list
+pnpm run compatibility --target-id <configured-target-id>
+pnpm run compatibility --target-id workbuddy --force
+pnpm run compatibility --target-id dsh
+```
+
+The compatibility command needs the tested Agent's own environment and credentials,
+but does not select datasets or invoke Planner/Judge. `--force` reruns behavior checks
+and revokes an older receipt before testing. The suite creates only synthetic tasks
+in separate workspaces under `var/compatibility/checks/`; original results and private
+rubrics are not inputs. A successful compatibility check is not an evaluation score.
+
+The four outcomes are `COMPATIBLE`, `INCOMPATIBLE`, `INDETERMINATE` and
+`ENVIRONMENT_BLOCKED`. Reports include protocol ID, required/passed capabilities,
+identity digest, individual checks and evidence paths. A version change is a cache
+miss, not an automatic rejection: unchanged working protocols can pass without code
+changes. Missing or unexercised capabilities remain unverified.
+
+The fixed v1 suite checks a text response, two distinct sessions, hidden file
+challenges with read/write evidence, cancellation and confirmed cleanup. Doubao also
+must exercise child-task creation and completion. Text-only Graphs are not required
+to use file tools; their cancellation check needs observed execution. The host reads
+the delivered files independently; a successful final response cannot replace tool
+pairs or child terminal events. Cancellation checks also observe the owned output
+directory after the scheduled write time. These checks do not prove the absence of
+all possible background activity or reset global application state.
+
+A protocol ID denotes a driver family, not a product-version whitelist. The initial
+registry contains the existing implementations only; there is no guessed fallback
+or automatic code generation. Receipts expire after 24 hours and bind the target,
+configuration digest, OS/architecture, client build/runtime files, adapter code and
+suite. Configured Graph dependencies and runtime source/extension files contribute
+to the fingerprint. Relevant identity changes require revalidation; documentation
+changes alone do not. Each reuse still performs the adapter's live interface and
+login check. Receipt files and their matching evidence stay local.
+
+A machine-wide target lease excludes compatibility checks from formal runs across
+worktrees. Interrupted leases are not stolen automatically. Unknown cleanup creates
+local and machine-wide blockers and prevents further checks/runs. Inspect the saved session, stop
+only its owned work, and confirm cleanup before removing the corresponding blocker
+in `var/compatibility/blocked/` and the system temporary `evaldock-compatibility-<uid>/blocked/` (or an interrupted lease under the system temporary
+`evaldock-compatibility-<uid>/` directory). This release does not automate recovery,
+client upgrades, code patches or background monitoring.
+
+Real validation still requires execution → collection → Judge → report on the
+configured machine. Passing the synthetic suite or the offline mutation tests does
+not certify untested product versions or capability combinations.

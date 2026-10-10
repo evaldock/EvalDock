@@ -39,7 +39,7 @@ export async function inspectPi(target,{preflight=preflightPi,loadEnvironment=lo
 }
 export function createPiAdapter(target){
   return {
-    kind:'pi',targetId:target.id,name:target.name,supportsAttachments:false,
+    configuration:target,kind:'pi',targetId:target.id,name:target.name,supportsAttachments:false,
     inspect:()=>inspectPi(target),staticInfo:s=>staticInfo(target,s),
     async preflight({extensions}={}){const t=extensions?{...target,extensions}:target;return preflightPi(t,await inspectPi(t));},
     trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'pi.json-events/0.85.1',normalizeEvent:normalizedEvent,blindSpots:['INTERNAL_THOUGHT_NOT_OBSERVED','EXTENSION_INTERNAL_HOOKS_NOT_OBSERVED','INTERMEDIATE_TEXT_OMITTED']},

@@ -1,3 +1,4 @@
+import {fixtureCompatibilityService} from './compatibility-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -37,12 +38,12 @@ test('shared execution pipeline preserves outputs and report without calling an 
  await cp(root,path.join(runtime,'datasets'),{recursive:true});
  await json(path.join(runtime,'labels/contract.json'),label);
  await writeFile(path.join(runtime,'datasets/catalog.md'),'```json evaldock-dataset-catalog\n'+JSON.stringify({schema:'evaldock.dataset-planner-catalog/v1',version:'1',datasets:[{datasetId:'dataset.example/v1',name:'Synthetic',description:'Fixture',labelIds:[label.labelId],availableCaseCount:1}]})+'\n```');
- const adapter={kind:'pi',targetId:'pi',name:'Synthetic runner',inspect:async()=>({evaluationReady:true,version:'fixture',installRoot:runtime,limitations:[]}),prepare:async()=>({}),dispose:async()=>{},staticInfo:()=>({plugins:[],tools:[],limitations:[]}),trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'pi/events',blindSpots:[],normalizeEvent:r=>r},run:async({cwd})=>{
+ const adapter={kind:'pi',targetId:'pi',name:'Synthetic runner',inspect:async()=>({evaluationReady:true,version:'fixture',installRoot:runtime,limitations:[]}),prepare:async()=>({}),dispose:async()=>{},staticInfo:()=>({plugins:[],tools:[],limitations:[]}),trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'pi/events',blindSpots:[],normalizeEvent:(r,sessionId,seq)=>({at:r.at,kind:'agent/events',data:{sessionId,event:{...r.event,seq}},provenance:{channel:'fixture'}})},run:async({cwd})=>{
   assert.equal(await readFile(path.join(cwd,'input/data.txt'),'utf8'),'public input 1');
   await writeFile(path.join(cwd,'output/result.txt'),'integration fixture only');
-  return {sessionId:'fixture.session',queue:[],seen:0,final:'File written',error:null,cleanup:'CONFIRMED',result:{stopReason:'end_turn'}};
+  return {sessionId:'fixture.session',queue:[{at:new Date().toISOString(),event:{type:'tool/call',data:{callId:'write',name:'write',arguments:{path:'output/result.txt'}}}},{at:new Date().toISOString(),event:{type:'tool/result',data:{callId:'write',name:'write',result:'done'}}}],seen:1,final:'File written',error:null,cleanup:'CONFIRMED',result:{stopReason:'end_turn'}};
  }};
- const result=await runEvaluation({root:runtime,runId:'benchdock.execution',adapter,onProgress:()=>{},evaluationConfig:{mode:'FULL',selection:{kind:'SELECTED',items:[{datasetId:'dataset.example/v1',caseIndices:[0]}]}},judgeFactory:()=>({evaluate:async()=>{throw Error('Judge must not be called');}})});
+ const result=await runEvaluation({compatibilityService:fixtureCompatibilityService,root:runtime,runId:'benchdock.execution',adapter,onProgress:()=>{},evaluationConfig:{mode:'FULL',selection:{kind:'SELECTED',items:[{datasetId:'dataset.example/v1',caseIndices:[0]}]}},judgeFactory:()=>({evaluate:async()=>{throw Error('Judge must not be called');}})});
  assert.equal(result.status,'COMPLETED',JSON.stringify(result));assert.equal(result.scores[0].status,'UNASSESSABLE');assert.equal(result.dimensions[0].score,null);
  const reportPath=path.join(runtime,'var/evaluation-results/agents/pi/runs/benchdock.execution/cases/example.case-1/report.json');
  const report=JSON.parse(await readFile(reportPath,'utf8'));
@@ -95,4 +96,13 @@ test('BenchDock loader rejects task, prompt override, input mapping and provenan
  q.inputs[0].destination='input/data.txt';await json(path.join(dir,'question.json'),q);
  await writeFile(path.join(dir,'PROVENANCE.json'),'{}');
  await assert.rejects(load(),/pinned source record/);
+});
+
+test('runtime evidence rejection overrides a timeout and prevents Judge invocation',async t=>{
+ const {root}=await publicCase(t),runtime=await temporary(t),label=judgeInput().label;
+ const {cp}=await import('node:fs/promises');await cp(root,path.join(runtime,'datasets'),{recursive:true});await json(path.join(runtime,'labels/contract.json'),label);
+ await writeFile(path.join(runtime,'datasets/catalog.md'),'```json evaldock-dataset-catalog\n'+JSON.stringify({schema:'evaldock.dataset-planner-catalog/v1',version:'1',datasets:[{datasetId:'dataset.example/v1',name:'Synthetic',description:'Fixture',labelIds:[label.labelId],availableCaseCount:1}]})+'\n```');
+ const adapter={kind:'pi',targetId:'pi',name:'Fixture',inspect:async()=>({evaluationReady:true,version:'fixture',installRoot:runtime,limitations:[]}),prepare:async()=>({}),dispose(){},trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'fixture/v1',blindSpots:[],normalizeEvent:r=>r},run:async()=>({sessionId:'owned',queue:[],final:'partial',error:'AGENT_TASK_TIMEOUT',cleanup:'STOPPED'})};
+ const result=await runEvaluation({root:runtime,runId:'evidence-timeout',adapter,onProgress:()=>{},compatibilityService:{...fixtureCompatibilityService,validate:()=>[{code:'AGENT_TOOL_EVIDENCE_INCOMPLETE',status:'INDETERMINATE'}]},evaluationConfig:{mode:'FULL',selection:{kind:'SELECTED',items:[{datasetId:'dataset.example/v1',caseIndices:[0]}]}},judgeFactory:()=>({evaluate:async()=>assert.fail('Evidence rejection must not be scored')})});
+ assert.equal(result.status,'FAILED');assert.deepEqual(result.reasonCodes,['AGENT_TOOL_EVIDENCE_INCOMPLETE'],await readFile(path.join(runtime,'var/evaluation-results/agents/pi/runs/evidence-timeout/cases/example.case-1/failure.json'),'utf8').catch(()=>''));assert.deepEqual(result.scores,[]);
 });

@@ -391,14 +391,24 @@ async function executeTargetCommand(
       }
     }
     if (command.command === "run" && !command.fixture) {
-      return await runEvaluationBatch({
+      const {prepareDshCompatibility}=await import(new URL("../../../adapters/compatibility/dsh.mjs",import.meta.url).href);
+      const compatibility=await prepareDshCompatibility({root:cwd,descriptor,signal:controller.signal});
+      try {
+      const summary=await runEvaluationBatch({
         ...workflowInput,
+        verifyCompatibility:compatibility.verify,
         ...(command.selectedCaseId === undefined ? {} : { selectedCaseId: command.selectedCaseId }),
         ...(command.evaluationConfig===undefined?{}:{evaluationConfig:command.evaluationConfig}),
         ...(command.maxCases === undefined ? {} : { maxCases: command.maxCases }),
         ...(command.stopAfterCase === undefined ? {} : { stopAfterCase: command.stopAfterCase }),
         onProgress: (message) => process.stderr.write(`[evaldock:batch] ${message}\n`),
       });
+      if(summary.runSummaryPath){
+        const {writeFile}=await import("node:fs/promises");
+        await writeFile(path.join(path.dirname(summary.runSummaryPath),"compatibility.json"),JSON.stringify(compatibility.report,null,2)+"\n",{mode:0o600});
+      }
+      return summary;
+      } finally {await compatibility.release();}
     }
     return await runEvaluationWorkflow(workflowInput);
   } finally {

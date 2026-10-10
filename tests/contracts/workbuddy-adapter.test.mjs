@@ -1,3 +1,4 @@
+import {fixtureCompatibilityService} from './compatibility-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -29,7 +30,7 @@ function fakeDesktop({hang=false,fail=false,disconnect=false,missingStop=false,o
     }};this.port2=port;}
   };
   ctx.window.postMessage=(_msg,_origin,[port])=>{ports.push(port);queueMicrotask(()=>port.onmessage({data:{kind:'open'}}));};
-  return {ctx,calls,emit,authenticated:async()=>true,close(){},async invoke(c,...a){calls.push(c);if(c==='session:get')throw Error('Polling is forbidden');if(c==='session:create')return {sessionId:'test-session-'+(++serial)};return null;},async evaluate(s,timeout=10000,signal){
+  return {ctx,calls,emit,authenticated:async()=>true,confirmStopped:async()=>true,close(){},async invoke(c,...a){calls.push(c);if(c==='session:get')throw Error('Polling is forbidden');if(c==='session:create')return {sessionId:'test-session-'+(++serial)};return null;},async evaluate(s,timeout=10000,signal){
     return new Promise((resolve,reject)=>{
       const done=(error,value)=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);error?reject(error):resolve(value);};
       const abort=()=>done(Error('WORKBUDDY_CANCELLED')),timer=setTimeout(()=>done(Error('WORKBUDDY_RPC_TIMEOUT')),timeout);
@@ -84,8 +85,33 @@ test('offline MVP reuses dataset loader, Judge contract, reports and score aggre
   await writeFile(path.join(root,'datasets/catalog.md'),'```json evaldock-dataset-catalog\n'+JSON.stringify({schema:'evaldock.dataset-planner-catalog/v1',version:'1',datasets:[{datasetId:'dataset.example/v1',name:'Example',description:'Read local file',labelIds:[label.labelId],availableCaseCount:1}]})+'\n```');
   const plan={schema:'evaldock.mvp.unified-planner-result/v1',profile:'STANDARD',selectedDatasets:[{datasetId:'dataset.example/v1',evaluationLabelIds:[label.labelId],caseCount:1,reason:'Fixture'}],evaluationLabelIds:[label.labelId],totalCaseCount:1,model:'contract-fixture',durationMs:0};
   const d=fakeDesktop({onTask:async(_id,blocks)=>assert.ok(!JSON.stringify(blocks).includes('private answer'))});
-  const result=await runEvaluation({root,runId:'mvp-contract',onProgress:()=>{},driverFactory:async()=>d,inspect:async()=>({evaluationReady:true,version:'5.5.6',installRoot:'/Applications/WorkBuddy.app',limitations:[]}),matcherFactory:()=>({select:async()=>plan}),judgeFactory:()=>({evaluate:async input=>parseLabelScore(JSON.stringify({status:'SCORED',score:0,reason:'Fixture zero score',evidence_ids:[]}),input,'contract-fixture')})});
+  const result=await runEvaluation({compatibilityService:fixtureCompatibilityService,root,runId:'mvp-contract',onProgress:()=>{},driverFactory:async()=>d,inspect:async()=>({evaluationReady:true,version:'5.5.6',installRoot:'/Applications/WorkBuddy.app',limitations:[]}),matcherFactory:()=>({select:async()=>plan}),judgeFactory:()=>({evaluate:async input=>parseLabelScore(JSON.stringify({status:'SCORED',score:0,reason:'Fixture zero score',evidence_ids:[]}),input,'contract-fixture')})});
   assert.equal(result.status,'COMPLETED',JSON.stringify(result));assert.equal(result.caseResults.length,1);assert.equal(result.dimensions[0].score,0);
   const report=parseVerifiedReportDocument(await readFile(path.join(root,'var/evaluation-results/agents/workbuddy/runs/mvp-contract/cases/example.case-1/report.json'),'utf8'));
   assert.equal(report.target.agentKind,'workbuddy');assert.equal(report.case.seedEntries,undefined);assert.equal(report.execution.agentSessionIds.length,1);assert.ok(report.allTraceRef);assert.ok(!JSON.stringify(report).includes('PRIVATE OTHER SESSION'));
+});
+
+test('destroy returning successfully is insufficient when actual stopped state is unavailable',async()=>{
+ const d=fakeDesktop();d.confirmStopped=async()=>false;
+ const result=await runSession(d,{cwd:'/tmp/test',prompt:'test',deadlineMs:1000});
+ assert.equal(result.cleanup,'UNKNOWN');assert.equal(result.error,'WORKBUDDY_CLEANUP_UNCONFIRMED');
+});
+test('renamed tool notifications remain visible as structure and fail required tool acceptance',async()=>{
+ const {validateCapture}=await import('../../adapters/compatibility/contracts.mjs');
+ const {workbuddyTrace}=await import('../../adapters/workbuddy/evidence.mjs');
+ const d=fakeDesktop({hang:true});await vm.runInContext(`(${installCapture.toString()})('mine')`,d.ctx);
+ const c=d.ctx.window.__evaldockWorkBuddy.mine;c.start('test');
+ d.emit('mine',{sessionUpdate:'renamed_tool_call',toolCallId:'tool',rawInput:{secret:'not retained'}});
+ d.emit('mine',{sessionUpdate:'renamed_tool_result',toolCallId:'tool',rawOutput:'not retained'});
+ d.emit('mine',{sessionUpdate:'agent_message_chunk',content:{type:'text',text:'normal final'}});
+ const capture={...c.extract(),done:true,result:{stopReason:'end_turn'},cleanup:'STOPPED',sessionId:'mine'};
+ assert.equal(capture.queue.length,0);assert.equal(capture.unknownEvents.length,2);assert.ok(!JSON.stringify(capture).includes('not retained'));
+ assert.ok(validateCapture({trace:workbuddyTrace},capture,{required:['tools'],controlled:true}).some(i=>i.code==='AGENT_TOOL_BEHAVIOR_NOT_COVERED'));
+});
+
+test('WorkBuddy post-destroy check recognizes owned terminal state but rejects running and other sessions',async()=>{
+ const {Desktop}=await import('../../adapters/workbuddy/desktop.mjs');
+ for(const [state,expected] of [[{sessionId:'owned',status:'completed'},true],[{sessionId:'owned',status:'terminated'},true],[{sessionId:'owned',status:'running'},false],[{sessionId:'other',status:'completed'},false],[{},false]]){
+  assert.equal(Boolean(await Desktop.prototype.confirmStopped.call({evaluate:async()=>state},'owned')),expected);
+ }
 });

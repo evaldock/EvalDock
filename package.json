@@ -11,6 +11,7 @@
   },
   "packageManager": "pnpm@11.24.0",
   "scripts": {
+    "compatibility": "node adapters/compatibility/cli.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('src/agent-trace/native-probe/lib',{recursive:true,force:true})\"",
     "build:probe": "tsc -p src/agent-trace/native-probe/tsconfig.json",
     "build": "pnpm run clean && pnpm run build:probe && tsc -p tsconfig.json",

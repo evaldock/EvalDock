@@ -49,3 +49,10 @@ test('delayed cancellation confirmation waits for a pushed terminal event withou
  f.update('child',{...result('m','cancelled'),ext:{async_job:JSON.stringify({status:4}),is_finish:'1'}});
  assert.equal(await cancelling,true);const out=await c.extract();assert.equal(out.error,'AGENT_CANCELLED');assert.equal(f.infoReads.length,2);assert.deepEqual(f.loads,['child']);
 });
+
+test('a task card whose child ID changed cannot be accepted as main-chat completion',async()=>{
+ const f=await fixture(),c=await f.start('owned');
+ f.emit('owned',end([{block_type:10090,content:{complex_task_block:{renamed_thread_id:'hidden-child'}}},text('main done')]));
+ await c.wait;const out=await c.extract();assert.equal(out.error,'AGENT_SUBTASK_CONTRACT_BROKEN');assert.equal(out.result,null);assert.equal(f.loads.length,0);
+ assert.ok(out.queue.some(r=>r.event.type==='contract/unknown-task'));
+});

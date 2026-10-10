@@ -1,3 +1,4 @@
+import {fixtureCompatibilityService} from './compatibility-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -74,7 +75,7 @@ test('peer adapter uses sampled queue for automatic runs and leaves SELECTED/ALL
   const {root,selection}=await fixture(t),executed=[];
   const adapter={kind:'pi',targetId:'pi',name:'Pi',inspect:async()=>({evaluationReady:true,version:'fixture',installRoot:root,limitations:[]}),prepare:async()=>({}),dispose:async()=>{},staticInfo:()=>({plugins:[],tools:[],limitations:[]}),trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'pi/events',blindSpots:[],normalizeEvent:r=>r},run:async({caseData})=>{executed.push(caseData.caseId);return {sessionId:caseData.caseId,queue:[],seen:0,final:'fixture answer',error:null,cleanup:'CONFIRMED',result:{stopReason:'end_turn'}};}};
   const choice=mode==='SELECTED'?{kind:'SELECTED',items:[{datasetId:'dataset.example/v1',caseIndices:[8,12]}]}:{kind:'ALL',casesPerDataset:15};
-  const result=await runEvaluation({root,runId:'sampling.peer',adapter,onProgress:()=>{},...(mode==='AUTO'?{}:{evaluationConfig:{mode:'FULL',selection:choice}}),matcherFactory:()=>({select:async()=>selection}),judgeFactory:()=>({evaluate:async input=>parseLabelScore(JSON.stringify({status:'SCORED',score:7,reason:'Fixture',evidence_ids:[]}),input,'fixture')})});
+  const result=await runEvaluation({compatibilityService:fixtureCompatibilityService,root,runId:'sampling.peer',adapter,onProgress:()=>{},...(mode==='AUTO'?{}:{evaluationConfig:{mode:'FULL',selection:choice}}),matcherFactory:()=>({select:async()=>selection}),judgeFactory:()=>({evaluate:async input=>parseLabelScore(JSON.stringify({status:'SCORED',score:7,reason:'Fixture',evidence_ids:[]}),input,'fixture')})});
   assert.equal(result.status,'COMPLETED',JSON.stringify(result));
   const plan=JSON.parse(await readFile(path.join(root,'var/evaluation-results/agents/pi/runs/sampling.peer/plan.json')));
   const files=await currentQuestionCases(path.join(root,'datasets'),'dataset.example/v1');

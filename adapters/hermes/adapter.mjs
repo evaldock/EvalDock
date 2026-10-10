@@ -25,7 +25,7 @@ export async function inspectHermes(target,{execCommand=exec,loadEnvironment=loa
  return result;
 }
 export function createHermesAdapter(target){return {
- kind:'hermes',targetId:target.id,name:target.name,supportsAttachments:false,
+ configuration:target,kind:'hermes',targetId:target.id,name:target.name,supportsAttachments:false,
  inspect:()=>inspectHermes(target),staticInfo:s=>staticInfo(target,s),
  trace:{kind:'hermes',sourceType:'HERMES_PROBE',externalSchema:'hermes.stream-json/0.21',normalizeEvent:normalizedEvent,blindSpots:['THOUGHT_AND_TEXT_DELTAS_OMITTED','NATIVE_TOOL_OUTPUT_5000_CHAR_LIMIT','ONLY_EXPOSED_CLI_EVENTS']},
  async prepare(){const inspection=await inspectHermes(target);if(!inspection.evaluationReady)throw Error(inspection.reasonCode);return {env:await loadAgentEnvironment()};},

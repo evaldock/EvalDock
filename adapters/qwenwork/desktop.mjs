@@ -44,7 +44,7 @@ export function subscribeQwen(sessionId,createCapture){
       else if(e.type==='tool-output-available'||e.type==='tool-output-error'){const name=names.get(e.toolCallId)??e.toolName??'unknown';if(name!=='Thinking'&&name!=='TaskText')c.add('tool/result',{callId:e.toolCallId,name,result:e.output??e.errorText,isError:e.type==='tool-output-error'});}
       else if(['auth-error','api-error','error'].includes(e.type)){c.add('runtime/error',{reason:e.type});c.finish(e.type==='auth-error'?'AGENT_LOGIN_REQUIRED':'AGENT_MODEL_RESPONSE_FAILED');}
       else if(e.type==='permission-request'||e.type==='ask-user-question'){c.finish('AGENT_INTERACTION_REQUIRED');}
-      else{c.seen++;c.noise++;}
+      else{c.seen++;c.noise++;c.unknownEvents??=[];if(c.unknownEvents.length<16)c.unknownEvents.push({type:String(e.type??'unknown').slice(0,80),keys:Object.keys(e).slice(0,16)});}
     })),
     window.desktopApi.onChatStreamComplete(owned(()=>c.finish())),
     window.desktopApi.onChatStreamError(owned(()=>c.finish('AGENT_TASK_FAILED'))),

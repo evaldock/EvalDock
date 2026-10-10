@@ -128,3 +128,23 @@ test('office preparation rechecks the runtime before admitting a task',async()=>
  const adapter=createOfficeAdapter({kind:'doubaowork',id:'test'},{Desktop:{connect:async()=>({authenticated:async()=>true,readiness:async()=>({ready:false,reasonCode:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'}),close(){closed=true;}})},limitations:[]});
  await assert.rejects(adapter.prepare(),{message:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'});assert.equal(closed,true);
 });
+
+test('Qwen renamed tool stream events do not certify a text-only successful response',async()=>{
+ const {validateCapture}=await import('../../adapters/compatibility/contracts.mjs');
+ const handlers={},ctx=vm.createContext({window:{desktopApi:Object.fromEntries(['onChatStreamChunk','onChatStreamComplete','onChatStreamError'].map(k=>[k,f=>(handlers[k]=f,()=>{})]))},TextEncoder});
+ vm.runInContext(`(${subscribeQwen.toString()})('owned',${createRendererCapture.toString()})`,ctx);
+ handlers.onChatStreamChunk({subChatId:'owned',chunk:{type:'renamed-tool-event',sensitive:'not retained'}});
+ handlers.onChatStreamChunk({subChatId:'owned',chunk:{type:'text-delta',id:'final',delta:'normal response'}});
+ handlers.onChatStreamComplete({subChatId:'owned'});
+ const capture={...ctx.window.__evaldockQwenSessions.owned.extract(),sessionId:'owned',cleanup:'STOPPED'};
+ assert.equal(capture.error,null);assert.equal(capture.unknownEvents[0].type,'renamed-tool-event');assert.ok(!JSON.stringify(capture).includes('not retained'));
+ assert.ok(validateCapture({trace:{normalizeEvent:normalizedEvent}},capture,{required:['tools'],controlled:true}).some(i=>i.code==='AGENT_TOOL_BEHAVIOR_NOT_COVERED'));
+});
+
+test('Doubao logged-out lazy modules are an environment blocker before protocol diagnosis',async()=>{
+ const {installDoubao}=await import('../../adapters/doubaowork/desktop.mjs');
+ const r=id=>id===35673?{getIsLoggedIn:()=>false}:undefined;r.m={};r.e=async()=>{};
+ const ctx=vm.createContext({window:{__evaldockDoubaoRequire:r}});
+ const check=await vm.runInContext(`(${installDoubao.toString()})()`,ctx);
+ assert.equal(check.reasonCode,'AGENT_LOGIN_REQUIRED');
+});
