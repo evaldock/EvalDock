@@ -35,3 +35,6 @@ async function copyDependency(name,from=path.resolve('package.json')){
 await copyDependency('typescript');await copyDependency('@deepseek-ai/schemastery');
 
 await copyDependency('undici');
+
+const {auditDesktopRuntime}=createRequire(import.meta.url)('./audit-desktop-runtime.cjs');
+console.log('Audited desktop runtime files:',auditDesktopRuntime(out).length);
