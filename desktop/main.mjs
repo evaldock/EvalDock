@@ -32,6 +32,7 @@ function trusted(event){
   if(event.sender!==window?.webContents||event.senderFrame!==window.webContents.mainFrame||new URL(event.senderFrame.url).origin!==origin||new URL(event.senderFrame.url).pathname!=='/app.html')throw Error('此操作仅限 EvalDock 主界面');
 }
 async function start(){
+  app.dock?.setIcon(path.join(here,'assets/icon.png'));
   root=path.join(app.getPath('userData'),'workspace');
   await prepareWorkspace(app.isPackaged?path.join(process.resourcesPath,'runtime'):path.join(here,'../artifacts/desktop-runtime'),root);
   await mkdir(path.join(root,'desktop'),{recursive:true});

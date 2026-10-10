@@ -45,7 +45,8 @@
       "desktop/main.mjs",
       "desktop/preload.cjs",
       "desktop/workspace.mjs",
-      "package.json"
+      "package.json",
+      "desktop/assets/icon.png"
     ],
     "extraResources": [
       {
@@ -65,9 +66,13 @@
       "target": [
         "dmg"
       ],
-      "identity": null
+      "identity": null,
+      "icon": "desktop/assets/icon.icns"
     },
-    "afterPack": "scripts/verify-desktop-package.cjs"
+    "afterPack": "scripts/verify-desktop-package.cjs",
+    "dmg": {
+      "icon": "desktop/assets/icon.icns"
+    }
   },
   "description": "Local desktop evaluation for agents and plugins",
   "dependencies": {

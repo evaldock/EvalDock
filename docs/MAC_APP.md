@@ -1,4 +1,4 @@
-# EvalDock Mac App（本地预览版）
+# EvalDock Mac App
 
 桌面版新增概览、我的 Agent、测试集、评测记录和设置页面。现有工作台保留为高级入口；也可用菜单「导航 → 主界面」或 Command+1 返回。支持原有六类配置目标和 WorkBuddy；DSH 与其他被测 Agent 使用同一评测入口；执行前仍由现有控制器检查服务和插件状态。
 
@@ -13,7 +13,7 @@ pnpm run desktop:pack
 pnpm run desktop:dmg
 ```
 
-`desktop:pack` 生成当前 Mac 架构的 `.app`，`desktop:dmg` 生成安装镜像，均位于 `artifacts/mac/`。当前配置不使用开发者证书签名，也不执行公证，仅用于本地预览。正式分发需配置 Developer ID、公证及发行图标。
+`desktop:pack` 生成当前 Mac 架构的 `.app`，`desktop:dmg` 生成安装镜像，均位于 `artifacts/mac/`。当前配置不使用开发者证书签名，也不执行公证，首次打开可能被 macOS 拦截。应用、Dock 和安装镜像使用 EvalDock 小马头图标（`desktop/assets/icon.png` / `icon.icns`）；打包检查会核对应用图标文件与声明，防止回退到 Electron 默认图标。
 
 打包脚本只选取 Git 跟踪的运行资源、明确列出的桌面文件和编译产物；不会携带源码目录中的运行结果、下载题库、用户 Agent 配置或密钥。内置 Node 运行时用于 EvalDock，自行安装的 Agent 及 Python、浏览器等题目依赖仍需另行准备。
 
