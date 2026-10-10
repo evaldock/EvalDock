@@ -1,4 +1,5 @@
-import {authenticateDshWeb,webFetch} from "./web-auth.js";
+import {dshRpc,detectWebProtocol,setSessionPermission} from "./dsh-web-protocol.js";
+import {authenticateDshWeb} from "./web-auth.js";
 import {latestCompletedTurn,historySequence,cancelSessionAndWait} from "./session-lifecycle.js";
 import {reserveRunDisplay,evalSessionTitle} from "./session-naming.js";
 /** Execute a real Case through the existing DSH Web service. No substitute agent or profile. */
@@ -6,7 +7,7 @@ import {execFile} from "node:child_process";
 import {promisify} from "node:util";
 import {readFile,realpath,writeFile} from "node:fs/promises";
 import path from "node:path";
-import {randomUUID,createHash} from "node:crypto";
+import {createHash} from "node:crypto";
 import type {TargetDescriptor,JsonObject} from "../core/models.js";
 import type {TargetExecutionRequest,TargetExecutionResult} from "./target.js";
 import { startAutoInteraction } from "./auto-interaction.js";
@@ -17,16 +18,7 @@ function endpoint(descriptor:TargetDescriptor):string {
   if(u.protocol!=="http:" || !["127.0.0.1","localhost","[::1]"].includes(u.hostname) || u.username || u.password || u.pathname!=="/" || u.search || u.hash) throw new Error("DSH Web endpoint must be a local HTTP origin");
   return u.origin;
 }
-export async function rpc(base:string,method:string,payload:Obj,signal?:AbortSignal):Promise<any> {
-  const response=await webFetch(base,"/api/"+method,{method:"POST",headers:{"content-type":"application/json"},
-    body:JSON.stringify({type:"client-request",rpcId:randomUUID(),method,payload}),
-    signal:signal?AbortSignal.any([signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
-  if(response.status===404)throw new Error("DSH_WEB_INTERFACE_CHANGED");
-  if(!response.ok)throw new Error("DSH_WEB_HTTP_"+response.status);
-  const data=await response.json() as Obj;
-  if(!data.result?.ok)throw new Error("DSH_WEB_RPC_"+method+"_"+String(data.result?.error?.code??"INVALID"));
-  return data.result.value;
-}
+export const rpc=dshRpc;
 export async function liveIdentity(descriptor:TargetDescriptor):Promise<{pid:number;base:string}> {
   const base=endpoint(descriptor),port=new URL(base).port||"80";
   const {stdout}=await exec("/usr/sbin/lsof",["-nP","-t","-iTCP:"+port,"-sTCP:LISTEN"]);
@@ -46,6 +38,7 @@ export async function liveIdentity(descriptor:TargetDescriptor):Promise<{pid:num
   const home=environment.match(/(?:^|\s)DSH_HOME=([^\s]+)/)?.[1];
   if(home && await realpath(home)!==await realpath(descriptor.dshHome))throw new Error("DSH_WEB_HOME_MISMATCH");
   await authenticateDshWeb(base,path.join(descriptor.dshHome,"evaldock-control",descriptor.profile,"service.log"));
+  await detectWebProtocol(base,undefined,true);
   const host=await rpc(base,"host.describe",{});
   const effectiveHome=home??path.join(host.home,".dsh");
   if(await realpath(effectiveHome)!==await realpath(descriptor.dshHome))throw new Error("DSH_WEB_HOME_MISMATCH");
@@ -119,8 +112,7 @@ export async function executeWebTarget(request:TargetExecutionRequest,descriptor
     // Native profiles can already inherit the required preset; do not submit a redundant
     // slash command as model input on hosts that expose commands through a separate carrier.
     if(initialHistory.projections?.values?.permissions?.currentValue!=="danger-full-access"){
-      const permission=await rpc(base,"session.prompt",{sessionId,mode:"steer",content:[{type:"text",text:"/permission danger-full-access"}]},request.signal);
-      if(permission.command?.kind!=="success")throw new Error("DSH_AUTO_PERMISSION_NOT_APPLIED");
+      await setSessionPermission(base,sessionId,request.signal);
     }
     const afterSeq=historySequence(await rpc(base,"session.history",{sessionId,maxMessages:1},request.signal));
     await rpc(base,"session.prompt",{sessionId,mode:"queue",content},request.signal);

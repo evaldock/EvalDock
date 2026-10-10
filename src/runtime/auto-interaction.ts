@@ -1,3 +1,4 @@
+import {consumeRemoteStream,wireRpc} from "./dsh-web-protocol.js";
 import {WebSocket} from "undici";
 import {webFetch,webAuthHeaders} from "./web-auth.js";
 /** Unattended DSH interaction adapter. Uses the real server's answer protocol, not UI clicks. */
@@ -38,6 +39,18 @@ export function automaticResponse(frame: unknown, sessionId?: string): Obj | und
   return {type:"client-response",rpcId:f.rpcId,result:{ok:true,value}};
 }
 
+/** New Remote waterfalls return only the native answer value, scoped to the owned session. */
+export function remoteAutomaticResponse(frame:Obj,clientId:string,sessionId?:string):Obj|undefined {
+ if(frame.type!=="waterfall")return;
+ if(typeof frame.eventId!=="string"||typeof frame.agentId!=="string"||!clientId)throw Error("DSH_REMOTE_EVENT_INVALID");
+ let outcome:Obj={kind:"next"};
+ if(!sessionId||frame.agentId===sessionId){
+  if(frame.event==="approval/request")outcome={kind:"result",value:"allowed-once"};
+  else if(frame.event==="user-questions/request")outcome={kind:"result",value:{answers:chooseAutomaticAnswers(obj(frame.request).questions)}};
+ }
+ return {clientId,eventId:frame.eventId,outcome};
+}
+
 export interface AutoInteractionOptions {
   base: string;
   /** Case adapter only answers its own Session. The dedicated VM service covers this DSH as a whole. */
@@ -76,11 +89,25 @@ export function startAutoInteraction(options: AutoInteractionOptions): {
     ...obj(obj(reply.result).value),source:"EVALDOCK_AUTOMATIC_USER_POLICY"
   });
   };
-  let websocket=false;
+  let websocket=false,remote=false;
   const done = (async()=>{
     while(!signal.aborted) {
       try {
         await options.beforeConnect?.();
+        if(remote){
+          let clientId="";
+          await consumeRemoteStream(url.origin,"$events",{},signal,async frame=>{
+            if(frame.type==="ready"){
+              if(typeof frame.clientId!=="string"||!frame.clientId)throw Error("DSH_REMOTE_EVENT_INVALID");
+              clientId=frame.clientId;if(!opened){opened=true;resolveReady();}return;
+            }
+            const reply=remoteAutomaticResponse(frame,clientId,options.sessionId);
+            if(!reply)return;
+            await wireRpc(url.origin,"$events/result",{args:reply},signal);
+            if(obj(reply.outcome).kind==="result")options.onDecision?.({at:new Date().toISOString(),type:frame.event,sessionId:frame.agentId,source:"EVALDOCK_AUTOMATIC_USER_POLICY"});
+          });
+          continue;
+        }
         if(websocket){
           await consumeWebSocket(url.origin.replace(/^http/,"ws")+"/api/events.mux",signal,()=>{
             if(!opened){opened=true;resolveReady();}
@@ -92,6 +119,7 @@ export function startAutoInteraction(options: AutoInteractionOptions): {
         let response: Response;
         try { response = await webFetch(url.origin,"/api/events.mux",{signal:AbortSignal.any([signal,connect.signal])}); }
         finally { clearTimeout(timer); }
+        if(response.status===404){await response.body?.cancel();remote=true;continue;}
         if(response.status===426){
           await response.body?.cancel();websocket=true;continue;
         }

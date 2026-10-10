@@ -1,10 +1,10 @@
-import {authenticateDshWeb,webFetch} from "../dist/src/runtime/web-auth.js";
+import {authenticateDshWeb} from "../dist/src/runtime/web-auth.js";
+import {dshRpc} from '../dist/src/runtime/dsh-web-protocol.js';
 import {toolAttribution} from '../dist/src/reporting/tool-attribution.js';
 import {projectPaths} from './lib/paths.mjs';
 import path from 'node:path';
 import os from 'node:os';
 import {readFile,readdir,mkdir,open,unlink} from 'node:fs/promises';
-import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {ControlResults} from './lib/control-results.mjs';
 import {archivedRuntime} from './lib/trace-preview.mjs';
@@ -49,10 +49,13 @@ export function sessionForJob(sessions,job){
 async function json(file){try{return JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code==='ENOENT'||e instanceof SyntaxError)return null;throw e;}}
 async function files(dir){try{return await readdir(dir);}catch(e){if(e.code==='ENOENT')return [];throw e;}}
 async function rpc(endpoint,method,payload,home){
- const request=()=>webFetch(endpoint,'/api/'+method,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:randomUUID(),method,payload}),signal:AbortSignal.timeout(12000)});
- let r=await request();
- if(r.status===401){await r.body?.cancel();await authenticateDshWeb(endpoint,path.join(home,'evaldock-control/web/service.log'));r=await request();}
- if(!r.ok)throw new Error('DSH_HTTP_'+r.status);const d=await r.json();if(!d.result?.ok)throw new Error('DSH_RPC_UNAVAILABLE');return d.result.value;
+ const request=()=>dshRpc(endpoint,method,payload,AbortSignal.timeout(12000));
+ try{return await request();}
+ catch(error){
+  if(error.message!=='DSH_WEB_HTTP_401')throw error;
+  await authenticateDshWeb(endpoint,path.join(home,'evaldock-control/web/service.log'));
+  return request();
+ }
 }
 export async function collectNames(home){
  const runs={},agents={};const dir=path.join(home,'evaldock-display/runs');

@@ -50,7 +50,9 @@ test('collector finalizes once, polls metadata without rewriting, and wakes for 
  await until(async()=> (await snapshot())?.live?.active);
  state='SUCCEEDED';activity={active:false,revision:'2'};
  await until(async()=> (await snapshot())?.live?.active===false);
- // Let the tick finish, then observe several idle metadata polls.
+ // A status response can observe completion after its activity request saw the old revision.
+ // Let that transition settle before measuring steady idle polling.
+ const transitionPolls=metadataReads;await until(()=>metadataReads>=transitionPolls+2);
  const reads=fullReads,baseline=await stat(file),polls=metadataReads;
  await until(()=>metadataReads>=polls+3);
  assert.equal(fullReads,reads);assert.equal((await stat(file)).mtimeMs,baseline.mtimeMs);
@@ -95,6 +97,7 @@ for(const failedSession of [null,'session-2'])test(`collector keeps concurrent h
   res.setHeader('content-type','application/json');
   if(req.url==='/api/control/activity')return res.end(JSON.stringify({active:true,revision:'parallel'}));
   if(req.url==='/api/control/status')return res.end(JSON.stringify({jobs:[job],endpoint:'http://127.0.0.1:'+server.address().port,activeSessions:currentCases.map(c=>({id:'session-'+c.ordinal,title:c.caseId,cwd:`/var/parallel/parallel.c${c.ordinal}/workspaces`}))}));
+  if(req.url==='/api/session.list')return res.end(JSON.stringify({result:{ok:true,value:{items:[]}}}));
   if(req.url==='/api/session.history'){
    let body='';for await(const chunk of req)body+=chunk;const id=JSON.parse(body).payload.sessionId;queried.push(id);
    if(id===failedSession){res.statusCode=503;return res.end('{}');}
@@ -106,7 +109,7 @@ for(const failedSession of [null,'session-2'])test(`collector keeps concurrent h
  await startCollector({root,home:root,port:server.address().port,once:true});
  const value=JSON.parse(await readFile(path.join(root,'var/workbench/cache/live-observation.json'),'utf8'));
  assert.equal(value.liveCases.length,3);
- for(const c of value.liveCases)assert.equal(c.error,c.sessionId===failedSession?'DSH_HTTP_503':null,`session ${c.sessionId}: ${c.error}`);
+ for(const c of value.liveCases)assert.equal(c.error,c.sessionId===failedSession?'DSH_WEB_HTTP_503':null,`session ${c.sessionId}: ${c.error}`);
  assert.deepEqual(queried.sort(),['session-1','session-2','session-3']);
  assert.equal(value.updates[0].run.cases.length,3);
  for(const c of value.liveCases){assert.equal(c.sessionId,'session-'+c.ordinal);if(c.sessionId===failedSession){assert.deepEqual(c.entries,[]);assert.equal(c.phase,'实时观测暂不可用');}else assert.equal(c.entries[0].text,'answer from '+c.sessionId);}
