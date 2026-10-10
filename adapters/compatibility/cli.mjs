@@ -11,15 +11,16 @@ const args=process.argv.slice(2),value=flag=>args[args.indexOf(flag)+1];
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 if(args.includes('--list')){
   const targets=await loadTargets(root);
-  console.log(JSON.stringify({targets:[...targets,{id:'workbuddy',kind:'workbuddy'}].map(t=>({targetId:t.id,kind:t.kind,protocol:PROTOCOLS[t.kind],required:capabilities({kind:t.kind,configuration:t})})),dsh:{targetId:'dsh',descriptor:'config/targets/real-dsh.json',web:'dsh.web-session/v1',headless:'INDETERMINATE_UNTIL_SPECIALIST_SUITE'}},null,2));
+  console.log(JSON.stringify({targets:[...targets,{id:'workbuddy',kind:'workbuddy'}].map(t=>({targetId:t.id,kind:t.kind,protocol:PROTOCOLS[t.kind],required:capabilities({kind:t.kind,configuration:t})})),dsh:{targetId:'dsh',descriptor:'config/targets/real-dsh.json',web:'dsh.web-session/v1',headless:PROTOCOLS['dsh-headless']}},null,2));
 }else{
   const controller=new AbortController();process.once('SIGINT',()=>controller.abort());process.once('SIGTERM',()=>controller.abort());
   let release;
   try{
-    if(!args.includes('--target-id')||!value('--target-id')||args.some(x=>x.startsWith('--')&&!['--target-id','--force'].includes(x)))throw Error('AGENT_COMPATIBILITY_ARGUMENTS_INVALID');
+    if(!args.includes('--target-id')||!value('--target-id')||args.some(x=>x.startsWith('--')&&!['--target-id','--force','--descriptor'].includes(x)))throw Error('AGENT_COMPATIBILITY_ARGUMENTS_INVALID');
     const id=value('--target-id');
+    if(id.startsWith('--')||args.includes('--descriptor')&&(id!=='dsh'||!value('--descriptor')||value('--descriptor').startsWith('--')))throw Error('AGENT_COMPATIBILITY_ARGUMENTS_INVALID');
     let adapter;
-    if(id==='dsh'){const descriptor=await readJSON(path.join(root,'config/targets/real-dsh.json'));if(!descriptor)throw Error('AGENT_DSH_CONFIGURATION_UNAVAILABLE');const {createDshCompatibilityAdapter}=await import('./dsh.mjs');adapter=createDshCompatibilityAdapter(descriptor);}
+    if(id==='dsh'){const descriptor=await readJSON(args.includes('--descriptor')?path.resolve(value('--descriptor')):path.join(root,'config/targets/real-dsh.json'));if(!descriptor)throw Error('AGENT_DSH_CONFIGURATION_UNAVAILABLE');const {createDshCompatibilityAdapter}=await import('./dsh.mjs');adapter=createDshCompatibilityAdapter(descriptor);}
     else adapter=id==='workbuddy'?createWorkBuddyAdapter():await createAdapter(root,id);
     release=await acquire(adapter);
     const report=await ensureCompatibility({root,adapter,signal:controller.signal,force:args.includes('--force'),onProgress:console.error});

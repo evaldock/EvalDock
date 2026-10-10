@@ -7,7 +7,7 @@ export const dataRoot=root=>path.join(root,'var/compatibility');
 export async function atomic(file,value){await mkdir(path.dirname(file),{recursive:true,mode:0o700});const tmp=file+'.'+randomUUID()+'.tmp';await writeFile(tmp,JSON.stringify(value,null,2)+'\n',{mode:0o600});await rename(tmp,file);}
 export async function readJSON(file){try{return JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code==='ENOENT')return null;throw e;}}
 // Machine-wide across worktrees, keyed by the actual desktop application / configured target.
-export function leaseKey(adapter){if(adapter.kind==='dsh-web')return hash({kind:adapter.kind,endpoint:adapter.configuration.webEndpoint,home:adapter.configuration.dshHome,profile:adapter.configuration.profile});return ['qwenwork','doubaowork','workbuddy'].includes(adapter.kind)?adapter.kind:hash({kind:adapter.kind,configuration:Object.keys(adapter.configuration??{}).length?adapter.configuration:adapter.targetId});}
+export function leaseKey(adapter){if(adapter.kind.startsWith('dsh-'))return hash({kind:adapter.kind,endpoint:adapter.configuration.webEndpoint,home:adapter.configuration.dshHome,profile:adapter.configuration.profile});return ['qwenwork','doubaowork','workbuddy'].includes(adapter.kind)?adapter.kind:hash({kind:adapter.kind,configuration:Object.keys(adapter.configuration??{}).length?adapter.configuration:adapter.targetId});}
 const machineRoot=()=>path.join(os.tmpdir(),'evaldock-compatibility-'+(process.getuid?.()??'user'));
 export const machineBlock=adapter=>path.join(machineRoot(),'blocked',leaseKey(adapter)+'.json');
 export async function acquire(adapter){

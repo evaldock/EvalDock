@@ -3,6 +3,8 @@
  * 该适配只读取 Agent Session，不属于 Environment Observer。
  */
 import { createSessionEvidenceCompactor } from "../agent-trace/native-probe/src/evidence-events.js";
+import { lstat } from "node:fs/promises";
+import path from "node:path";
 import { spawn } from "node:child_process";
 import { eventFingerprint, reduceSessionEvents, mergeRemainingStreams, sequenceSpan, type SessionRecord } from "../agent-trace/native-probe/src/session-events.js";
 
@@ -143,13 +145,31 @@ export function dshSessionsToProbeJsonl(input: DshSessionTraceInput): Buffer {
   return Buffer.from(`${envelopes.map((envelope) => JSON.stringify(envelope)).join("\n")}\n`, "utf8");
 }
 
+/** Prefer the current v3 archive; never fall back from a present but corrupt archive. */
+export async function resolveDshSessionArchive(archivePath: string): Promise<string> {
+  const candidates = path.basename(archivePath) === "session.jsonl.zstd"
+    ? [path.join(path.dirname(archivePath), "session.v3.jsonl.zstd"), archivePath]
+    : [archivePath];
+  for (const candidate of candidates) {
+    const stat = await lstat(candidate).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return undefined;
+      throw error;
+    });
+    if (!stat) continue;
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("DSH_SESSION_ARCHIVE_UNSAFE");
+    return candidate;
+  }
+  throw new Error("DSH_SESSION_ARCHIVE_MISSING");
+}
+
 /** 使用 macOS VM 已安装的 zstd 有界解压一份 DSH Session Archive。 */
 export async function readDshSessionArchive(
   archivePath: string,
   maxBytes: number,
 ): Promise<{ readonly jsonl: string; readonly truncated: boolean }> {
+  const resolved = await resolveDshSessionArchive(archivePath);
   return await new Promise((resolve, reject) => {
-    const child = spawn("zstd", ["-dc", archivePath], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("zstd", ["-dc", resolved], { stdio: ["ignore", "pipe", "pipe"] });
     const chunks: Buffer[] = [];
     const errors: Buffer[] = [];
     let accepted = 0;

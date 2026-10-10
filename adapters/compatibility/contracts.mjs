@@ -1,7 +1,7 @@
 /** Host-owned acceptance rules. Never loaded into the tested Agent. */
 export const SUITE_VERSION='evaldock.compatibility/v1';
 export const PROTOCOLS=Object.freeze({
-  'dsh-web':'dsh.web-session/v1','dsh-headless':'dsh.native-probe/v1',
+  'dsh-web':'dsh.web-session/v1','dsh-headless':'dsh.headless-session/v1',
   qwenwork:'qwen.rpc-stream/v1',doubaowork:'doubao.native-task/v1',workbuddy:'workbuddy.session-port/v1',
   pi:'pi.json-stream/v1',langgraph:'langgraph.events/v1',hermes:'hermes.stream-json/v1',openclaw:'openclaw.transcript/v1',
 });
@@ -11,7 +11,7 @@ export function capabilities(adapter){
 }
 export function classify(code=''){
   if(/APP_ID_MISMATCH|INTERFACE_CHANGED|EVENT_PROTOCOL|CONTRACT_BROKEN/.test(code))return 'INCOMPATIBLE';
-  if(/ENVIRONMENT|CONFIGURATION_UNAVAILABLE|LOGIN|AUTH|NOT_INSTALLED|NOT_CONNECTED|WINDOW_NOT_READY|KEY_MISSING|RUNTIME|WORKSPACE|PERMISSION|QUOTA|NETWORK|BUSY|CLEANUP|CANCELLED/.test(code))return 'ENVIRONMENT_BLOCKED';
+  if(/HTTP_401|HTTP_403|ENVIRONMENT|CONFIGURATION_UNAVAILABLE|LOGIN|AUTH|NOT_INSTALLED|NOT_CONNECTED|WINDOW_NOT_READY|KEY_MISSING|RUNTIME|WORKSPACE|PERMISSION|QUOTA|NETWORK|BUSY|CLEANUP|CANCELLED/.test(code))return 'ENVIRONMENT_BLOCKED';
   return 'INDETERMINATE';
 }
 export function events(adapter,capture){

@@ -78,9 +78,10 @@ target. Fixture tests never substitute for that check.
 Before a formal run, the shared runner executes the host-owned `adapters/compatibility/`
 checks. This is also the entry point used by desktop/workbench jobs; direct adapter
 CLI runs cannot skip it. DSH's formal CLI uses the same gate with its native Web
-executor, and rechecks identity around each Case. Headless DSH has an explicit
-`AGENT_DSH_HEADLESS_SUITE_UNAVAILABLE` result until its specialist suite is available;
-it is not implicitly certified by the Web checks.
+executor, and rechecks identity around each Case. Headless DSH runs the same fixed
+tasks through its native process executor and validates its own session archives,
+completed turns and process-group cleanup. Web and Headless use separate protocols
+and receipts. Headless inspection requires a configured headless profile.
 
 ```sh
 pnpm run build
@@ -88,6 +89,7 @@ pnpm run compatibility --list
 pnpm run compatibility --target-id <configured-target-id>
 pnpm run compatibility --target-id workbuddy --force
 pnpm run compatibility --target-id dsh
+pnpm run compatibility --target-id dsh --descriptor /path/to/local-target.json
 ```
 
 The compatibility command needs the tested Agent's own environment and credentials,
@@ -131,3 +133,10 @@ client upgrades, code patches or background monitoring.
 Real validation still requires execution → collection → Judge → report on the
 configured machine. Passing the synthetic suite or the offline mutation tests does
 not certify untested product versions or capability combinations.
+
+DSH accepts both `session.v3.jsonl.zstd` and legacy `session.jsonl.zstd` archives,
+preferring v3 when present. A corrupt current archive never falls back to stale legacy
+evidence. Tool-result message blocks and compacted argument references are resolved
+before acceptance. The configured DSH home is used consistently for Headless checks
+and formal session-separated runs. HTTP 401/403 from Web is an authentication
+blocker; the checker does not disable authentication or change a running service.

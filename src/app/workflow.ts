@@ -15,7 +15,6 @@ import { submissionContent, submissionIndex, SUBMISSION_CONTENT_BUDGET_BYTES } f
  * rebuildCommittedReportHtml 和 runEvaluationWorkflow。
  */
 import { lstat, readFile, readdir, writeFile, mkdir } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -465,7 +464,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
   });
   const sessionSeparatedMode = !fixtureMode && services.config.minimumIsolationLevel === "SESSION_SEPARATED";
   const sharedDshHomePath = sessionSeparatedMode
-    ? path.resolve(input.descriptor.webEndpoint ? input.descriptor.dshHome : process.env.DSH_HOME ?? path.join(os.homedir(), ".dsh"))
+    ? path.resolve(input.descriptor.sourceRoot, input.descriptor.dshHome)
     : undefined;
   const facts: MutableWorkflowFacts = {
     evaluationMode: input.evaluationMode ?? "FULL",

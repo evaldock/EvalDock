@@ -82,6 +82,6 @@ WorkBuddy 的版本号用于记录，不再作为评测准入白名单。连接�
 
 接口可连接与兼容性验收通过仍是不同状态。检查返回兼容、不兼容、待判定或环境阻塞；只有本次所需能力全部通过才继续评测。缺少登录、未能触发目标行为或清理未确认时保留证据并停止，不产生零分代替失败。
 
-验证记录保存在工作空间的 `var/compatibility/`，绑定客户端、驱动、配置和验收套件指纹，有效期为 24 小时。命中记录后仍做轻量接口检查；版本或关键配置变化会重新验收。源码工作树可用 `pnpm run compatibility --list` 查看入口（已安装应用的工作空间使用 `node adapters/compatibility/cli.mjs --list`），通过 `--target-id` 指定目标、`--force` 强制复验，详见[适配器说明](../adapters/README.md#version-compatibility-admission)。DSH Web 使用原有真实执行器参加验收；DSH Headless 专项套件尚未提供，正式入口明确拦截为待判定。
+验证记录保存在工作空间的 `var/compatibility/`，绑定客户端、驱动、配置和验收套件指纹，有效期为 24 小时。命中记录后仍做轻量接口检查；版本或关键配置变化会重新验收。源码工作树可用 `pnpm run compatibility --list` 查看入口（已安装应用的工作空间使用 `node adapters/compatibility/cli.mjs --list`），通过 `--target-id` 指定目标、`--force` 强制复验，详见[适配器说明](../adapters/README.md#version-compatibility-admission)。DSH Web 使用原有真实执行器参加验收；DSH Headless 使用独立进程及会话归档专项验收，只有所需检查通过后才准入，且不复用 Web 凭证。源码命令可用 `--descriptor /path/to/local-target.json` 指定本机 DSH 配置。
 
 本轮没有自动编码适配、自动修复客户端或后台升级。兼容性检查通过不等于真实评测、Judge 评分和报告已经通过验收。

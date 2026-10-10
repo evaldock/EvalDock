@@ -4,7 +4,7 @@ import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {temporary} from './support.mjs';
 import {ensureCompatibility,verifyIdentity} from '../../adapters/compatibility/check.mjs';
-import {validateCapture,conclusion} from '../../adapters/compatibility/contracts.mjs';
+import {validateCapture,conclusion,classify} from '../../adapters/compatibility/contracts.mjs';
 import {normalizedEvent} from '../../adapters/shared/capture.mjs';
 import {acquire} from '../../adapters/compatibility/store.mjs';
 import {runEvaluation} from '../../adapters/shared/evaluation.mjs';
@@ -82,13 +82,66 @@ test('configuration and capability changes cannot reuse a narrower certificate',
  const bad=await ensureCompatibility({root,adapter,required:['fabricated']});assert.equal(bad.status,'INDETERMINATE');assert.equal(bad.reusedFrom,undefined);
 });
 
-test('DSH headless without a specialist suite cannot bypass the formal compatibility gate',async t=>{
+test('DSH headless missing configuration cannot bypass the formal compatibility gate',async t=>{
  const {prepareDshCompatibility}=await import('../../adapters/compatibility/dsh.mjs');
  const root=await temporary(t);
- await assert.rejects(prepareDshCompatibility({root,descriptor:{targetId:'test-headless-'+randomUUID(),sourceRoot:root,dshExecutable:'dsh.mjs',profile:'test'},onProgress:()=>{}}),/AGENT_COMPATIBILITY_INDETERMINATE/);
+ await assert.rejects(prepareDshCompatibility({root,descriptor:{targetId:'test-headless-'+randomUUID(),sourceRoot:root,dshExecutable:'dsh.mjs',profile:'test'},onProgress:()=>{}}),/AGENT_COMPATIBILITY_ENVIRONMENT_BLOCKED/);
 });
 
 test('DSH Web aliases and plugin identities cannot acquire independent leases for the same service',async()=>{
  const configuration={webEndpoint:'http://127.0.0.1:19999',dshHome:'/synthetic/dsh',profile:'web'},a={kind:'dsh-web',targetId:'a',configuration},b={kind:'dsh-web',targetId:'b',configuration:{...configuration,plugins:['different']}};
+ const release=await acquire(a);try{await assert.rejects(acquire(b),/BUSY/);}finally{await release();}
+});
+
+
+test('headless acceptance requires valid session ownership, sequence and completed turn',async()=>{
+ const {captureDshArchive}=await import('../../adapters/compatibility/dsh.mjs');
+ const adapter={trace:{normalizeEvent:normalizedEvent}},sessionId='session-test',at=new Date().toISOString();
+ const rows=[{type:'session',id:sessionId,cwd:'/synthetic'},
+  {type:'tool/call',seq:1,time:Date.now(),data:{callId:'a',name:'read',arguments:{path:'input/challenge.txt'}}},
+  {type:'tool/result',seq:2,time:Date.now(),data:{callId:'a',result:'challenge',status:'completed'}},
+  {type:'assistant/message',seq:3,time:Date.now(),data:{message:{content:[{type:'text',text:'ok'}]}}},
+  {type:'turn/end',seq:4,time:Date.now(),data:{reason:{kind:'completed'}}}];
+ const capture=(entries,patch={})=>captureDshArchive({sessionId,jsonl:entries.map(x=>JSON.stringify(x)).join('\n'),result:{terminationKind:'EXITED',startedAt:at,endedAt:at,pid:1},cleanup:'STOPPED',...patch});
+ assert.equal(conclusion(validateCapture(adapter,capture(rows),{required:['tools'],controlled:true})),'COMPATIBLE');
+ assert.equal(capture(rows.slice(0,-1)).error,'AGENT_COMPLETION_UNCONFIRMED');
+ assert.equal(capture([{...rows[0],id:'foreign'},...rows.slice(1)]).error,'AGENT_DSH_SESSION_CONTRACT_BROKEN');
+ assert.equal(capture(rows.filter(r=>r.seq!==2)).error,'AGENT_DSH_SESSION_CONTRACT_BROKEN');
+ assert.ok(validateCapture(adapter,capture(rows,{truncated:true}),{required:['tools']}).some(i=>i.code==='AGENT_EVIDENCE_TRUNCATED'));
+ assert.equal(conclusion(validateCapture(adapter,capture(rows,{cleanup:'UNKNOWN'}))),'ENVIRONMENT_BLOCKED');
+});
+
+
+test('DSH resolves v3 archives while retaining legacy support and rejecting unsafe sources',async t=>{
+ const {resolveDshSessionArchive}=await import('../../dist/src/runtime/dsh-session-trace.js');
+ const {symlink}=await import('node:fs/promises');const root=await temporary(t);
+ const legacy=path.join(root,'session.jsonl.zstd'),current=path.join(root,'session.v3.jsonl.zstd');
+ await assert.rejects(resolveDshSessionArchive(legacy),/ARCHIVE_MISSING/);
+ await writeFile(legacy,'old');assert.equal(await resolveDshSessionArchive(legacy),legacy);
+ await writeFile(current,'current');assert.equal(await resolveDshSessionArchive(legacy),current);
+ await rm(current);await symlink(legacy,current);await assert.rejects(resolveDshSessionArchive(legacy),/ARCHIVE_UNSAFE/);
+});
+
+
+test('DSH session tool-result blocks and compacted argument references retain actual evidence',async()=>{
+ const {captureDshArchive}=await import('../../adapters/compatibility/dsh.mjs');
+ const now=new Date().toISOString(),rows=[{type:'session',id:'session-test',cwd:'/synthetic'},
+ {type:'assistant/message',seq:0,time:1,data:{message:{content:[{type:'tool-call',arguments:'{"path":"output/answer.txt"}'}]}}},
+ {type:'tool/call',seq:1,time:2,data:{callId:'a',arguments:'{"path":"output/answer.txt"}'}},
+ {type:'tool/result',seq:2,time:3,data:{message:{content:[{type:'tool-result',toolCallId:'a',content:[{type:'text',text:'hidden-token'}]}]}}},
+ {type:'assistant/message',seq:3,time:4,data:{message:{content:[{type:'text',text:'done'}]}}},
+ {type:'turn/end',seq:4,time:5,data:{reason:{kind:'completed'}}}];
+ const c=captureDshArchive({sessionId:'session-test',jsonl:rows.map(JSON.stringify).join('\n'),result:{terminationKind:'EXITED',startedAt:now,endedAt:now},cleanup:'STOPPED'});
+ assert.equal(conclusion(validateCapture({trace:{normalizeEvent:normalizedEvent}},c,{required:['tools'],controlled:true})),'COMPATIBLE');
+ assert.match(JSON.stringify(c.queue),/output\/answer.txt/);assert.match(JSON.stringify(c.queue),/hidden-token/);
+});
+
+
+test('DSH authentication failures are environment blockers, not protocol incompatibility',()=>{
+ assert.equal(classify('DSH_WEB_HTTP_401'),'ENVIRONMENT_BLOCKED');
+ assert.equal(classify('DSH_WEB_HTTP_403'),'ENVIRONMENT_BLOCKED');
+});
+test('DSH Headless aliases share the profile lease',async()=>{
+ const a={kind:'dsh-headless',targetId:'a',configuration:{dshHome:'/synthetic/headless',profile:'headless'}},b={...a,targetId:'b',configuration:{...a.configuration,targetId:'b'}};
  const release=await acquire(a);try{await assert.rejects(acquire(b),/BUSY/);}finally{await release();}
 });
