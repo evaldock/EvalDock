@@ -13,7 +13,7 @@ pnpm run desktop:pack
 pnpm run desktop:dmg
 ```
 
-`desktop:pack` 生成当前 Mac 架构的 `.app`，`desktop:dmg` 生成安装镜像，均位于 `artifacts/mac/`。当前配置不使用开发者证书签名，也不执行公证，首次打开可能被 macOS 拦截。应用、Dock 和安装镜像使用 EvalDock 小马头图标（`desktop/assets/icon.png` / `icon.icns`）；打包检查会核对应用图标文件与声明，防止回退到 Electron 默认图标。
+`desktop:pack` 生成当前 Mac 架构的 `.app`，`desktop:dmg` 生成安装镜像，均位于 `artifacts/mac/`。默认使用临时（ad-hoc）签名封装应用及其嵌套组件，并在签名后执行 `codesign --verify --deep --strict`，避免打包修改破坏 Electron 原始签名后被报告损坏。临时签名仅证明包内文件完整，不提供 Apple 认可的开发者身份，也不等于公证；首次打开仍可能被 macOS 拦截。对外发行并通过默认 Gatekeeper 检查，需要配置 Developer ID Application 证书、Apple 公证凭据并完成公证。不得将 `spctl` 显示 `override=security disabled` 的本机结果视为分发验收通过。应用、Dock 和安装镜像使用 EvalDock 小马头图标（`desktop/assets/icon.png` / `icon.icns`）；打包检查会核对应用图标文件与声明，防止回退到 Electron 默认图标。
 
 打包脚本只选取 Git 跟踪的运行资源、明确列出的桌面文件和编译产物；不会携带源码目录中的运行结果、下载题库、用户 Agent 配置或密钥。内置 Node 运行时用于 EvalDock，自行安装的 Agent 及 Python、浏览器等题目依赖仍需另行准备。
 

@@ -66,13 +66,14 @@
       "target": [
         "dmg"
       ],
-      "identity": null,
+      "identity": "-",
       "icon": "desktop/assets/icon.icns"
     },
     "afterPack": "scripts/verify-desktop-package.cjs",
     "dmg": {
       "icon": "desktop/assets/icon.icns"
-    }
+    },
+    "afterSign": "scripts/verify-desktop-signature.cjs"
   },
   "description": "Local desktop evaluation for agents and plugins",
   "dependencies": {
