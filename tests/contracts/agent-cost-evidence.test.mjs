@@ -73,7 +73,8 @@ test('report token projection prefers session totals to duplicate response mirro
 
 test('Hermes streaming completion enriches omitted cache and reasoning counters from the owned DB',async t=>{
  const root=await temporary(t),cli=path.join(root,'hermes'),caseDirectory=path.join(root,'case');await mkdir(caseDirectory);
- await symlink('/usr/bin/python3',path.join(root,'python'));
+ const python=spawnSync('python3',['-c','import sys; print(sys.executable)'],{encoding:'utf8'});assert.equal(python.status,0,python.stderr);
+ await symlink(python.stdout.trim(),path.join(root,'python'));
  await writeFile(cli,`#!/usr/bin/python3\nimport os,json,sqlite3\nfrom pathlib import Path\nc=sqlite3.connect(str(Path(os.environ['HERMES_HOME'])/'state.db'))\nc.execute('CREATE TABLE sessions(id TEXT,input_tokens INTEGER,output_tokens INTEGER,cache_read_tokens INTEGER,cache_write_tokens INTEGER,reasoning_tokens INTEGER)')\nc.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?)',('owned',100,5,80,0,2))\nc.commit();c.close()\nprint(json.dumps({'type':'system','session_id':'owned'}))\nprint(json.dumps({'type':'result','session_id':'owned','exit_code':0,'text':'done','tokens':{'input':100,'output':5,'total':185}}))\n`);await chmod(cli,0o700);
  const adapter=createHermesAdapter({executable:cli,model:'synthetic'});
  const r=await adapter.run({context:{env:process.env,protocol:{id:'hermes.stream-json/v1',flags:['--format']}},caseDirectory,cwd:root,prompt:'synthetic',deadlineMs:5000});
