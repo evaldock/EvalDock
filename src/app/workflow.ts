@@ -1,6 +1,6 @@
 import { evaluateLabels } from "../evaluation/evaluate-labels.js";
 import {selectAllDatasets} from "../planning/all-datasets.js";
-import { submissionContent, submissionIndex, SUBMISSION_CONTENT_BUDGET_BYTES } from "../all-trace/submission.js";
+import { submissionContent, submissionIndex, submissionFilePreview, SUBMISSION_CONTENT_BUDGET_BYTES } from "../all-trace/submission.js";
 /**
  * 文件职责：驱动 EvalDock 唯一的端到端评测状态机。
  *
@@ -1482,10 +1482,13 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
       const metadata = await lstat(absolute).catch(() => undefined);
       if (metadata === undefined || !metadata.isFile() || metadata.isSymbolicLink()) continue;
       if (metadata.size > services.config.maxArtifactBytes - deliverableBytes) {
-        const { consumedBytes: _cost, ...index } = submissionIndex("ARCHIVE_LIMIT");
+        const sampled=await submissionFilePreview(absolute,prepared.workspacePath,normalized,submissionContentBudget);
+        const leaks=sampled.preview.content!==null && findSecretLeaks(Buffer.from(String(sampled.preview.content)),services.config.secretRefNames.map(name=>process.env[name]).filter((value):value is string=>value!==undefined)).length>0;
+        const {consumedBytes,...index}=leaks?submissionIndex("RESTRICTED"):sampled.preview;
+        submissionContentBudget=Math.max(0,submissionContentBudget-consumedBytes);
         submissionFiles.push({
           portablePath: normalized, mediaType: deliverableMediaType(normalized),
-          byteLength: metadata.size, contentRestricted: false, archiveStatus: "NOT_ARCHIVED", ...index,
+          byteLength: sampled.byteLength??metadata.size, contentRestricted: leaks, archiveStatus: "NOT_ARCHIVED", ...index,
         });
         continue;
       }
@@ -1642,7 +1645,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
     facts.evaluationCase=await save.transition(transitionRuntimeProjection({
       projection:facts.evaluationCase!,toState:"EVALUATING",reasonCode:"JUDGING_STARTED",occurredAt:new Date().toISOString(),
     }));
-    const judge=input.labelJudge ?? createDefaultLabelJudge(process.env,input.signal);
+    const judge=input.labelJudge ?? createDefaultLabelJudge(process.env,input.signal,path.join(evidenceDirectory,"judge","requests"));
     const scoreRefs: Ref<LabelScore>[]=[];
     // Every label receives the same complete trace assembled above; only the rubric changes.
     const judgeInputs=facts.labels.map(label=>({label,case:facts.caseData!,allTrace:facts.allTrace!,...input.evaluationMode?{evaluationMode:input.evaluationMode}:{}}));

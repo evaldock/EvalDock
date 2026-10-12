@@ -18,9 +18,9 @@ Configure these environment variables on the process that launches evaluation:
 
 At most four physical requests run concurrently **per process**, including separate Case Judge instances. Separate CLI processes have separate limits. No evidence is truncated by this optimization. If a group exceeds the provider's context limit, it remains an error; there is no automatic, potentially costly single-label fallback. Reduce the batch size before a deliberate rerun. Missing or malformed results affect the relevant labels; invalid whole responses affect the whole group.
 
-`score.diagnostics.requests` records a UUID, label IDs, request bytes and provider usage for each physical attempt. The report counts each UUID once, even when several labels reference it. Input tokens already include cached input tokens. Missing usage remains unknown; totals of known usage and incomplete-request counts are displayed separately. Existing transient retries (up to three attempts) remain enabled and are counted; a network timeout may still have incurred provider charges. Payloads, API keys and provider error text are not added to usage records.
+`score.diagnostics.requests` records a UUID, label IDs, request bytes and provider usage for each physical attempt. The report counts each UUID once, even when several labels reference it. Input tokens already include cached input tokens. Missing usage remains unknown; totals of known usage and incomplete-request counts are displayed separately. Existing transient retries (up to three attempts) remain enabled and are counted; a network timeout may still have incurred provider charges. Usage summaries exclude payloads. A separate owner-only request journal stores the exact request body and public response, including private grading references when supplied; it excludes authorization headers, provider thinking fields and raw provider errors. Keep this journal private.
 
-These records are saved with completed scoring results, not as a crash-proof billing journal. Use the provider's billing records for final charges. Historical and custom Judge scores without usage remain untracked. Batching can change model judgments: compare the same traces and rubrics in batch and individual modes before relying on score equivalence. Offline regression tests verify request sharing, identity, evidence boundaries and accounting; they do not establish real cache hit rates or scoring equivalence.
+The journal is written before dispatch and immediately after receiving the public response, before parsing scores. A `STARTED` record after a crash means dispatch or billing may be unknown. An audit write failure stops further calls on that Judge instance and does not trigger an automatic retry. Use the provider's billing records for final charges. Historical and custom Judge scores without usage remain untracked. Batching can change model judgments: compare the same traces and rubrics in batch and individual modes before relying on score equivalence. Offline regression tests verify request sharing, identity, evidence boundaries and accounting; they do not establish real cache hit rates or scoring equivalence.
 
 ## 简体中文
 
@@ -38,6 +38,15 @@ These records are saved with completed scoring results, not as a crash-proof bil
 
 每个进程最多同时发送 4 次请求；多题共用此限制，不同 CLI 进程分别计数。这次优化不截断证据。超过模型上下文限制会保留错误，不自动拆成逐标签请求重跑。可降低分组大小后主动复测。单个标签缺失、重复或引用无效时保留该标签错误，整份响应无效时整组报错。
 
-评分记录中的 `diagnostics.requests` 保存实际请求 ID、覆盖标签、请求字节数和服务商返回的用量。报告按请求 ID 去重，并计入已有的瞬时故障重试（最多 3 次）。缓存命中 token 已包含在输入 token 内；未知用量不当作零。网络超时可能已经产生费用，报告会单列用量不完整的请求。用量记录不保存请求正文、API Key 或服务商错误原文。
+评分记录中的 `diagnostics.requests` 保存实际请求 ID、覆盖标签、请求字节数和服务商返回的用量。报告按请求 ID 去重，并计入已有的瞬时故障重试（最多 3 次）。缓存命中 token 已包含在输入 token 内；未知用量不当作零。网络超时可能已经产生费用，报告会单列用量不完整的请求。用量摘要不保存正文。独立请求日志保存原始请求正文和公开评分响应，可能包含私有评分参考；目录仅属主可访问，不包含认证头、模型思考字段或服务商错误原文。请勿公开上传该日志。
 
-用量随评分结果落盘，进程异常退出前尚未保存的请求可能缺失，最终费用以服务商账单为准。旧记录和未提供用量的自定义 Judge 标为未跟踪。多标签请求可能改变模型判断，正式比较前应使用相同 Trace 和标准对照逐标签模式。离线回归只验证请求、证据边界与统计，不代表真实命中率或评分完全一致。
+请求发送前先落盘，收到公开响应后在解析评分前再次落盘。异常退出后只有 `STARTED` 的记录表示请求或计费状态待确认；日志写入失败会阻止该 Judge 实例继续调用，且不会自动重试。最终费用以服务商账单为准。旧记录和未提供用量的自定义 Judge 标为未跟踪。多标签请求可能改变模型判断，正式比较前应使用相同 Trace 和标准对照逐标签模式。离线回归只验证请求、证据边界与统计，不代表真实命中率或评分完全一致。
+
+### Journal locations / 日志位置
+
+- DSH Case: `cases/<case>/judge/requests/<request-id>.json` in the exported result bundle.
+- Shared adapters: `runs/<run>/judge/requests/<request-id>.json`.
+- Standalone default Judge: `var/judge-requests/`; override with `EVALDOCK_JUDGE_AUDIT_ROOT`.
+- Embedded `OpenAiCompatibleLabelJudge` callers opt in with `auditDirectory` or `requestAudit`.
+
+A stored public response can be inspected and reparsed without sending it to the provider again; this release does not add a replay button. / 可检查已保存的公开响应并重新解析，无需再次请求模型；本版尚未增加重放按钮。

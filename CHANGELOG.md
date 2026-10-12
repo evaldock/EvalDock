@@ -4,6 +4,10 @@
 
 ### Added
 
+- Durable owner-only Judge request journals preserve wire bodies and public responses before score parsing, without authentication headers or provider thinking fields. Journal failures do not cause paid retries.
+- Both execution pipelines stop new Case dispatch after three consecutive confirmed model-network failures, drain in-flight work and record the unstarted queue.
+- Large text deliverables provide bounded UTF-8 head/middle/tail excerpts with byte offsets and source hashes. Binary and restricted content stays indexed, and unarchived originals remain explicitly marked.
+
 - Multi-label Judge requests share unchanged Case evidence, defaulting to four labels per request. CLI, shared Agent adapters and deferred BenchDock scoring use the same entry point; custom single-label judges remain compatible.
 - Shared prompt content precedes label rubrics for provider prefix caching. Physical Judge requests are limited to four per process. `EVALDOCK_JUDGE_BATCH_SIZE=1` restores individual requests; `EVALDOCK_JUDGE_MAX_OUTPUT_TOKENS` sets the response budget (default 16,384).
 - Score diagnostics record physical request IDs and provider token/cache usage, including transient retries. HTML reports deduplicate shared requests and distinguish unknown usage. Batch responses require exact label IDs and valid evidence citations; malformed label results do not trigger automatic single-label retries.

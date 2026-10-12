@@ -1,3 +1,4 @@
+import {ModelNetworkCircuitBreaker} from '../../dist/src/app/batch-network-circuit.js';
 import {evaluateLabels} from '../../dist/src/evaluation/evaluate-labels.js';
 import {samplePlannedCases} from '../../dist/src/planning/case-sampling.js';
 import path from 'node:path';
@@ -40,7 +41,7 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
     
     const env={...process.env};await loadModelEnvironment(env);env.EVALDOCK_PLANNER_PROMPT_ROOT=adapter.promptRoot??path.join(here,'prompts');env.EVALDOCK_PLANNER_POLICY_FILE=path.join(root,'planning/policies.json');
     context=await adapter.prepare({root,inspection,signal});
-    const labels=await loadLabels(path.join(root,'labels')),judge=judgeFactory(env,signal);
+    const labels=await loadLabels(path.join(root,'labels')),judge=judgeFactory(env,signal,path.join(runDir,'judge','requests'));
     const datasetsRoot=path.resolve(root,process.env.EVALDOCK_DATASETS_ROOT??'datasets'),available=[];
     for(const d of await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'))){const availableCaseCount=await countDatasetQuestionCases(datasetsRoot,d.datasetId);if(availableCaseCount)available.push({...d,availableCaseCount});}
     if(validationDatasetIds&&(!testSize||validationDatasetIds.some(id=>!available.some(d=>d.datasetId===id))))throw new Error('AGENT_INVALID_VALIDATION_DATASETS');
@@ -76,8 +77,9 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
     await atomic(path.join(runDir,'plan.json'),{...plan,schema:'evaldock.workbench.plan/v1',runId,agentId:targetId,createdAt:stamp(),queue:queue.map(item=>({datasetId:item.dataset.datasetId,caseIndex:item.caseIndex,caseId:item.caseId,...item.difficulty?{difficulty:item.difficulty}:{}})),...summary.caseSampling?{caseSampling:summary.caseSampling}:{},...evaluationConfig?{evaluationConfig}:{}});
     const caseProgress=(ordinal,item,phase,extra={})=>onProgress('[evaldock:case] '+JSON.stringify({ordinal:ordinal+1,total:queue.length,caseId:item.caseId,datasetId:item.dataset.datasetId,phase,at:stamp(),...extra}));
     queue.forEach((item,ordinal)=>caseProgress(ordinal,item,'QUEUED'));
+    const circuit=new ModelNetworkCircuitBreaker();
     let cursor=0,persistence=Promise.resolve(),cleanupUnconfirmed=false;
-    const work=async()=>{while(!signal?.aborted&&!cleanupUnconfirmed&&cursor<queue.length){
+    const work=async()=>{while(!signal?.aborted&&!cleanupUnconfirmed&&!summary.dispatchStop&&cursor<queue.length){
       const ordinal=cursor++,item=queue[ordinal];if(!safeId(item.caseId))throw new Error('AGENT_INVALID_CASE_ID');
       onProgress(`[evaldock:batch] starting ${ordinal+1}/${queue.length}: ${item.caseId}`);
       const caseDir=path.join(runDir,'cases',item.caseId);await mkdir(caseDir,{recursive:true,mode:0o700});
@@ -111,15 +113,18 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
       }catch(e){capture.error=/^(WORKBUDDY|AGENT|PI|LANGGRAPH|HERMES|OPENCLAW)_[A-Z0-9_]+$/.test(e.message??'')?e.message:'AGENT_CASE_FAILED';onProgress('[evaldock:'+kind+'] '+capture.error);await atomic(path.join(caseDir,'failure.json'),{code:capture.error,at:stamp(),diagnostics:safeErrorDiagnostics(e)});}
       if(capture.sessionId)await atomic(path.join(caseDir,'session.json'),{schema:'evaldock.agent-session/v1',agentKind:kind,sessionId:capture.sessionId,processGroupId:capture.processGroupId,runId,caseId:item.caseId,workspace,startedAt,endedAt:stamp(),cleanup:capture.cleanup});
       const status=signal?.aborted?'CANCELLED':capture.error?'FAILED':'COMPLETED';
-      const result={caseId:item.caseId,datasetId:item.dataset.datasetId,status,scores:report?.scores??[],agentSessionIds:capture.sessionId?[capture.sessionId]:[],dshSessionIds:[],...(report?{reportHtml:true}:{}),reasonCodes:capture.error?[capture.error]:[]};
+      const result={caseId:item.caseId,datasetId:item.dataset.datasetId,status,scores:report?.scores??[],agentSessionIds:capture.sessionId?[capture.sessionId]:[],dshSessionIds:[],...(report?{reportHtml:true}:{}),reasonCodes:[...capture.error?[capture.error]:[],...(report?.scores??[]).some(s=>s.status==='ERROR')?['LABEL_JUDGE_ERROR']:[]]};
       caseProgress(ordinal,item,status,{reasonCode:capture.error??null});
+      summary.dispatchStop??=circuit.observe({caseId:item.caseId,executionRunId:runId,summary:result,
+        expectedLabelIds:item.dataset.evaluationLabelIds,unstartedCaseIds:queue.slice(cursor).map(pending=>pending.caseId)});
       summary.caseResults.push(result);summary.caseResults.sort((a,b)=>queue.findIndex(c=>c.caseId===a.caseId)-queue.findIndex(c=>c.caseId===b.caseId));summary.scores=summary.caseResults.flatMap(c=>c.scores);summary.dimensions=aggregateScores(summary.scores);
       persistence=persistence.then(persist);await persistence;onProgress(`[evaldock:batch] finished ${ordinal+1}/${queue.length}: ${item.caseId} (${status})`);
     }};
     const workers=await Promise.allSettled(Array.from({length:Math.min(3,queue.length)},work));
     if(workers.some(r=>r.status==='rejected'))throw new Error('AGENT_REPORT_WRITE_FAILED');
-    summary.status=signal?.aborted?'CANCELLED':summary.caseResults.some(c=>c.status==='FAILED')||cleanupUnconfirmed?'FAILED':'COMPLETED';
+    summary.status=signal?.aborted?'CANCELLED':summary.caseResults.some(c=>c.status==='FAILED')||cleanupUnconfirmed||summary.dispatchStop?'FAILED':'COMPLETED';
     summary.reasonCodes=[...new Set(summary.caseResults.flatMap(c=>c.reasonCodes))];
+    if(summary.dispatchStop)summary.reasonCodes.push(summary.dispatchStop.reasonCode);
     if(cleanupUnconfirmed)summary.reasonCodes.push('AGENT_CLEANUP_UNCONFIRMED');
     if(summary.status!=='COMPLETED'||summary.scores.some(s=>s.status==='ERROR'))summary.operationalHealth='DEGRADED';
   }catch(e){summary.failureDiagnostics=safeErrorDiagnostics(e);onProgress(JSON.stringify({phase:'PREPARATION',diagnostics:summary.failureDiagnostics}));summary.status=signal?.aborted?'CANCELLED':'FAILED';summary.operationalHealth='DEGRADED';summary.reasonCodes.push(/^(WORKBUDDY|AGENT|PI|LANGGRAPH|HERMES|OPENCLAW)_[A-Z0-9_]+$/.test(e.message??'')?e.message:'AGENT_PREPARATION_FAILED');}

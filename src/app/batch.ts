@@ -1,3 +1,4 @@
+import {ModelNetworkCircuitBreaker,type BatchNetworkDispatchStop} from "./batch-network-circuit.js";
 import {samplePlannedCases} from "../planning/case-sampling.js";
 import {projectPaths} from "../platform/paths.js";
 import {freezeConfig} from "../platform/config.js";
@@ -56,6 +57,7 @@ export interface BatchCaseSummary {
 export interface BatchWorkflowSummary extends WorkflowSummary {
   readonly caseSampling?: NonNullable<Awaited<ReturnType<typeof samplePlannedCases>>>["metadata"];
   readonly caseConcurrency: 3;
+  readonly dispatchStop?:BatchNetworkDispatchStop;
   readonly evaluationConfig?: EvaluationConfig;
   readonly caseResults: readonly BatchCaseSummary[];
   readonly runSummaryPath?: string;
@@ -256,8 +258,10 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
 
   const resultsByOrdinal: Array<BatchCaseSummary | undefined> = new Array(queue.length);
   let nextOrdinal = 0, cancellationSeen = false;
+  const circuit=new ModelNetworkCircuitBreaker();
+  let dispatchStop:BatchNetworkDispatchStop|undefined;
   async function worker(): Promise<void> {
-    while (!workflowInput.signal?.aborted && !cancellationSeen) {
+    while (!workflowInput.signal?.aborted && !cancellationSeen && !dispatchStop) {
       const ordinal = nextOrdinal++;
       const item = queue[ordinal];
       if (item === undefined) return;
@@ -311,6 +315,10 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
         };
       }
       if (result.status === "CANCELLED") cancellationSeen = true;
+      dispatchStop ??= circuit.observe({caseId:item.caseId,executionRunId,summary:result,
+        expectedLabelIds:selection.selectedDatasets.find(dataset=>String(dataset.datasetId)===String(item.datasetId))?.evaluationLabelIds??[],
+        unstartedCaseIds:queue.slice(nextOrdinal).map(pending=>pending.caseId)});
+      if(dispatchStop) onProgress?.("dispatch stopped: "+dispatchStop.reasonCode);
       // A failure bundle may contain only diagnostics/stdout, not committed All Trace.
       // Keep failed/cancelled runtimes for evidence recovery; only clean completed workflows.
       if (result.caseBundlePath !== undefined) {
@@ -358,7 +366,7 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
   const dimensions=aggregateScores(scores);
   const cancelled = workflowInput.signal?.aborted === true || caseResults.some((item) => item.status === "CANCELLED");
   const planUnsatisfiable = caseResults.some((item) => item.status === "PLAN_UNSATISFIABLE");
-  const failed = caseResults.some((item) => item.status === "FAILED" || item.operationalHealth === "FAILED" || item.exitCode === 4);
+  const failed = !!dispatchStop || caseResults.some((item) => item.status === "FAILED" || item.operationalHealth === "FAILED" || item.exitCode === 4);
   const exitCode: WorkflowSummary["exitCode"] = cancelled ? 130 : planUnsatisfiable ? 2 : failed ? 4 : 0;
   const status: WorkflowSummary["status"] = cancelled ? "CANCELLED" : planUnsatisfiable ? "PLAN_UNSATISFIABLE" : failed ? "FAILED" : "COMPLETED";
   const firstBundle = caseResults.find((item) => item.caseBundlePath !== undefined)?.caseBundlePath;
@@ -371,10 +379,11 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
     operationalHealth: failed ? "FAILED" : "HEALTHY",
     securityIsolation: "SESSION_SEPARATED" as const,
     caseConcurrency: CASE_CONCURRENCY,
+    ...(dispatchStop?{dispatchStop}:{}),
     ...(evaluationConfig===undefined?{}:{evaluationConfig}),
     ...(sampling ? {caseSampling: sampling.metadata} : {}),
     failureGroups: Object.freeze([...new Set(caseResults.flatMap((item) => item.failureGroups))]),
-    reasonCodes: Object.freeze([...new Set(caseResults.flatMap((item) => item.reasonCodes))]),
+    reasonCodes: Object.freeze([...new Set([...caseResults.flatMap(item=>item.reasonCodes),...(dispatchStop?[dispatchStop.reasonCode]:[])])]),
     recordsPath: firstBundle === undefined ? planDirectory : path.dirname(path.dirname(firstBundle)),
     exitCode,
     caseResults: Object.freeze(caseResults),

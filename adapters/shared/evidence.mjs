@@ -3,7 +3,7 @@ import {mkdir,writeFile,readdir,lstat,open,realpath} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {digestValue,digestBytes,validatePortablePath} from '../../dist/src/core/models.js';
 import {assembleAllTrace} from '../../dist/src/all-trace/assemble.js';
-import {submissionContent,submissionIndex} from '../../dist/src/all-trace/submission.js';
+import {submissionContent,submissionFilePreview} from '../../dist/src/all-trace/submission.js';
 import {createSessionEvidenceCompactor} from '../../src/agent-trace/native-probe/lib/evidence-events.js';
 export const TRACE_MAX_BYTES=1024*1024;
 const stamp=()=>new Date().toISOString();
@@ -41,10 +41,12 @@ export async function collectFiles(root,after,allowedPaths,scope){
   for(const e of after.entries){if(e.entryType!=='FILE'||!allowedPaths.some(p=>e.portablePath===p||e.portablePath.startsWith(p+'/')))continue;
     if(files.length>=80)break;validatePortablePath(e.portablePath);
     let bytes;if(e.byteLength<=256*1024){const full=path.join(root,e.portablePath);if(await realpath(full)!==full)throw new Error('AGENT_UNSAFE_OUTPUT');const h=await open(full,constants.O_RDONLY|constants.O_NOFOLLOW);try{const s=await h.stat();if(!s.isFile()||s.size>256*1024)throw new Error('AGENT_UNSTABLE_OUTPUT');bytes=await boundedRead(h);if(bytes.length>256*1024||digestBytes(bytes).value!==e.hash)throw new Error('AGENT_UNSTABLE_OUTPUT');}finally{await h.close();}}
-    const content=bytes?submissionContent(bytes,e.portablePath,budget,false):submissionIndex('FILE_TOO_LARGE');budget-=content.consumedBytes;
+    const sampled=bytes?undefined:await submissionFilePreview(path.join(root,e.portablePath),root,e.portablePath,budget);
+    if(sampled?.byteLength!==undefined && sampled.byteLength!==e.byteLength)throw new Error('AGENT_UNSTABLE_OUTPUT');
+    const content=bytes?submissionContent(bytes,e.portablePath,budget,false):sampled.preview;budget-=content.consumedBytes;
     const {consumedBytes,...view}=content;let ref;
     if(bytes){const artifact=makeArtifact(scope,'file-'+files.length,e.portablePath,bytes);artifacts.push(artifact);bodies.set(artifact.artifactId,bytes);ref={schema:artifact.schema,id:artifact.artifactId,digest:artifact.contentDigest};}
-    files.push({...e,mediaType:'application/octet-stream',...view,...ref?{artifactRef:ref}:{},contentRestricted:false,archiveStatus:bytes?'ARCHIVED':'NOT_ARCHIVED'});
+    files.push({...e,...sampled?.sha256?{hash:sampled.sha256}:{},mediaType:'application/octet-stream',...view,...ref?{artifactRef:ref}:{},contentRestricted:false,archiveStatus:bytes?'ARCHIVED':'NOT_ARCHIVED'});
   }
   return {files,artifacts,bodies};
 }
