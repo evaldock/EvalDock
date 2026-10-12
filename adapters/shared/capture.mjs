@@ -1,6 +1,31 @@
 import {spawn} from 'node:child_process';
 import {StringDecoder} from 'node:string_decoder';
 import {createHash,randomUUID} from 'node:crypto';
+/** Numeric native usage only. Context size, text length and estimates are not consumption. */
+export function normalizeUsage(value){
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const aliases={inputTokens:['inputTokens','input_tokens','prompt_tokens','input'],outputTokens:['outputTokens','output_tokens','completion_tokens','output'],totalTokens:['totalTokens','total_tokens','total'],cacheReadTokens:['cacheReadTokens','cachedReadTokens','cache_read_tokens','cache_read_input_tokens','prompt_cache_hit_tokens','cacheRead'],cacheWriteTokens:['cacheWriteTokens','cachedWriteTokens','cache_write_tokens','cache_creation_input_tokens','cacheWrite'],reasoningTokens:['reasoningTokens','thoughtTokens','reasoning_tokens','completion_thinking_tokens']};
+ const result={};
+ for(const [field,keys]of Object.entries(aliases))for(const key of keys){const n=value[key];if(typeof n==='number'&&Number.isFinite(n)&&n>=0){result[field]=n;break;}}
+ const details=value.inputTokensDetails??value.input_token_details??value.input_tokens_details??value.prompt_tokens_details;
+ if(result.cacheReadTokens===undefined){
+  const rows=Array.isArray(details)?details:[details];const values=rows.map(x=>x?.cached_tokens??x?.cache_read).filter(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0);
+  if(values.length)result.cacheReadTokens=values.reduce((a,b)=>a+b,0);
+ }
+ const output=value.output_token_details??value.output_tokens_details??value.completion_tokens_details;
+ if(result.reasoningTokens===undefined&&typeof output?.reasoning_tokens==='number'&&Number.isFinite(output.reasoning_tokens)&&output.reasoning_tokens>=0)result.reasoningTokens=output.reasoning_tokens;
+ return Object.keys(result).length?result:null;
+}
+
+export class UsageLedger {
+ constructor(){this.records=new Map();this.omitted=0;}
+ record(id,value){const usage=normalizeUsage(value);if(!usage)return;if(typeof id!=='string'||!id){this.omitted++;return;}if(!this.records.has(id)&&this.records.size>=4096){this.omitted++;return;}this.records.set(id,usage);}
+ summary(){
+  const usage={},fieldCoverage={};
+  for(const row of this.records.values())for(const [key,value]of Object.entries(row)){usage[key]=(usage[key]??0)+value;fieldCoverage[key]=(fieldCoverage[key]??0)+1;}
+  return {usage:this.records.size?usage:null,records:this.records.size,fieldCoverage,omitted:this.omitted};
+ }
+}
 
 const bytes=x=>Buffer.byteLength(JSON.stringify(x));
 const digest=x=>createHash('sha256').update(x).digest('hex');
@@ -24,7 +49,8 @@ function bounded(value,limit) {
   return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,bounded(v,limit)]));
 }
 export class Capture {
-  constructor(kind){Object.assign(this,{kind,sessionId:kind+'-'+randomUUID(),queue:[],seen:0,noise:0,duplicates:0,mergedUpdates:0,omitted:0,clipped:0,final:'',finalTruncated:false,error:null,cleanup:'NOT_STARTED',result:null});this.tools=new Map();this.events=[];this.unique=new Set();this.total=0;}
+  constructor(kind){Object.assign(this,{kind,sessionId:kind+'-'+randomUUID(),queue:[],seen:0,noise:0,duplicates:0,mergedUpdates:0,omitted:0,clipped:0,final:'',finalTruncated:false,error:null,cleanup:'NOT_STARTED',result:null});this.tools=new Map();this.events=[];this.unique=new Set();this.total=0;this.usageLedger=new UsageLedger();}
+  recordUsage(id,value){this.usageLedger.record(id,value);const {usage,...summary}=this.usageLedger.summary();this.usage=usage;this.usageEvidence={...summary,source:'NATIVE_COMPLETED_RESPONSES'};}
   finalText(text){
     if(typeof text!=='string')return;
     const body=Buffer.from(text);this.finalTruncated=body.length>65536;
@@ -57,7 +83,7 @@ export class Capture {
   }
   finish(){
     this.queue=[...this.events,...[...this.tools.values()].flatMap(t=>[t.call,t.result].filter(Boolean))].sort((a,b)=>a.at.localeCompare(b.at));
-    const {tools,events,unique,total,...capture}=this;return capture;
+    const {tools,events,unique,total,usageLedger,...capture}=this;return capture;
   }
 }
 export const normalizedEvent=(record,sessionId,seq)=>({at:record.at,kind:'agent/events',data:{sessionId,event:{...record.event,seq}},provenance:record.provenance??{channel:'runtime event stream'}});
@@ -66,6 +92,7 @@ export const normalizedEvent=(record,sessionId,seq)=>({at:record.at,kind:'agent/
 export async function runProcess({command,args,cwd,env,signal,deadlineMs,capture,onEvent,onSession}) {
   if(signal?.aborted){capture.error='AGENT_CANCELLED';capture.cleanup='STOPPED';return capture.finish();}
   const child=spawn(command,args,{cwd,env,detached:true,stdio:['ignore','pipe','pipe']});
+  const processStartedAt=new Date().toISOString();
   capture.processGroupId=child.pid;
   capture.cleanup='PENDING';
   let timer,killTimer,buffer='',discard=false,closed=false,stderrBytes=0,parseErrors=0,sessionRecord=Promise.resolve();
@@ -99,7 +126,7 @@ export async function runProcess({command,args,cwd,env,signal,deadlineMs,capture
   child.stderr.on('data',chunk=>{stderrBytes+=chunk.length;});
   const outcome=await new Promise(resolve=>{
     child.once('error',()=>{capture.error='AGENT_PROCESS_START_FAILED';resolve({code:1});});
-    child.once('close',(code,exitSignal)=>{closed=true;resolve({code,exitSignal});});
+    child.once('close',(code,exitSignal)=>{closed=true;const endedAt=new Date().toISOString();capture.execution={startedAt:processStartedAt,endedAt,durationMs:Date.parse(endedAt)-Date.parse(processStartedAt),scope:'AGENT_PROCESS'};resolve({code,exitSignal});});
     sessionRecord=Promise.resolve(onSession?.(capture.sessionId,{processGroupId:child.pid})).catch(()=>terminate('AGENT_SESSION_RECORD_FAILED'));
   });
   await sessionRecord;

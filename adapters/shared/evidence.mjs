@@ -5,6 +5,7 @@ import {digestValue,digestBytes,validatePortablePath} from '../../dist/src/core/
 import {assembleAllTrace} from '../../dist/src/all-trace/assemble.js';
 import {submissionContent,submissionIndex} from '../../dist/src/all-trace/submission.js';
 import {createSessionEvidenceCompactor} from '../../src/agent-trace/native-probe/lib/evidence-events.js';
+import {normalizeUsage} from './capture.mjs';
 export const TRACE_MAX_BYTES=1024*1024;
 const stamp=()=>new Date().toISOString();
 async function boundedRead(handle){const buf=Buffer.alloc(256*1024+1);let offset=0;while(offset<buf.length){const {bytesRead}=await handle.read(buf,offset,buf.length-offset,offset);if(!bytesRead)break;offset+=bytesRead;}if(offset>256*1024)throw new Error('AGENT_UNSTABLE_OUTPUT');return buf.subarray(0,offset);}
@@ -57,7 +58,7 @@ export function buildTrace({scope,capture,before,after,delivery,startedAt,endedA
   const ref=s=>({schema:s.schema,id:s.sourceId,digest:s.contentDigest});
   const observation=(s,payload,n)=>seal({...common,schema:'evaldock.mvp.raw-observation/v1',observationId:'observation.'+s.sourceId+'.'+n,attemptId:scope.attemptId,sourceRef:ref(s),externalEventType:'CAPTURE',sourceTime:{observedAt:endedAt,clockDomain:"evaldock-host",sourceSeq:n},captureMetadata:{lineNumber:n},rawDigest:digestValue(payload),payloadInline:payload});
   const contents=(capture.queue??[]).map((r,i)=>agent.normalizeEvent(r,capture.sessionId,i+1));
-  contents.push({at:endedAt,kind:agent.kind+'/events',data:{sessionId:capture.sessionId,event:{type:'session/completion',data:{stopReason:capture.result?.stopReason??null,error:capture.error??null,finalResponseEntryId:'trace.'+scope.attemptId+'.final-response',usage:capture.result?.usage??null}}}});
+  contents.push({at:capture.execution?.endedAt??endedAt,kind:agent.kind+'/events',data:{sessionId:capture.sessionId,event:{type:'session/completion',data:{stopReason:capture.result?.stopReason??null,error:capture.error??null,finalResponseEntryId:'trace.'+scope.attemptId+'.final-response',usage:normalizeUsage(capture.result?.usage??capture.usage),usageEvidence:capture.usageEvidence??null,execution:capture.execution??null}}}});
   const prior=new Map(before.entries.map(x=>[x.portablePath,x])),post=new Map(after.entries.map(x=>[x.portablePath,x]));
   const changes=[...post.values()].filter(x=>JSON.stringify(x)!==JSON.stringify(prior.get(x.portablePath))).map(x=>({op:prior.has(x.portablePath)?'MODIFY':'ADD',value:x}));
   for(const x of prior.values())if(!post.has(x.portablePath))changes.push({op:'REMOVE',value:x});

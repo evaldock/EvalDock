@@ -96,6 +96,14 @@ test('destroy returning successfully is insufficient when actual stopped state i
  const result=await runSession(d,{cwd:'/tmp/test',prompt:'test',deadlineMs:1000});
  assert.equal(result.cleanup,'UNKNOWN');assert.equal(result.error,'WORKBUDDY_CLEANUP_UNCONFIRMED');
 });
+test('WorkBuddy completion retains owned archive usage and native execution before cleanup',async()=>{
+ const d=fakeDesktop(),r=await runSession(d,{cwd:'/tmp/test',prompt:'test',deadlineMs:1000,usageReader:async({cwd,sessionId})=>{
+  assert.equal(cwd,'/tmp/test');assert.equal(sessionId,'test-session-1');
+  return {usage:{inputTokens:123,outputTokens:9,cacheReadTokens:100},records:2,source:'OWNED_NATIVE_SESSION_ARCHIVE'};
+ }});
+ assert.equal(r.result.usage.inputTokens,123);assert.equal(r.usageEvidence.records,2);
+ assert.ok(Number.isFinite(r.execution.durationMs));assert.equal(r.execution.scope,'NATIVE_TASK_REQUEST');
+});
 test('renamed tool notifications remain visible as structure and fail required tool acceptance',async()=>{
  const {validateCapture}=await import('../../adapters/compatibility/contracts.mjs');
  const {workbuddyTrace}=await import('../../adapters/workbuddy/evidence.mjs');

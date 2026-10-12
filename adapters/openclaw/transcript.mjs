@@ -20,6 +20,7 @@ export function collectTranscript(database,sessionId){
    let event;try{event=JSON.parse(row.body??zstdDecompressSync(row.compressed,{maxOutputLength:524288}).toString('utf8'));}catch{capture.omitted++;continue;}
    if(event.type!=='message')continue;const m=event.message,at=event.timestamp??new Date(m.timestamp).toISOString();
    if(m.role==='assistant'){
+    capture.recordUsage(event.id??m.id??'transcript:'+row.seq,m.usage);
     for(const c of m.content??[])if(c.type==='toolCall')capture.add('tool/call',{callId:c.id,name:c.name,arguments:c.arguments},at);
     if(m.stopReason==='stop')capture.finalText((m.content??[]).filter(c=>c.type==='text').map(c=>c.text).join(''));
    }else if(m.role==='toolResult')capture.add('tool/result',{callId:m.toolCallId,name:m.toolName,result:m.content?.filter(c=>c.type==='text').map(c=>c.text).join(''),isError:m.isError},at);

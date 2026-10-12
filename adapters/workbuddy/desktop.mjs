@@ -1,6 +1,7 @@
 /** Interface-checked CLI transport to the actual WorkBuddy desktop, not a standalone CodeBuddy process. */
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {readWorkBuddyUsage} from './usage.mjs';
 export function desktopConnection({appPath='/Applications/WorkBuddy.app',endpoint='http://127.0.0.1:18491'}={}){
  const url=new URL(endpoint);
  if(url.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!path.isAbsolute(appPath)||!appPath.endsWith('.app'))throw Error('WORKBUDDY_INVALID_ENDPOINT');
@@ -75,7 +76,7 @@ export function installCapture(sessionId){
   };
   const bounded=value=>{let v=clip(value);if(encoder.encode(JSON.stringify(v)).length>32768){c.clipped++;v={contentOmitted:true,reason:'FIELD_SIZE_LIMIT'};}return v;};
   const setFinal=text=>{const x=textLimit(text,64*1024);c.final=x.text;c.finalTruncated=x.truncated;};
-  const finish=(error,result)=>{if(c.done)return;c.done=true;c.error=error??null;c.result=result??null;resolveTask({error:c.error});};
+  const finish=(error,result)=>{if(c.done)return;c.done=true;c.error=error??null;c.result=result??null;if(c.execution){const endedAt=new Date().toISOString();c.execution={...c.execution,endedAt,durationMs:Date.parse(endedAt)-Date.parse(c.execution.startedAt)};}resolveTask({error:c.error});};
   c.accept=(channel,payload,envelopeId)=>{
     if(channel!=='session:event:'+sessionId||payload?.sessionId!==sessionId||c.done||!started)return;
     if(envelopeId){if(eventIds.has(envelopeId)){c.duplicates++;return;}eventIds.add(envelopeId);if(eventIds.size>2048)eventIds.delete(eventIds.values().next().value);}
@@ -89,7 +90,8 @@ export function installCapture(sessionId){
       for(const b of blocks){if(b?.type!=='text'||typeof b.text!=='string')continue;const wasTruncated=c.finalTruncated;setFinal(c.final+b.text);c.finalTruncated ||= wasTruncated;}
       return;
     }
-    if(type!=='tool_call'&&type!=='tool_call_update'){c.noise++;if(!['agent_thought_chunk','usage_update','available_commands_update','current_mode_update'].includes(type)){c.unknownEvents??=[];if(c.unknownEvents.length<16)c.unknownEvents.push({type:String(type??'unknown').slice(0,80),keys:Object.keys(u).slice(0,16)});}return;}
+    if(type==='usage_update'){c.usageUpdate=bounded({used:u.used??null,size:u.size??null,cost:u.cost??null,usage:u._meta?.usage??u.usage??null,scope:'NATIVE_CONTEXT_SNAPSHOT_NOT_SESSION_TOTAL'});return;}
+    if(type!=='tool_call'&&type!=='tool_call_update'){c.noise++;if(!['agent_thought_chunk','available_commands_update','current_mode_update'].includes(type)){c.unknownEvents??=[];if(c.unknownEvents.length<16)c.unknownEvents.push({type:String(type??'unknown').slice(0,80),keys:Object.keys(u).slice(0,16)});}return;}
     if(typeof u.toolCallId!=='string'){c.omitted++;return;}
     const at=new Date().toISOString(),id=u.toolCallId;let t=tools.get(id);
     if(!t){t={call:null,result:null,bytes:0};tools.set(id,t);}else c.mergedUpdates++;
@@ -127,7 +129,7 @@ export function installCapture(sessionId){
   readyTimer=setTimeout(transportError,5000);
   window.postMessage({type:'workbuddy:open-local-daemon-transport-port',target:{transportType:'local'}},'*',[channel.port2]);
   c.start=prompt=>{
-    if(started||closed||c.done)throw new Error('collector unavailable');started=true;
+    if(started||closed||c.done)throw new Error('collector unavailable');started=true;c.execution={startedAt:new Date().toISOString(),scope:'NATIVE_TASK_REQUEST'};
     port.postMessage({kind:'message',json:{id:requestId,type:'request',channel:'session:sendMessage',args:[sessionId,[{type:'text',text:prompt}]]}});
     return task;
   };
@@ -139,7 +141,7 @@ export function installCapture(sessionId){
   };
   return ready;
 }
-export async function runSession(desktop,{cwd,prompt,deadlineMs,signal,onSession}){
+export async function runSession(desktop,{cwd,prompt,deadlineMs,signal,onSession,usageReader=readWorkBuddyUsage}){
   if(signal?.aborted)throw new Error('WORKBUDDY_CANCELLED');
   const created=await desktop.invoke('session:create',{cwd,config:{mode:'craft'}});
   const sessionId=created?.sessionId;if(typeof sessionId!=='string'||!/^[a-zA-Z0-9._-]{1,200}$/.test(sessionId))throw new Error('WORKBUDDY_CREATE_FAILED');
@@ -156,6 +158,11 @@ export async function runSession(desktop,{cwd,prompt,deadlineMs,signal,onSession
   let capture;
   try{capture=await desktop.evaluate(`window.__evaldockWorkBuddy?.[${JSON.stringify(sessionId)}]?.extract() ?? null`);}
   catch{outcome??='WORKBUDDY_CAPTURE_FAILED';}
+  if(capture?.done&&capture.result){
+    const native=await usageReader({cwd,sessionId}).catch(()=>({usage:null,reason:'NATIVE_USAGE_ARCHIVE_UNAVAILABLE'}));
+    const {usage,...evidence}=native;capture.usageEvidence=evidence;
+    if(usage)capture.result={...capture.result,usage};
+  }
   // Stop only the owned runtime, retaining native conversation history for audit.
   let cleanup='UNKNOWN';try{await desktop.invoke('session:destroy',sessionId);if(await desktop.confirmStopped?.(sessionId))cleanup='STOPPED';}catch{}
   if(cleanup==='UNKNOWN')outcome??='WORKBUDDY_CLEANUP_UNCONFIRMED';

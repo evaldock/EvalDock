@@ -81,6 +81,24 @@ answer and delivered files. Drop token deltas and full state snapshots. LangGrap
 also keeps bounded node/checkpoint/interrupt evidence; repeated messages are
 deduplicated. No unobserved thoughts or tools are fabricated.
 
+Cost evidence uses native completed-response counters or a native session total;
+repeated response IDs and mirrored snapshots are counted once. Pi retains completed
+message usage, LangGraph retains AI-message usage metadata, Hermes reads counters
+from its owned session database for archive-mode runs, and OpenClaw can use the owned
+transcript when its completion response omits usage. WorkBuddy reads only the newly
+owned session's native JSONL after completion and returns numeric usage, never the
+conversation text. Native context-window `used`/`size` values are not cumulative
+token consumption. Missing fields remain unknown, with source and coverage recorded.
+
+`session/completion` carries native usage and the measured execution interval in the
+existing all-trace format. Process timing ends at process exit, before cleanup and
+transcript collection. Desktop timing spans task submission to native completion;
+parallel child-task durations are not added. The collection window remains separate.
+FULL sends this evidence to Judge; EFFECT continues to expose delivery evidence only.
+Qwen/Doubao streams that do not expose native token counters support time evidence
+only; character counts, context estimates and billing credits are not substitutes.
+Report previews use session totals before response mirrors to avoid double counting.
+
 The common capture has a 192 KiB event budget, up to 128 tool call pairs and 64
 other events. Individual long values are excerpted with digest/omission metadata.
 Final text is capped at 64 KiB, delivered text evidence at 192 KiB, and assembled

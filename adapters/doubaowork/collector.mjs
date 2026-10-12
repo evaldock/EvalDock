@@ -80,7 +80,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
  },async extract(){disposed=true;unwatch?.();subscription?.unsubscribe();await release();delete root[sessionId];return {...c.extract(),backgroundThreadIds:[...threads.keys()],workspace:cwd};}};
  try{
   const message=modules.send.createSendMessage({conversationContext:{local_conversation_id:'local_'+sessionId,bot_id:modules.bot.IO(modules.conversation.NW.getState())},message:{unique_id:sessionId,content_blocks_v2:[modules.text.mapTextToTextBlock(prompt)],ext:{autoNavigate:'0',conversation_mode:'office',use_deep_think:mode,agent_mode:'1',general_task_param:JSON.stringify(taskParam)}}});
-  service.sendMessage({sessionId,messages:[message],sendMode:'normal',session:{reportParams:{}}});submitted=true;
+  c.start();service.sendMessage({sessionId,messages:[message],sendMode:'normal',session:{reportParams:{}}});submitted=true;
   const native=service.lifecycleRegistry.getSession(sessionId);if(typeof native?.subscribe!=='function')throw Error('AGENT_INTERFACE_CHANGED');subscription=native.subscribe();
   (async()=>{try{for await(const {message:m}of subscription){if(!m)continue;observe(m);if(m.final_status?.session){chatTerminal=true;notifyState();chatSuccess=m.final_status.session==='Success';check();}}
    if(!chatTerminal)c.finish('AGENT_STREAM_CLOSED');else check();

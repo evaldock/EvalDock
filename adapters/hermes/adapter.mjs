@@ -67,7 +67,7 @@ export function createHermesAdapter(target){return {
    try{
     const {stdout}=await exec(path.join(path.dirname(target.executable),'python'),[fileURLToPath(new URL('./session-evidence.py',import.meta.url)),path.join(home,'state.db'),'--session-archive'],{timeout:10000,maxBuffer:1048576,env});
     let safe=stdout;for(const [key,secret] of Object.entries(env))if(/KEY|TOKEN|SECRET|PASSWORD/.test(key)&&secret.length>=8)safe=safe.split(secret).join('[REDACTED]');
-    const evidence=JSON.parse(safe);captured.nativeSessionId=evidence.sessionId;captured.final=evidence.final;captured.result={stopReason:'end_turn'};
+    const evidence=JSON.parse(safe);captured.nativeSessionId=evidence.sessionId;captured.final=evidence.final;captured.result={stopReason:'end_turn',usage:evidence.usage??null};captured.usageEvidence={source:'OWNED_NATIVE_SESSION_DATABASE',scope:'SESSION_TOTAL'};
     return restoreHermesEvidence(captured,evidence.rows,{archive:true});
    }catch{captured.error='AGENT_HERMES_EVIDENCE_INCOMPLETE';captured.result=null;}
   }

@@ -51,7 +51,7 @@ export function subscribeQwen(sessionId,createCapture){
     window.desktopApi.onChatStreamComplete(owned(()=>c.finish())),
     window.desktopApi.onChatStreamError(owned(()=>c.finish('AGENT_TASK_FAILED'))),
   ];
-  root[sessionId]={wait:c.wait,extract(){for(const f of dispose)f?.();delete root[sessionId];return c.extract();}};return true;
+  root[sessionId]={wait:c.wait,start:()=>c.start(),extract(){for(const f of dispose)f?.();delete root[sessionId];return c.extract();}};return true;
 }
 export async function runQwen(desktop,{cwd,prompt,deadlineMs,signal,onSession}){
   if(signal?.aborted)throw Error('AGENT_CANCELLED');
@@ -66,6 +66,7 @@ export async function runQwen(desktop,{cwd,prompt,deadlineMs,signal,onSession}){
     await onSession?.(sessionId);
     if(signal?.aborted)throw Error('AGENT_CANCELLED');
     await desktop.evaluate(`(${subscribeQwen.toString()})(${JSON.stringify(sessionId)},${createRendererCapture.toString()})`);
+    await desktop.evaluate(`window.__evaldockQwenSessions[${JSON.stringify(sessionId)}].start()`);
     await desktop.invoke('agent.submitMessage','mutation',{chatId,subChatId:sessionId,prompt,cwd,projectPath:cwd,additionalDirectories:[cwd],userSelectedDirectories:[cwd],outputDirectory:cwd,mode:'agent'});
     const out=await desktop.evaluate(`window.__evaldockQwenSessions[${JSON.stringify(sessionId)}].wait`,deadlineMs,signal);error=out?.error??null;
   }catch(e){error=e.message==='AGENT_RPC_TIMEOUT'?'AGENT_TASK_TIMEOUT':e.message.startsWith('AGENT_')?e.message:'AGENT_EXECUTION_ERROR';}

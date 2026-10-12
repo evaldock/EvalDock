@@ -11,7 +11,7 @@ export interface TraceOverview {
   usage: Record<string, number | null>; tools: TraceToolRow[]; types: Record<string, number>;
 }
 
-/** Read-only projection. Session + call ID identifies a call; only final message usage is summed. */
+/** Read-only projection. Session totals supersede response mirrors in the same Session. */
 export function projectTraceOverview(trace: Pick<AllTrace, "entries">): TraceOverview {
   const obj = (v: unknown): Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {};
   const arr = (v: unknown): unknown[] => Array.isArray(v) ? v : [];
@@ -19,7 +19,8 @@ export function projectTraceOverview(trace: Pick<AllTrace, "entries">): TraceOve
   const sessions = new Set<string>(), models = new Set<string>(), providers = new Set<string>();
   const types: Record<string, number> = Object.create(null) as Record<string, number>;
   const usage: Record<string, number | null> = { input: null, output: null, reasoning: null, cacheRead: null };
-  const calls = new Map<string, TraceToolRow>(), usageSeen = new Set<string>();
+  const calls = new Map<string, TraceToolRow>();
+  const responseUsage = new Map<string, Map<string, Record<string, unknown>>>(), sessionUsage = new Map<string, Record<string, unknown>>();
   const entries = trace.entries.filter(entry => entry.layer === "AGENT");
   const events = entries.map(entry => {
     const content = obj(entry.content), data = obj(content.data), native = obj(data.native);
@@ -69,21 +70,16 @@ export function projectTraceOverview(trace: Pick<AllTrace, "entries">): TraceOve
       if(typeof config.provider === "string") providers.add(config.provider);
     }
     if(item.kind === "assistant/message") {
-      const usageKey = JSON.stringify([item.session || item.entry.sourceId, message.id ?? item.event.seq ?? item.entry.id]);
-      if(!usageSeen.has(usageKey)) {
-        usageSeen.add(usageKey);
-        const u = obj(p.usage);
-        for(const [key, field] of [["input","inputTokens"],["output","outputTokens"],["reasoning","reasoningTokens"],["cacheRead","cacheReadTokens"]] as const) {
-          const n = u[field];
-          if(typeof n === "number" && Number.isFinite(n) && n >= 0) usage[key] = (usage[key] ?? 0) + n;
-        }
-      }
+      const sessionKey = item.session || item.entry.sourceId || item.entry.id;
+      const rows = responseUsage.get(sessionKey) ?? new Map<string, Record<string, unknown>>();
+      rows.set(String(message.id ?? item.event.seq ?? item.entry.id), obj(p.usage));responseUsage.set(sessionKey,rows);
       for(const block of arr(message.content).map(obj)) if(block.type === "tool-call") {
         const row = call(item,str(block.id ?? block.callId));
         row.name = str(block.name) || row.name;
         if(block.arguments !== undefined) row.arguments = resolve(block.arguments,item.session);
       }
     }
+    if(item.kind === "session/completion" && Object.keys(obj(p.usage)).length) sessionUsage.set(item.session || item.entry.sourceId || item.entry.id, obj(p.usage));
     if(item.kind === "tool/call") {
       const row = call(item,str(p.callId ?? p.id));
       row.at = str(item.content.at) || row.at;
@@ -100,6 +96,13 @@ export function projectTraceOverview(trace: Pick<AllTrace, "entries">): TraceOve
         row.result = resolve(result.content ?? result.result ?? result, item.session);
         row.status = result.isError === true || result.error != null ? "ERROR" : "COMPLETED";
       }
+    }
+  }
+  for(const session of new Set([...responseUsage.keys(),...sessionUsage.keys()])) {
+    for(const [key,field] of [["input","inputTokens"],["output","outputTokens"],["reasoning","reasoningTokens"],["cacheRead","cacheReadTokens"]] as const) {
+      const total = sessionUsage.get(session)?.[field];
+      const values = typeof total === "number" && Number.isFinite(total) && total >= 0 ? [total] : [...(responseUsage.get(session)?.values() ?? [])].map(row=>row[field]);
+      for(const n of values) if(typeof n === "number" && Number.isFinite(n) && n >= 0) usage[key] = (usage[key] ?? 0) + n;
     }
   }
   return { events: entries.length, sessions: [...sessions], models: [...models], providers: [...providers],
@@ -128,7 +131,7 @@ export function renderTraceOverview(trace: Pick<AllTrace, "entries">, declaratio
     '</code><small class="trace-session">'+e(row.session)+"</small></td><td>"+e(row.name)+renderToolAttribution(toolAttribution(row.name,declarations))+"</td><td>"+body(row.arguments)+
     "</td><td>"+e(row.status)+(row.result === undefined ? "" : "<details><summary>结果内容</summary>"+body(row.result)+"</details>")+"</td></tr>").join("");
   return '<div class="facts">'+facts+"</div><h3>Token usage</h3><table><tbody><tr>"+usage+
-    '</tr></tbody></table><h3>工具调用</h3><p class="note">按 Session 与 callId 合并同一次调用；参数引用已关联到原记录。事件数为当前保留的 Agent 记录，Token 仅汇总最终消息的 usage；未记录的值不记为 0。</p>' +
+    '</tr></tbody></table><h3>工具调用</h3><p class="note">按 Session 与 callId 合并同一次调用；参数引用已关联到原记录。Token 优先使用各 Session 的真实累计用量，否则按完成消息去重汇总；未记录的值不记为 0。</p>' +
     '<table class="trace-tools"><thead><tr><th>时间</th><th>callId</th><th>工具</th><th>采集到的参数</th><th>结果事件</th></tr></thead><tbody>'+
     (rows || '<tr><td colspan="5">没有采集到可识别的工具调用</td></tr>')+"</tbody></table>" +
     '<details><summary>全部事件类型计数</summary><table><thead><tr><th>事件类型</th><th>数量</th></tr></thead><tbody>'+

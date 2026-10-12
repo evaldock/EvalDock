@@ -5,6 +5,7 @@ import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {Capture,runProcess,normalizedEvent} from '../shared/capture.mjs';
+import {normalizeUsage} from '../shared/capture.mjs';
 import {loadAgentEnvironment,staticInfo} from '../shared/registry.mjs';
 const exec=promisify(execFile),here=path.dirname(fileURLToPath(import.meta.url));
 export function openClawEvent(row,capture){
@@ -40,6 +41,7 @@ export function createOpenClawAdapter(target){return {
    const r=await exec(target.node,[path.join(here,'transcript.mjs'),state,...capture.nativeSessionId?[capture.nativeSessionId]:[]],{timeout:10000,maxBuffer:400*1024,env});
    let body=r.stdout;for(const [k,v] of Object.entries(env))if(/KEY|TOKEN|SECRET|PASSWORD/.test(k)&&v.length>=8)body=body.split(v).join('[REDACTED]');
    const observed=JSON.parse(body);if(observed.error)throw Error(observed.error);
+   if(!normalizeUsage(capture.result?.usage)&&observed.usage){capture.result={...capture.result,usage:observed.usage};capture.usageEvidence={...observed.usageEvidence,source:'OWNED_NATIVE_TRANSCRIPT',omittedRows:observed.omitted};}
    for(const row of observed.queue)capture.add(row.event.type,row.event.data,row.at);
    capture.omitted+=observed.omitted;capture.clipped+=observed.clipped;capture.nativeSessionId=observed.nativeSessionId;
    if(!capture.final&&observed.final)capture.finalText(observed.final);

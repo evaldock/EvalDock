@@ -73,6 +73,10 @@ class Evidence:
     def message(self, message):
         role = message.get("type") or message.get("role")
         if role in ("ai", "assistant"):
+            usage = message.get("usage_metadata") or (message.get("response_metadata") or {}).get("token_usage")
+            message_id = message.get("id")
+            if isinstance(usage, dict) and self.once("usage:" + str(message_id), usage):
+                emit("session/usage", {"messageId": message_id, "usage": usage})
             calls = message.get("tool_calls") or []
             for call in calls:
                 if self.once("call:" + str(call.get("id")), call):

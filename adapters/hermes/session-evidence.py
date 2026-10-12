@@ -22,7 +22,14 @@ if archive:
     final = connection.execute("SELECT content, finish_reason FROM messages WHERE session_id = ? AND role = 'assistant' AND tool_calls IS NULL ORDER BY id DESC LIMIT 1", (session_id,)).fetchone()
     if final is None or not final['content'] or final['finish_reason'] not in ('stop', 'end_turn'):
         raise RuntimeError('HERMES_SESSION_INCOMPLETE')
-    result = {'sessionId': session_id, 'final': final['content'], 'rows': result}
+    columns = {row['name'] for row in connection.execute('PRAGMA table_info(sessions)')}
+    fields = [key for key in ('input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'reasoning_tokens') if key in columns]
+    usage = None
+    if fields:
+        native = connection.execute('SELECT ' + ','.join(fields) + ' FROM sessions WHERE id = ?', (session_id,)).fetchone()
+        usage = {key: native[key] for key in fields if isinstance(native[key], (int, float)) and native[key] >= 0}
+        usage = usage or None
+    result = {'sessionId': session_id, 'final': final['content'], 'rows': result, 'usage': usage}
 output = json.dumps(result)
 if len(output.encode()) > 1048576:
     raise RuntimeError('HERMES_EVIDENCE_LIMIT')

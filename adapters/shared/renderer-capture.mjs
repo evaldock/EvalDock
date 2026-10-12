@@ -24,6 +24,7 @@ export function createRendererCapture(sessionId){
     }else{const key=type+JSON.stringify(safe);if(events.has(key)){c.duplicates++;return;}events.set(key,item);bytes+=size(item);if(events.size>64){const key=events.keys().next().value;bytes-=size(events.get(key));events.delete(key);c.omitted++;}}
     while(bytes>192*1024||tools.size>128){if(tools.size){const key=tools.keys().next().value;for(const row of Object.values(tools.get(key))){bytes-=size(row);c.omitted++;}tools.delete(key);}else{const key=events.keys().next().value;if(key===undefined)break;bytes-=size(events.get(key));events.delete(key);c.omitted++;}}
   };
-  c.finish=(error=null)=>{if(c.done)return;c.error=error;c.done=true;c.result=error?null:{stopReason:'end_turn'};resolve({error});};
-  c.extract=()=>{const {wait,text,add,finish,extract,...plain}=c;return {...plain,queue:[...events.values(),...[...tools.values()].flatMap(x=>[x.call,x.result].filter(Boolean))].sort((a,b)=>a.order-b.order).map(({order,...r})=>r)};};return c;
+  c.start=()=>{c.execution??={startedAt:new Date().toISOString(),scope:'NATIVE_TASK_REQUEST'};};
+  c.finish=(error=null)=>{if(c.done)return;c.error=error;c.done=true;c.result=error?null:{stopReason:'end_turn'};if(c.execution){const endedAt=new Date().toISOString();c.execution={...c.execution,endedAt,durationMs:Date.parse(endedAt)-Date.parse(c.execution.startedAt)};}resolve({error});};
+  c.extract=()=>{const {wait,text,add,start,finish,extract,...plain}=c;return {...plain,queue:[...events.values(),...[...tools.values()].flatMap(x=>[x.call,x.result].filter(Boolean))].sort((a,b)=>a.order-b.order).map(({order,...r})=>r)};};return c;
 }
