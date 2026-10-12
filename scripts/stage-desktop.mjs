@@ -19,7 +19,7 @@ for(const file of ['workbench/design-prototypes/score-radar.js','workbench/desig
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('dist',path.join(out,'dist'),{recursive:true});
-for(const file of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs']){
+for(const file of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/benchdock-catalog.mjs']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('src/agent-trace/native-probe/lib',path.join(out,'src/agent-trace/native-probe/lib'),{recursive:true});

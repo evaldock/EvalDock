@@ -74,6 +74,17 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           let input;try{input=JSON.parse(raw);}catch{json(res,400,{error:'无效 JSON'});return;}
           if(!input||typeof input!=='object'||Array.isArray(input)){json(res,400,{error:'无效参数'});return;}
           const route=u.pathname.slice('/api/control/'.length);
+          if(route==='library/catalog'||route==='library/download'||route==='library/download-cancel'){
+            if(!libraryService)throw Error('题库目录下载仅支持桌面应用');
+            if(route==='library/download'){
+              if(Object.keys(input).some(key=>key!=='datasetId')||typeof input.datasetId!=='string')throw Error('请选择题库目录中的测试集');
+              json(res,200,libraryService.downloadDataset(input.datasetId));
+            }else{
+              if(Object.keys(input).length)throw Error('题库目录操作不接受额外参数');
+              json(res,200,route==='library/catalog'?libraryService.loadCatalog():await libraryService.cancelDownload());
+            }
+            return;
+          }
           if(route==='library/prepare'||route==='library/cancel'){
             if(Object.keys(input).length||!libraryService)throw Error('自动题库准备仅支持桌面应用');
             json(res,200,route==='library/prepare'?libraryService.start():await libraryService.cancel());return;

@@ -4,6 +4,12 @@ The default `datasets/` directory contains **one synthetic number-summing task**
 
 Download the reviewed public collection from [BenchDock on Hugging Face](https://huggingface.co/datasets/EvalDock/BenchDock). Follow [the integration guide](../docs/BENCHDOCK.md) to import a pinned pilot into `.evaldock/benchdock`. Real task packages and private grading bundles must not be committed here.
 
+The desktop test-set page loads and caches the pinned online directory, including
+records that have not been downloaded. Downloading a public subset adds its tasks
+to the existing local library after validation and backup; source-only records
+remain outside the installed selection pool. Downloaded content does not establish
+environment readiness, execution completion or scoring-reference availability.
+
 ## Distribution, loading and execution counts
 
 | Count | Meaning and evidence |

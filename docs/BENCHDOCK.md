@@ -26,21 +26,35 @@ Import/export checks do not establish that an Agent can solve a task.
 
 ## Desktop automatic preparation
 
-The Mac App downloads the reviewed three-task profile automatically when its local
-library is still the unchanged bundled demo. It downloads the pinned manifest and
-catalog, then only the selected public tasks, declared inputs and notices. No full
-snapshot, Python downloader, login or manual import is required. The overview and
-dataset page show real progress, cancellation and retry; automatic evaluation
-waits for successful validation and installation. Existing custom libraries are
-preserved. Successful imports use the desktop backup/recovery transaction and
-retain the original task IDs, provenance and unavailable-scoring state.
+The Mac App loads the pinned full directory on launch, verifies its manifest and
+catalog, and caches them locally for offline browsing. Cards distinguish available
+public content, source-only records, download progress and installed tasks. A
+download button installs only that subset's public tasks, declared inputs and
+notices. Source-only records are visible but cannot be downloaded or selected.
+Directory counts, installed counts and scoring-reference readiness are separate.
 
-This is automatic preparation of the reviewed pilot, not automatic selection from
-all 1,650 remote records. The existing Planner selects from the installed pilot;
-full remote candidate matching and environment preparation remain separate work.
-The download uses existing proxy environment variables or the macOS HTTPS proxy,
-without sending Planner/Judge credentials. Agent execution dependencies still
-apply. The following instructions remain available for source/CLI users.
+Explicit downloads add a dataset to the current library using the existing
+validation, backup and recovery transaction. Existing datasets, private references
+and import receipts are retained. Cancellation, checksum errors, active evaluations
+and concurrent local edits prevent the switch. Only installed cases enter Planner
+selection or manual evaluation. No full snapshot, Python downloader or login is
+required. The framework and app bundle do not embed the remote task directory.
+
+The reviewed pilot retains its explicit labels and environment configuration.
+Other public tasks use a common input/work/output delivery contract, a 1,200-second
+timeout, basic delivery/cost/reasoning labels and the source's environment-status
+hint. This is an execution wrapper, not an upstream environment generator or proof
+that external services, accounts or dependencies are ready. The original public
+record, pinned revision and catalog digest remain in each task's provenance;
+private grading remains unavailable. Local API/UI responses expose directory
+metadata and installed public task requirements, never evaluator references.
+
+Starting automatic evaluation while the library is still the unchanged bundled
+demo prepares the reviewed three-task pilot on demand. Opening the app by itself
+does not install those tasks. Full remote Planner matching and environment
+preparation remain separate work. Downloads use existing proxy environment
+variables or the macOS HTTPS proxy without sending Planner/Judge credentials.
+The following instructions remain available for source/CLI users.
 
 ## Prepare the public release
 

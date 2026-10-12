@@ -5,6 +5,7 @@ import {execFile} from 'node:child_process';
 import {promisify,isDeepStrictEqual} from 'node:util';
 import {ProxyAgent} from 'undici';
 import {importLibrary,libraryFingerprint} from '../../desktop/workspace.mjs';
+import {BenchDockCatalog} from './benchdock-catalog.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const exec=promisify(execFile);
@@ -44,9 +45,9 @@ export class BenchDockLibrary {
     this.pending=null;this.controller=null;
     this.completed=new Set();
   }
-  status(){return {...this.value};}
-  get installing(){return this.value.state==='INSTALLING';}
-  get busy(){return !!this.pending;}
+  status(){return {...this.value,...this.catalog?{catalog:this.catalog.status(),download:this.catalog.downloadStatus()}:{}};}
+  get installing(){return this.value.state==='INSTALLING'||!!this.catalog?.installing;}
+  get busy(){return !!this.pending||!!this.catalog?.busy;}
   get ready(){return ['READY','LOCAL'].includes(this.value.state);}
   async init(){
     this.profileBytes=await readFile(path.join(this.root,'config/benchdock-pilot.json'));
@@ -67,21 +68,34 @@ export class BenchDockLibrary {
         const {loadDatasetDescriptionCatalog}=await import('../../dist/src/datasets/catalog.js');
         const {currentQuestionCases,loadDatasetCase}=await import('../../dist/src/datasets/loader.js');
         let cases=0;
-        for(const d of await loadDatasetDescriptionCatalog(path.join(this.root,'datasets/catalog.md'))){
+        const descriptions=await loadDatasetDescriptionCatalog(path.join(this.root,'datasets/catalog.md'));
+        let pilotCases=0;
+        for(const d of descriptions){
           const files=await currentQuestionCases(path.join(this.root,'datasets'),d.datasetId);
           for(let i=0;i<files.length;i++)await loadDatasetCase({datasetsRoot:path.join(this.root,'datasets'),datasetId:d.datasetId,labelIds:d.labelIds,caseIndex:i});
           cases+=files.length;
+          if(d.datasetId==='dataset.benchdock-public/v1')pilotCases=files.length;
         }
-        if(cases!==p.tasks.length)throw Error('自动题库题量与导入记录不一致');
-        this.value={...this.value,automatic:true,state:'READY',cases};
+        if(pilotCases!==p.tasks.length)throw Error('自动题库题量与导入记录不一致');
+        this.value={...this.value,automatic:descriptions.length===1,state:descriptions.length===1?'READY':'LOCAL',cases};
       }
     }catch(error){
       if(error.code!=='ENOENT')this.value={...this.value,state:'FAILED',error:'本地自动题库校验失败，请重新下载或导入题库。'};
     }
     if(this.value.automatic&&!this.ready)this.originalLibrary=await libraryFingerprint(path.join(this.root,'datasets'));
+    this.catalog=new BenchDockCatalog({root:this.root,profile:p,fetchImpl:this.fetch,canInstall:this.canInstall,onInstalled:()=>{this.value={...this.value,automatic:false,state:'LOCAL',error:null};}});
+    await this.catalog.init();
     return this.status();
   }
+  loadCatalog(){this.catalog.load();return this.status();}
+  downloadDataset(id){
+    if(this.pending)throw Error('请等待当前题库准备结束后下载。');
+    this.catalog.startDownload(id);return this.status();
+  }
+  async cancelDownload(){await this.catalog.cancel();return this.status();}
+  async close(){await Promise.all([this.cancel(),this.catalog?.close()]);}
   start(){
+    if(this.catalog?.busy)throw Error('请等待测试集下载结束后开始自动选题。');
     if(this.pending||this.ready)return this.status();
     if(!this.value.automatic)return this.status();
     this.controller=new AbortController();

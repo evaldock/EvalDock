@@ -5,7 +5,7 @@ const names={dsh:'DSH',workbuddy:'WorkBuddy',pi:'Pi',langgraph:'LangGraph',qwenw
 const pages={home:'概览',agents:'我的 Agent',datasets:'测试集',reports:'评测记录',settings:'设置'};
 let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
 let agentModelSettings={keyConfigured:false};
-const ui={datasetQuery:'',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
+const ui={datasetQuery:'',datasetFilter:'all',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
 const active=job=>['STARTING','RUNNING','CANCELLING'].includes(job.state);
 const targets=()=>summary.agents.flatMap(a=>a.targets.map(t=>({...t,kind:a.kind,advanced:a.advanced,active:a.active})));
 const page=()=>pages[location.hash.slice(1)]?location.hash.slice(1):'home';
@@ -93,6 +93,7 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-report-filter')){ui.reportFilter=button.dataset.reportFilter;render();}
  if(button.hasAttribute('data-refresh-records'))await refresh();
  if(button.hasAttribute('data-dataset-detail')){ui.datasetId=button.dataset.datasetDetail;render();}
+ if(button.hasAttribute('data-dataset-filter')){ui.datasetFilter=button.dataset.datasetFilter;render();}
  if(button.hasAttribute('data-datasets-back')){ui.datasetId=null;render();}
  if(button.hasAttribute('data-clear-selection')){ui.selection.clear();render();}
  if(button.hasAttribute('data-start-selection'))await openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
@@ -103,6 +104,9 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-start'))await openEvaluation(button.dataset.target,button.dataset.dataset);
  if(button.hasAttribute('data-library-prepare')){library=await api('library/prepare',{});render();}
  if(button.hasAttribute('data-library-cancel')){library=await api('library/cancel',{});render();}
+ if(button.hasAttribute('data-library-catalog')){library=await api('library/catalog',{});render();}
+ if(button.hasAttribute('data-library-download')){library=await api('library/download',{datasetId:button.dataset.libraryDownload});render();}
+ if(button.hasAttribute('data-library-download-cancel')){library=await api('library/download-cancel',{});render();}
  if(button.hasAttribute('data-import')){button.disabled=true;const result=await desktop('importLibrary');if(result){notice(`已导入 ${result.datasets} 个测试集，共 ${result.cases} 题。`);await refresh();}}
  if(button.hasAttribute('data-configure')){await desktop('configureAgents');notice('在 agents.json 添加目标（参考同目录 agents.example.json）；DSH 修改 targets/real-dsh.json。保存后重新打开 App。');}
  if(button.hasAttribute('data-open-data'))await desktop('openData');
@@ -158,6 +162,6 @@ async function ensureAutomaticLibrary(){
  return libraryWait;
 }
 setInterval(async()=>{
- if(!['DOWNLOADING','INSTALLING'].includes(library.state)||libraryWait)return;
- try{library=await api('library');if(library.state==='READY')await refresh();else render();}catch{}
+ if(libraryWait||!(['DOWNLOADING','INSTALLING'].includes(library.state)||library.catalog?.state==='LOADING'||['DOWNLOADING','INSTALLING'].includes(library.download?.state)))return;
+ try{library=await api('library');if(library.state==='READY'||library.download?.state==='READY')await refresh();else render();}catch{}
 },1000);
