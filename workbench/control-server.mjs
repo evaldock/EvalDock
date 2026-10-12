@@ -1,4 +1,5 @@
 import {ModelSettings} from './lib/model-settings.mjs';
+import {AgentModelSettings} from './lib/agent-model-settings.mjs';
 import {appSummary} from './lib/app-summary.mjs';
 import {AgentDiscovery} from './lib/agent-discovery.mjs';
 import {loadTargets} from '../adapters/shared/registry.mjs';
@@ -19,12 +20,13 @@ import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-confi
 import {confined,token} from './lib/files.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const json=(res,status,value)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
-export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService,libraryService}={}){
+export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService,libraryService,modelSettingsFile,agentModelSettings:providedAgentModelSettings}={}){
   const control=controller??new DshControl(root);if(!controller)await control.init();
   const workbuddy=workbuddyController??new WorkBuddyControl({root});if(!workbuddyController)await workbuddy.init();
   const agents=agentControllers??await initializeAgentControllers(root);
   const others=()=>[workbuddy,...Object.values(agents)];
-  const modelSettings=new ModelSettings({controllers:[control,...others()]});await modelSettings.init();
+  const modelSettings=new ModelSettings({controllers:[control,...others()],file:modelSettingsFile});await modelSettings.init();
+  const agentModelSettings=providedAgentModelSettings??new AgentModelSettings({controllers:['pi','hermes','openclaw','langgraph'].map(kind=>agents[kind]).filter(Boolean)});await agentModelSettings.init();
   const pendingMutations=new Set();
   const discovery=discoveryService??new AgentDiscovery();
   const csrf=randomBytes(32).toString('hex'),preview=path.join(root,'workbench/design-prototypes');
@@ -38,6 +40,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
         if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}
         if(req.method==='GET'&&u.pathname==='/api/control/app'){json(res,200,{...await appSummary({control,workbuddy,agents}),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/model-settings'){json(res,200,{settings:await modelSettings.get(),csrf});return;}
+        if(req.method==='GET'&&u.pathname==='/api/control/agent-model-settings'){json(res,200,{settings:await agentModelSettings.get(),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/evaluation-catalog'){json(res,200,await evaluationCatalog(root));return;}
         const agentRoute=u.pathname.match(/^\/api\/control\/(pi|langgraph|qwenwork|doubaowork|hermes|openclaw)\/status$/);
         if(req.method==='GET'&&agentRoute){json(res,200,await agents[agentRoute[1]].status());return;}
@@ -92,6 +95,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
             }finally{pendingMutations.delete('discovery');}
           }
           if(route==='model-settings'){try{json(res,200,{ok:true,settings:await modelSettings.save(input)});}catch(e){json(res,e.statusCode??500,{error:e.statusCode?e.message:'保存配置失败，请检查服务端文件权限或磁盘空间'});}return;}
+          if(route==='agent-model-settings'){try{json(res,200,{ok:true,settings:await agentModelSettings.save(input)});}catch(e){json(res,e.statusCode??500,{error:e.statusCode?e.message:'保存被测 Agent 密钥失败，请检查文件权限或磁盘空间'});}return;}
           const runtimeMatch=route.match(/^(pi|langgraph|qwenwork|doubaowork|hermes|openclaw)\/(run|validate|cancel|extensions|preflight|open)$/);
           const fields=runtimeMatch?({open:['targetId'],run:['targetId','evaluationConfig'],validate:['targetId','datasetCount','caseCount','datasetIds'],cancel:['id'],extensions:['targetId','extensions'],preflight:['targetId','extensions']}[runtimeMatch[2]]):{preflight:['revision','plugins'],service:['action'],plugins:['plugins','revision'],run:['datasetCount','caseCount','revision','allDatasets','casesPerDataset','evaluationConfig'],cancel:['id'],'session-cancel':['sessionId'],'workbuddy/validate':['datasetCount','caseCount','datasetIds'],'workbuddy/run':['evaluationConfig'],'workbuddy/cancel':['id'],'workbuddy/open':[],'workbuddy/recover':[]}[route];
           if(!fields){json(res,404,{error:'接口不存在'});return;}

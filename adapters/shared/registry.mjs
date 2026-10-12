@@ -20,13 +20,17 @@ export async function resolveTarget(root,id) {
   if(!target)throw Error('AGENT_TARGET_NOT_FOUND');
   return target;
 }
-export async function loadAgentEnvironment() {
+export async function readAgentModelKey({environment=process.env,file=path.join(homedir(),'.config/evaldock/agent-model.env'),legacyFile=path.join(homedir(),'.dsh/.env')}={}) {
+  const read=async file=>{
+    try{return parseEnv(await readFile(file,'utf8')).DEEPSEEK_API_KEY;}
+    catch(error){if(error.code==='ENOENT')return undefined;throw error;}
+  };
+  return await read(file)||environment.DEEPSEEK_API_KEY||await read(legacyFile);
+}
+export async function loadAgentEnvironment({environment:source=process.env,...credentialOptions}={}) {
   // Only the target credential is available to child Agents; evaluator keys are excluded.
-  const environment=Object.fromEntries(['PATH','LANG','TMPDIR','SSL_CERT_FILE','NODE_EXTRA_CA_CERTS'].filter(k=>process.env[k]).map(k=>[k,process.env[k]]));
-  let parsed={};
-  try {parsed=parseEnv(await readFile(path.join(homedir(),'.dsh/.env'),'utf8'));}
-  catch(error){if(error.code!=='ENOENT')throw error;}
-  const key=process.env.DEEPSEEK_API_KEY??parsed.DEEPSEEK_API_KEY;
+  const environment=Object.fromEntries(['PATH','LANG','TMPDIR','SSL_CERT_FILE','NODE_EXTRA_CA_CERTS'].filter(k=>source[k]).map(k=>[k,source[k]]));
+  const key=await readAgentModelKey({...credentialOptions,environment:source});
   if(!key)throw Error('AGENT_MODEL_KEY_MISSING');
   environment.DEEPSEEK_API_KEY=key;
   return environment;

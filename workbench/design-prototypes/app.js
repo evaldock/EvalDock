@@ -4,6 +4,7 @@ const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 const names={dsh:'DSH',workbuddy:'WorkBuddy',pi:'Pi',langgraph:'LangGraph',qwenwork:'千问办公',doubaowork:'豆包办公',hermes:'Hermes',openclaw:'OpenClaw'};
 const pages={home:'概览',agents:'我的 Agent',datasets:'测试集',reports:'评测记录',settings:'设置'};
 let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
+let agentModelSettings={keyConfigured:false};
 const ui={datasetQuery:'',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
 const active=job=>['STARTING','RUNNING','CANCELLING'].includes(job.state);
 const targets=()=>summary.agents.flatMap(a=>a.targets.map(t=>({...t,kind:a.kind,advanced:a.advanced,active:a.active})));
@@ -37,10 +38,15 @@ function agentCards(){
    const description=descriptions[waiting?.reasonCode]||(waiting?.reasonCode?friendlyMessage(waiting.reasonCode):brand.description);
    const available=installed.find(d=>d.target&&!connected.some(t=>t.id==='local-'+d.kind+'-'+d.id||t.installRoot===d.path||d.target?.sourceRoot&&t.installRoot===d.target.sourceRoot));
    const launchable=['qwenwork','doubaowork'].includes(brand.kind)&&waiting?.reasonCode==='AGENT_NOT_CONNECTED'||brand.kind==='workbuddy'&&waiting?.reasonCode==='WORKBUDDY_NOT_CONNECTED';
-   const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}">启动连接</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
+   const needsModel=waiting?.reasonCode==='AGENT_MODEL_KEY_MISSING';
+   const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}">启动连接</button>`:needsModel?`<button data-agent-model>配置模型</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
 
    return `<article class="agent-card ${ready.length?'is-ready':installed.length?'is-discovered':''}"><div class="agent-card-heading"><img src="assets/agents/${brand.kind}.${brand.format}" width="28" height="28" alt=""><h3>${brand.name}</h3><span class="pill ${ready.length?'ready':installed.length?'discovered':''}">${state}</span></div><p class="agent-description">${escape(description)}</p><div class="agent-card-footer"><span>${escape(version|| (installed.length?'版本未读取':brand.planned?'计划接入':'已支持'))}${installed.length>1?' · '+installed.length+' 个安装':''}</span>${action}</div></article>`;
  }).join('');
+}
+
+function agentModelForm(){
+ return `<form id="agent-model-form" class="card"><h2>被测 Agent 模型</h2><p>Pi、Hermes、OpenClaw 和 LangGraph 的任务执行使用 DeepSeek，需要单独配置密钥。办公 Agent 请在原应用中完成登录。</p><label>DeepSeek API Key<input id="agent-api-key" name="apiKey" type="password" autocomplete="off" placeholder="${agentModelSettings.keyConfigured?'已配置；留空保留':'尚未配置'}"></label><p>密钥仅保存在本机，保存后返回「我的 Agent」查看运行条件。</p><button class="primary">保存 Agent 密钥</button></form>`;
 }
 
 let lastRenderedHtml;
@@ -51,7 +57,7 @@ function render(){
  if(current==='agents')html=heading('我的 Agent','全部 Agent 与本机安装状态', `<button data-scan ${scanning?'disabled':''}>${scanning?'正在扫描…':'↻ 重新扫描'}</button>`)+`<div class="note agent-scan-note">${agentCatalog.length} 类 Agent · 已发现 ${new Set(discovery.agents.map(d=>d.kind)).size} 类本地安装 · ${discovery.scannedAt?'上次扫描 '+escape(new Date(discovery.scannedAt).toLocaleTimeString('zh-CN')):'正在扫描本机'}${discovery.errors.length?'<br>'+discovery.errors.map(escape).join('；'):''}</div><div class="agent-grid">${agentCards()}</div>`;
  if(current==='datasets')html=renderDatasets({catalog,ui,library});
  if(current==='reports')html=renderReports({summary,ui});
- if(current==='settings')html=heading('设置','配置评分服务和本地工作空间。')+`<div class="settings"><form id="model-form" class="card"><h2>评测模型</h2><p>Planner 负责选题，Judge 负责评分。API Key 仅保存在本机，留空保留已有值。</p>${['planner','judge'].map(role=>`<fieldset><legend>${role==='planner'?'Planner · 选题':'Judge · 评分'}</legend><label>模型名称<input name="${role}-model" required value="${escape(settings?.[role]?.model)}"></label><label>接口地址<input name="${role}-endpoint" required type="url" value="${escape(settings?.[role]?.endpoint)}"></label><label>API Key<input name="${role}-apiKey" type="password" autocomplete="off" placeholder="${settings?.[role]?.keyConfigured?'已配置；留空保留':'尚未配置'}"></label></fieldset>`).join('')}<button class="primary">保存模型设置</button></form><section class="card"><h2>本地工作空间</h2><p>题库、运行记录和配置保存在本机。模型密钥沿用 ~/.config/evaldock/models.env。</p><button data-open-data>打开数据目录</button> <button data-configure>打开 Agent 配置目录</button></section></div>`;
+ if(current==='settings')html=heading('设置','配置评分服务和本地工作空间。')+`<div class="settings"><form id="model-form" class="card"><h2>评测模型</h2><p>Planner 负责选题，Judge 负责评分。API Key 仅保存在本机，留空保留已有值。</p>${['planner','judge'].map(role=>`<fieldset><legend>${role==='planner'?'Planner · 选题':'Judge · 评分'}</legend><label>模型名称<input name="${role}-model" required value="${escape(settings?.[role]?.model)}"></label><label>接口地址<input name="${role}-endpoint" required type="url" value="${escape(settings?.[role]?.endpoint)}"></label><label>API Key<input name="${role}-apiKey" type="password" autocomplete="off" placeholder="${settings?.[role]?.keyConfigured?'已配置；留空保留':'尚未配置'}"></label></fieldset>`).join('')}<button class="primary">保存模型设置</button></form>${agentModelForm()}<section class="card"><h2>本地工作空间</h2><p>题库、运行记录和配置保存在本机。模型密钥沿用 ~/.config/evaldock/models.env。</p><button data-open-data>打开数据目录</button> <button data-configure>打开 Agent 配置目录</button></section></div>`;
  if(html===lastRenderedHtml)return;
  lastRenderedHtml=html;
  const focus=document.activeElement,focusId=focus?.id,position=focus?.selectionStart;
@@ -60,16 +66,17 @@ function render(){
  for(const detail of document.querySelectorAll('details[data-preserve]'))if(opened.has(detail.dataset.preserve))detail.open=true;
  if(['dataset-search','report-search'].includes(focusId)){const next=document.getElementById(focusId);next?.focus();try{next?.setSelectionRange(position,position);}catch{}}
 }
-async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d,l]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery'),api('library')]);library=l;discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf; if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{loading=false;}}
+async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d,l,a]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery'),api('library'),api('agent-model-settings')]);agentModelSettings=a.settings;library=l;discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf; if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{loading=false;}}
 function syncSelectionMode(){
  const manual=$('#selection-kind').value==='SELECTED';
  $('#manual-selection').hidden=!manual;$('#manual-selection').disabled=!manual;
  $('#automatic-selection-note').hidden=manual;
 }
 async function openEvaluation(targetId,datasetId,items){
- if(!items&&!datasetId){await ensureAutomaticLibrary();await refresh();}
- const available=targets().filter(t=>t.evaluationReady&&!t.active);
+ await refresh();
  if(!settings?.planner?.keyConfigured||!settings?.judge?.keyConfigured){notice('开始前请配置 Planner 和 Judge 的模型密钥。');location.hash='settings';return;}
+ const available=targets().filter(t=>t.evaluationReady&&!t.active);
+ if(available.length&&!items&&!datasetId){await ensureAutomaticLibrary();await refresh();}
  if(!catalog.datasets.length){notice('请先导入测试集。');location.hash='datasets';return;}
  $('#agent-select').innerHTML=targets().map(t=>`<option value="${escape(t.kind+':'+t.id)}" ${t.id===targetId&&t.evaluationReady&&!t.active?'selected':''} ${!t.evaluationReady||t.active?'disabled':''}>${escape(t.name||names[t.kind])}${t.active?' · 正在评测':!t.evaluationReady?' · '+escape(t.reasonCode?friendlyMessage(t.reasonCode):'暂不可用'):''}</option>`).join('');
  $('#selection-kind').value=items||datasetId?'SELECTED':'STANDARD';syncSelectionMode();
@@ -91,6 +98,7 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-start-selection'))await openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
  if(button.hasAttribute('data-scan')){scanning=true;render();try{discovery=await api('discovery/scan',{});notice(`扫描完成，发现 ${discovery.agents.length} 个安装入口。`);}finally{scanning=false;render();}}
  if(button.hasAttribute('data-open-agent')){button.disabled=true;await api(button.dataset.kind+'/open',button.dataset.kind==='workbuddy'?{}:{targetId:button.dataset.openAgent});notice('已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');await refresh();}
+ if(button.hasAttribute('data-agent-model')){location.hash='settings';render();$('#agent-api-key')?.focus();}
  if(button.hasAttribute('data-connect')){button.disabled=true;await api('discovery/connect',{id:button.dataset.connect});notice('已接入，正在检查运行条件。');await refresh();}
  if(button.hasAttribute('data-start'))await openEvaluation(button.dataset.target,button.dataset.dataset);
  if(button.hasAttribute('data-library-prepare')){library=await api('library/prepare',{});render();}
@@ -100,7 +108,27 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-open-data'))await desktop('openData');
  if(button.hasAttribute('data-cancel')){await api((button.dataset.kind==='dsh'?'':button.dataset.kind+'/')+'cancel',{id:button.dataset.cancel});await refresh();}
  }catch(e){notice(e.message);}finally{button.disabled=false;}});
-document.addEventListener('submit',async event=>{if(event.target.id!=='model-form')return;event.preventDefault();const form=event.target,button=form.querySelector('button');button.disabled=true;try{const values=Object.fromEntries(['planner','judge'].map(role=>[role,Object.fromEntries(['model','endpoint','apiKey'].map(field=>[field,form.elements[role+'-'+field].value]))]));settings=(await api('model-settings',values)).settings;notice('模型设置已保存。');render();}catch(e){notice(e.message);}finally{button.disabled=false;}});
+document.addEventListener('submit',async event=>{
+ if(event.target.id!=='model-form')return;
+ event.preventDefault();const form=event.target,button=form.querySelector('button');button.disabled=true;
+ try{
+  const values=Object.fromEntries(['planner','judge'].map(role=>[role,Object.fromEntries(['model','endpoint','apiKey'].map(field=>[field,form.elements[role+'-'+field].value]))]));
+  settings=(await api('model-settings',values)).settings;
+  for(const role of ['planner','judge']){
+   for(const field of ['model','endpoint'])form.elements[role+'-'+field].value=settings[role][field];
+   const key=form.elements[role+'-apiKey'];key.value='';key.placeholder=settings[role].keyConfigured?'已配置；留空保留':'尚未配置';
+  }
+  notice('模型设置已保存。');
+ }catch(error){notice(error.message);}finally{button.disabled=false;}
+});
+document.addEventListener('submit',async event=>{
+ if(event.target.id!=='agent-model-form')return;
+ event.preventDefault();const form=event.target,button=form.querySelector('button'),input=form.elements.apiKey;button.disabled=true;
+ try{
+  agentModelSettings=(await api('agent-model-settings',{apiKey:input.value})).settings;
+  input.value='';input.placeholder='已配置；留空保留';notice('被测 Agent 的模型密钥已保存，请返回「我的 Agent」检查状态。');await refresh();
+ }catch(error){notice(error.message);}finally{button.disabled=false;}
+});
 window.addEventListener('hashchange',render);const initialNotice=new URLSearchParams(location.search).get('notice');if(initialNotice)notice(initialNotice);void refresh();setInterval(()=>{if(!$('#evaluation').open&&page()!=='settings')void refresh();},10000);
 
 document.addEventListener('input',event=>{if(event.target.id==='dataset-search'){ui.datasetQuery=event.target.value;render();}if(event.target.id==='report-search'){ui.reportQuery=event.target.value;render();}});
