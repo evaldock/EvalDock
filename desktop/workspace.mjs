@@ -71,7 +71,7 @@ export async function importLibrary(source,root){
       for(const name of (await readdir(from)).sort())await copy(path.join(relative,name));
     }else if(info.isFile()){
       bytes+=info.size;files++;
-      if(bytes>2*1024**3||files>100000)throw Error('题库超过导入限制（2 GB / 100000 个文件）');
+      if(bytes>4*1024**3||files>100000)throw Error('题库超过导入限制（4 GB / 100000 个文件）');
       const content=await readFile(from);digest.update(relative+'\0');digest.update(content);await writeFile(to,content,{mode:0o600});
     }else throw Error('题库只能包含普通文件和目录');
   }

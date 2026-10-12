@@ -4,6 +4,7 @@ import { previewJson } from "./html-preview.js";
 import { reportStyle } from "./report-style.js";
 import { toolAttribution, renderToolAttribution } from "./tool-attribution.js";
 import { renderTraceOverview } from "./trace-overview.js";
+import { publicCaseMetadata } from "./public-case.js";
 
 const e = (value: unknown) => String(value ?? "—").replaceAll("&", "&amp;").replaceAll("<", "&lt;")
   .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
@@ -118,7 +119,7 @@ export function renderReportHtml(data: EvaluationResult | ResultData): string {
       ["allowed / forbidden", plan ? plan.allowedPaths.join(", ") + " / " + plan.forbiddenPaths.join(", ") : undefined],
       ["status", data.plan?.status],
     ]) + detail("静态检查完整记录", inspection ?? data.target) + detail("完整执行计划", data.plan) +
-    detail("Case 及题目评分参考", data.case) + detail("本次冻结的标签标准", data.labels) + "</section>" +
+    detail("Case 公开任务与评分参考摘要", data.case ? publicCaseMetadata(data.case) : undefined) + detail("本次冻结的标签标准", data.labels) + "</section>" +
     '<section id="output"><h2>2. Agent 的真实执行结果</h2>' + table([
       ["terminationKind", execution?.terminationKind], ["exitCode / signal", text(execution?.exitCode) + " / " + text(execution?.signal)],
       ["pid", execution?.pid], ["duration", execution?.durationMs === undefined ? undefined : execution.durationMs + " ms"],

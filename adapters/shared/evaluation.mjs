@@ -17,6 +17,7 @@ import {loadLabels} from '../../dist/src/labels/catalog.js';
 import {createDefaultLabelJudge,unavailableReferenceScore} from '../../dist/src/evaluation/llm-label-judge.js';
 import {aggregateScores} from '../../dist/src/evaluation/scoring.js';
 import {buildResult,serializeReportDocument} from '../../dist/src/reporting/record.js';
+import {publicCaseMetadata} from '../../dist/src/reporting/public-case.js';
 import {renderReportHtml} from '../../dist/src/reporting/html.js';
 import {renderRunReport} from '../../dist/src/reporting/batch-html.js';
 import {writeReportLoader} from '../../dist/src/reporting/trace-loader.js';
@@ -99,7 +100,7 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
         const task=data.task+'\n\n工作目录：'+(adapter.workspaceDescription?.(workspace)??workspace)+'\n提供的输入文件：'+(data.inputs.map(i=>i.destination).join('、')||'无')+'\n请将需要交付的文件写入：'+data.allowedPaths.join('、')+'。';
         caseProgress(ordinal,item,'EXECUTING');
         await compatibilityService.verify(adapter,compatibility);
-        capture=await adapter.run({context,root,caseDirectory:caseDir,caseData:data,cwd:workspace,prompt:task,deadlineMs:Math.min(data.deadlineMs,30*60*1000),signal,onSession:(sessionId,processInfo={})=>{caseProgress(ordinal,item,'EXECUTING',{sessionId});return atomic(path.join(caseDir,'session.json'),{schema:'evaldock.agent-session/v1',agentKind:kind,sessionId,...processInfo,runId,caseId:item.caseId,workspace,startedAt,cleanup:'PENDING'});}});
+        capture=await adapter.run({context,root,caseDirectory:caseDir,caseData:publicCaseMetadata(data),cwd:workspace,prompt:task,deadlineMs:Math.min(data.deadlineMs,30*60*1000),signal,onSession:(sessionId,processInfo={})=>{caseProgress(ordinal,item,'EXECUTING',{sessionId});return atomic(path.join(caseDir,'session.json'),{schema:'evaldock.agent-session/v1',agentKind:kind,sessionId,...processInfo,runId,caseId:item.caseId,workspace,startedAt,cleanup:'PENDING'});}});
         const evidenceIssues=compatibilityService.validate(adapter,capture,{required:capabilities(adapter)});
         if(evidenceIssues.length){const critical=evidenceIssues.find(i=>/TOOL|SUBTASK|SESSION|CLEANUP|EVIDENCE/.test(i.code));if(critical){capture.executionError=capture.error;capture.error=critical.code;}else capture.error??=evidenceIssues[0].code;await atomic(path.join(caseDir,'compatibility.json'),{status:'INDETERMINATE',issues:evidenceIssues});}
         try{await compatibilityService.verify(adapter,compatibility);}catch(e){capture.error='AGENT_IDENTITY_CHANGED';cleanupUnconfirmed=true;}

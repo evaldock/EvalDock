@@ -1,12 +1,12 @@
 /** 保存和验证统一记录，不计算分数，也不生成展示字段。 */
 import { digestValue, digestEquals } from "../core/models.js";
 import type { EvaluationResult, ResultData } from "./types.js";
+import { publicCaseMetadata } from "./public-case.js";
 export function buildResult(data:ResultData,producerVersion:string):EvaluationResult {
   const {contentDigest:_previousDigest,...body}=data as ResultData & {contentDigest?:unknown};
   const projected={...body};
   if(data.case){
-    const {seedEntries: _seeds,...view}=data.case as NonNullable<ResultData["case"]> & {seedEntries?:unknown};
-    projected.case=view;
+    projected.case=publicCaseMetadata(data.case);
   }
   if(data.plan){
     const {seedSpec: _seeds,...casePlan}=data.plan.casePlan as typeof data.plan.casePlan & {seedSpec?:unknown};
@@ -15,6 +15,13 @@ export function buildResult(data:ResultData,producerVersion:string):EvaluationRe
   const record={schema:"evaldock.result/v1" as const,reportId:"report."+data.runId,
     createdAt:new Date().toISOString(),producerVersion,...projected};
   return {...record,contentDigest:digestValue(record)};
+}
+/** Old records remain unchanged on disk; HTTP clients receive a public projection. */
+export function publicReportDocument(data:EvaluationResult):EvaluationResult {
+  const body={...data,...(data.case?{case:publicCaseMetadata(data.case)}:{})};
+  if(digestEquals(data.contentDigest,digestValue(body,["contentDigest"])))return data;
+  const projected={...body,sourceReportDigest:data.contentDigest};
+  return {...projected,contentDigest:digestValue(projected,["contentDigest"])};
 }
 export function parseVerifiedReportDocument(text:string):EvaluationResult {
   const data=JSON.parse(text);

@@ -18,6 +18,8 @@ import {WorkBuddyControl} from './lib/workbuddy-control.mjs';
 import {initializeAgentControllers} from './lib/agent-control.mjs';
 import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-config.mjs';
 import {confined,token} from './lib/files.mjs';
+import {parseVerifiedReportDocument,publicReportDocument,serializeReportDocument} from '../dist/src/reporting/record.js';
+import {renderReportHtml} from '../dist/src/reporting/html.js';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const json=(res,status,value)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
 export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService,libraryService,modelSettingsFile,agentModelSettings:providedAgentModelSettings}={}){
@@ -144,6 +146,14 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
         try{file=await confined(path.join(projectPaths(root).workbench,'cache'),relative);}
         catch(e){if(e.code!=='ENOENT')throw e;file=await confined(preview,relative);}
       }else file=await confined(preview,relative);
+      if(/^reports\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/cases\/[A-Za-z0-9._-]+\/report\.(html|json)$/.test(relative)){
+        const recordFile=path.join(path.dirname(file),'report.json');
+        const info=await stat(recordFile);if(info.size>64*1024*1024)throw Error('REPORT_SIZE_LIMIT');
+        const record=publicReportDocument(parseVerifiedReportDocument(await readFile(recordFile,'utf8')));
+        const html=relative.endsWith('.html'),body=html?renderReportHtml(record):serializeReportDocument(record);
+        res.writeHead(200,{'content-type':html?'text/html; charset=utf-8':'application/json; charset=utf-8','content-length':Buffer.byteLength(body),'cache-control':'no-cache','x-content-type-options':'nosniff'});
+        res.end(req.method==='HEAD'?undefined:body);return;
+      }
       const info=await stat(file);if(!info.isFile())throw Object.assign(new Error('文件不存在'),{code:'ENOENT'});
       const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}[path.extname(file)]??'application/octet-stream';
       res.writeHead(200,{'content-type':mime,'content-length':info.size,'cache-control':'no-cache','x-content-type-options':'nosniff'});

@@ -1,7 +1,28 @@
 import path from 'node:path';
-import {readFile} from 'node:fs/promises';
+import {readFile,lstat,realpath} from 'node:fs/promises';
 import {loadDatasetDescriptionCatalog} from '../../dist/src/datasets/catalog.js';
 import {currentQuestionCases} from '../../dist/src/datasets/loader.js';
+import {readEvidenceFile} from '../../dist/src/all-trace/store.js';
+
+const referenceCache=new Map();
+async function scoringState(file,question){
+  if(question.grading?.mode==='unavailable')return 'UNAVAILABLE';
+  if(question.grading?.mode!==undefined&&question.grading.mode!=='reference')return 'INVALID';
+  try{
+    const reference=question.grading?.reference??'private/final.json';
+    if(typeof reference!=='string'||!reference.startsWith('private/'))return 'INVALID';
+    const info=await lstat(path.resolve(path.dirname(file),reference));
+    const privateRoot=await realpath(path.join(path.dirname(file),'private'));
+    const canonical=await realpath(path.resolve(path.dirname(file),reference));
+    if(info.isSymbolicLink()||!info.isFile()||!canonical.startsWith(privateRoot+path.sep))return 'INVALID';
+    const key=canonical+':'+info.mtimeMs+':'+info.ctimeMs+':'+info.size;
+    if(referenceCache.has(key))return referenceCache.get(key);
+    const value=JSON.parse((await readEvidenceFile(path.dirname(file),reference,10*1024*1024)).toString('utf8'));
+    const state=value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length?'READY':'INVALID';
+    referenceCache.set(key,state);if(referenceCache.size>5000)referenceCache.delete(referenceCache.keys().next().value);
+    return state;
+  }catch(error){return error.code==='ENOENT'?'MISSING':'INVALID';}
+}
 
 const integer=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
 export async function evaluationCatalog(root){
@@ -14,11 +35,12 @@ export async function evaluationCatalog(root){
     const slug=String(item.datasetId).replace(/^dataset\./,'').replace(/\/v[1-9][0-9]*$/,'');
     const cases=await Promise.all(files.map(async(file,index)=>{
       const question=JSON.parse(await readFile(file,'utf8'));
-      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160),version:String(question.version??''),instructions:String(question.task?.instructions??'').slice(0,12000),timeoutSeconds:question.environment?.timeoutSeconds,dependencies:(question.environment?.dependencies??[]).map(d=>typeof d==='string'?d:String(d.name??d.id??'外部依赖'))};
+      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160),version:String(question.version??''),instructions:String(question.task?.instructions??'').slice(0,12000),timeoutSeconds:question.environment?.timeoutSeconds,dependencies:(question.environment?.dependencies??[]).map(d=>typeof d==='string'?d:String(d.name??d.id??'外部依赖')),labelIds:(question.capabilityLabels??[]).map(l=>'label.'+l+'/v1'),scoringState:await scoringState(file,question)};
     }));
     datasets.push({id:item.datasetId,name:item.name,description:item.description,labelIds:item.labelIds,cases});
   }
-  return {schema:'evaldock.workbench.evaluation-catalog/v1',datasets};
+  const cases=datasets.flatMap(d=>d.cases),ready=cases.filter(c=>c.scoringState==='READY');
+  return {schema:'evaldock.workbench.evaluation-catalog/v1',datasets,scoring:{readyCases:ready.length,totalCases:cases.length,unavailableCases:cases.length-ready.length,labelIds:[...new Set(ready.flatMap(c=>c.labelIds))]}};
 }
 export async function validateEvaluationConfig(root,value){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['mode','selection'].includes(k)))throw Error('无效评测配置');
