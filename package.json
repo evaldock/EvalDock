@@ -21,6 +21,7 @@
     "verify": "node scripts/check-publication-boundary.mjs && pnpm run test:benchdock-import && pnpm run check && pnpm test",
     "workbench": "node workbench/control-server.mjs",
     "test:benchdock-import": "python3 -m unittest discover -s tests -p test_benchdock_import.py",
+    "desktop:icon": "swift scripts/build-desktop-icon.swift",
     "desktop:prepare": "pnpm run build && node scripts/stage-desktop.mjs",
     "desktop": "pnpm run desktop:prepare && electron .",
     "desktop:pack": "pnpm run desktop:prepare && electron-builder --mac --dir",
