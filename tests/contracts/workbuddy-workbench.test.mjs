@@ -13,6 +13,27 @@ test('WorkBuddy readiness is explicit, installation does not imply login',async(
   assert.equal((await control.status()).evaluationReady,false);
 });
 
+test('WorkBuddy start connection opens the desktop instead of inheriting the backend Node mode',async()=>{
+  const previous=process.env.ELECTRON_RUN_AS_NODE;process.env.ELECTRON_RUN_AS_NODE='1';
+  let connected=false,launch;
+  try{
+    const control=new WorkBuddyControl({
+      execCommand:async(command,args,options)=>{
+        launch={command,args,options};
+        connected=(options.env??process.env).ELECTRON_RUN_AS_NODE!=='1';
+      },
+      inspect:async()=>connected?{status:'READY',evaluationReady:true}:{status:'UNAVAILABLE',evaluationReady:false,reasonCode:'WORKBUDDY_NOT_CONNECTED'},
+    });
+    assert.equal((await control.open()).status,'OPEN_REQUESTED');
+    assert.equal((await control.status()).evaluationReady,true,'Start connection must open the desktop window');
+    assert.equal(launch.command,'/usr/bin/open');
+    assert.ok(launch.args.includes('--remote-debugging-port=18491'));
+    assert.ok(launch.args.includes('--remote-debugging-address=127.0.0.1'));
+    assert.equal(launch.options.env.PATH,process.env.PATH);
+    assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1','The evaluation backend must retain its own Node mode');
+  }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
+});
+
 test('WorkBuddy status is independent of DSH, and cannot route mutations to DSH',async t=>{
   let dshCalls=0;
   const controller={jobs:{children:new Map()},status:async()=>({status:'STOPPED',jobs:[],runs:[]}),action:async()=>{dshCalls++;},run:async()=>{dshCalls++;}};

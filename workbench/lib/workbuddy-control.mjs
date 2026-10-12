@@ -11,7 +11,7 @@ import {projectPaths} from './paths.mjs';
 import {loadModelEnvironment} from '../../dist/src/platform/model-environment.js';
 const exec=promisify(execFile);
 export class WorkBuddyControl {
-  constructor({root=process.cwd(),inspect=inspectWorkBuddy}={}){this.root=root;this.inspect=inspect;this.starting=false;}
+  constructor({root=process.cwd(),inspect=inspectWorkBuddy,execCommand=exec}={}){this.root=root;this.inspect=inspect;this.execCommand=execCommand;this.starting=false;}
   async init(){
     const state=path.join(projectPaths(this.root).workbench,'workbuddy-control');await mkdir(state,{recursive:true,mode:0o700});
     const config=path.join(state,'config.json'),target=path.join(state,'target.json');
@@ -45,6 +45,10 @@ export class WorkBuddyControl {
     if(this.active)throw new Error('WorkBuddy 评测正在执行');this.starting=true;
     try{const s=await this.status();if(!s.evaluationReady)throw new Error(s.reasonCode??'WORKBUDDY_NOT_READY');const prefix=this.jobs.cliPrefix;let job;try{this.jobs.cliPrefix=[...prefix,...smoke?['--validation-config',JSON.stringify(validation)]:[],...evaluationConfig?['--evaluation-config',JSON.stringify(evaluationConfig)]:[]];job=await this.jobs.start({action:'run',targetId:'workbuddy'});}finally{this.jobs.cliPrefix=prefix;}const record=this.jobs.get(job.id);record.agentKind='workbuddy';record.validationOnly=smoke;if(validation)record.validationConfig=validation;if(evaluationConfig)record.evaluationConfig=evaluationConfig;await this.jobs.persist(record);return this.jobs.view(record);}finally{this.starting=false;}
   }
-  async open(){await exec('/usr/bin/open',['-a',APP,'--args','--remote-debugging-port=18491','--remote-debugging-address=127.0.0.1'],{timeout:5000});return {status:'OPEN_REQUESTED'};}
+  async open(){
+    const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+    await this.execCommand('/usr/bin/open',['-a',APP,'--args','--remote-debugging-port=18491','--remote-debugging-address=127.0.0.1'],{timeout:5000,env});
+    return {status:'OPEN_REQUESTED'};
+  }
   async recover(){if(this.active)throw new Error('请先结束当前 WorkBuddy 评测');const pending=await this.pendingCleanup(),desktop=await Desktop.connect();try{for(const {file,session} of pending){await desktop.invoke('session:cancel',session.sessionId);await desktop.invoke('session:destroy',session.sessionId);if(!await desktop.confirmStopped(session.sessionId))throw Error('WORKBUDDY_CLEANUP_UNCONFIRMED');await atomic(file,{...session,cleanup:'STOPPED',recoveredAt:new Date().toISOString()});}}finally{desktop.close();}return {recovered:pending.length};}
 }

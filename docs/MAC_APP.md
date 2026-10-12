@@ -28,6 +28,8 @@ pnpm run desktop:dmg
 
 App 关闭时会请求取消本应用启动的评测并等待收尾。不要在任务中退出 App。缺少 Agent、登录、模型配置或外部依赖时，评测会被阻止或报告具体运行失败；下载题库不代表已具备所有执行条件。
 
+WorkBuddy 的「启动连接」从主界面和高级工作台使用同一启动入口。启动时移除评测后台继承的 `ELECTRON_RUN_AS_NODE`，避免 WorkBuddy 进入后台 Node 模式；评测后台自身的环境保持不变。启动请求成功后仍按实际连接、调用接口和登录状态显示结果，不把请求受理当作可评测。
+
 ## 本地数据与题库
 
 工作空间位于 `~/Library/Application Support/EvalDock/workspace/`：
