@@ -44,8 +44,6 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
-      # 与本地 `pnpm run verify` 完全一致：类型检查 + 构建 + 全部测试。
+      # 与本地一致：发布边界 + 导入测试 + 类型检查 + 构建 + 契约与工作台测试。
       - name: 发布门禁
-        run: |
-          pnpm run verify
-          node --test workbench/lib/model-settings.test.mjs
+        run: pnpm run verify

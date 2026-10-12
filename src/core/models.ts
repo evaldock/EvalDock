@@ -143,6 +143,24 @@ export function validatePortablePath(
   fieldName = "portablePath",
   options: { readonly allowDot?: boolean } = {},
 ): PortablePath {
+  return validateRelativePath(value, fieldName, options, false);
+}
+
+/** Validate names read literally by the filesystem sensor, never interpreted as patterns. */
+export function validateObservedPortablePath(
+  value: unknown,
+  fieldName = "portablePath",
+  options: { readonly allowDot?: boolean } = {},
+): PortablePath {
+  return validateRelativePath(value, fieldName, options, true);
+}
+
+function validateRelativePath(
+  value: unknown,
+  fieldName: string,
+  options: { readonly allowDot?: boolean },
+  literalFilesystemName: boolean,
+): PortablePath {
   if (typeof value !== "string" || value.length === 0 || value.includes("\0")) {
     throw new ContractViolation("INVALID_PORTABLE_PATH", `${fieldName} must be a non-empty path`);
   }
@@ -154,8 +172,7 @@ export function validatePortablePath(
     value.startsWith("\\") ||
     /^[A-Za-z]:[\\/]/u.test(value) ||
     value.includes("\\") ||
-    /[*?\[\]{}]/u.test(value) ||
-    /\$\{|%[^%]+%/u.test(value)
+    (!literalFilesystemName && (/[*?\[\]{}]/u.test(value) || /\$\{|%[^%]+%/u.test(value)))
   ) {
     throw new ContractViolation(
       "INVALID_PORTABLE_PATH",

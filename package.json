@@ -17,7 +17,8 @@
     "check": "tsc -p src/agent-trace/native-probe/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "cli": "node dist/src/app/cli.js",
     "test": "pnpm run build && node --test tests/contracts/*.test.mjs",
-    "verify": "node scripts/check-publication-boundary.mjs && pnpm run test:benchdock-import && pnpm run check && pnpm test",
+    "verify": "node scripts/check-publication-boundary.mjs && pnpm run test:benchdock-import && pnpm run check && pnpm test && pnpm run test:workbench",
+    "test:workbench": "node --test workbench/lib/*.test.mjs",
     "workbench": "node workbench/control-server.mjs",
     "test:benchdock-import": "python3 -m unittest discover -s tests -p test_benchdock_import.py"
   },

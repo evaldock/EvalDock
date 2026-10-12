@@ -20,7 +20,7 @@ import {
   digestBytes,
   digestEquals,
   digestValue,
-  validatePortablePath,
+  validateObservedPortablePath,
   validateScope,
   validateStableId,
   withContentDigest,
@@ -220,12 +220,12 @@ export function materializeFileSnapshot(
   }
   const entries = draft.entries.map((entry) => ({
     ...entry,
-    portablePath: validatePortablePath(entry.portablePath),
+    portablePath: validateObservedPortablePath(entry.portablePath),
   }));
   assertUniqueSortedPaths(entries.map((entry) => entry.portablePath), "FileSnapshot.entries");
   const readErrors = draft.readErrors.map((error) => ({
     ...error,
-    portablePath: validatePortablePath(error.portablePath, "readError.portablePath", {
+    portablePath: validateObservedPortablePath(error.portablePath, "readError.portablePath", {
       allowDot: true,
     }),
   }));
@@ -264,23 +264,23 @@ export function materializeFileDiff(
   const scope = validateScope(metadata.scope);
   if (scope.attemptId === undefined) throw new TypeError("FileDiff requires Attempt Scope");
   const added = draft.added.map((change) => ({
-    portablePath: validatePortablePath(change.portablePath),
+    portablePath: validateObservedPortablePath(change.portablePath),
     kind: "ADDED" as const,
     after: change.after!,
   }));
   const removed = draft.removed.map((change) => ({
-    portablePath: validatePortablePath(change.portablePath),
+    portablePath: validateObservedPortablePath(change.portablePath),
     kind: "REMOVED" as const,
     before: change.before!,
   }));
   const modified = draft.modified.map((change) => ({
-    portablePath: validatePortablePath(change.portablePath),
+    portablePath: validateObservedPortablePath(change.portablePath),
     kind: change.kind,
     before: change.before,
     after: change.after,
   }));
   const typeChanged = draft.typeChanged.map((change) => ({
-    portablePath: validatePortablePath(change.portablePath),
+    portablePath: validateObservedPortablePath(change.portablePath),
     kind: "TYPE_CHANGED" as const,
     before: change.before,
     after: change.after,

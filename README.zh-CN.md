@@ -185,6 +185,8 @@ var/
 └── logs/                # 运行日志
 ```
 
+批量评测会把失败、取消或运行状态异常的 Case 工作目录保留在 `var/logs/runs/<run>/`，用于恢复和排查证据。正常完成的 Case 在结果归档后清理工作目录。手动清理保留目录前，请先备份所需证据。
+
 备份时请保留完整结果目录。若使用 VM 快照，恢复前先把结果复制到 VM 之外。独立工作目录和进程清理不会恢复整台机器的状态。
 
 </details>
@@ -201,8 +203,9 @@ var/
 ```sh
 pnpm install --frozen-lockfile
 pnpm run verify
-node --test workbench/lib/model-settings.test.mjs
 ```
+
+`verify` 包含发布边界、数据集导入、类型、契约和工作台检查。只运行工作台测试可使用 `pnpm run test:workbench`。
 
 主 CLI 提供 `inspect`、`plan`、`run` 和 `report`。以下命令用于已配置好的 DSH：
 

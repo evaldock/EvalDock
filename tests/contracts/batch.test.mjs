@@ -63,3 +63,31 @@ test('explicit Case indices freeze an exact queue without Planner selection',asy
  const plan=JSON.parse(await readFile(path.join(root,'var/evaluation-results/agents/agent.contract/runs/contract.selected/plan.json'),'utf8'));
  assert.deepEqual(plan.queue.map(q=>q.caseIndex),[1]);
 });
+
+for (const outcome of [
+ {name:'failed',status:'FAILED',exitCode:4,operationalHealth:'FAILED',retained:true},
+ {name:'unhealthy completion',status:'COMPLETED',exitCode:4,operationalHealth:'FAILED',retained:true},
+ {name:'cancelled',status:'CANCELLED',exitCode:130,operationalHealth:'HEALTHY',retained:true},
+ {name:'healthy completion',status:'COMPLETED',exitCode:0,operationalHealth:'HEALTHY',retained:false},
+]) {
+ test(`batch evidence retention for ${outcome.name}`,async t=>{
+  const root=await temporary(t);await mkdir(path.join(root,'target'));
+  const basic={schema:'evaldock.mvp.cli-summary/v1',command:'run',fixture:false,status:'COMPLETED',exitCode:0,operationalHealth:'HEALTHY',failureGroups:[],reasonCodes:[],recordsPath:'unused',scores:[]};
+  let evidencePath;const bundle=path.join(root,'bundle');
+  const result=await runEvaluationBatch({cwd:root,runId:'contract.retention',descriptor:{targetId:'agent.contract',sourceRoot:path.join(root,'target')},workflowRunner:async input=>{
+   if(input.stopAfter==='PLAN')return {...basic,runId:input.runId,datasetTestProfile:'STANDARD',selectedDatasets:[{datasetId:'dataset.dynamic/v1',evaluationLabelIds:['label.contract/v1'],caseCount:1,reason:'test'}],totalCaseCount:1,datasetMatchModel:'contract',datasetMatchDurationMs:0};
+   const workspace=input.configOverrides.workspaceRoot;await mkdir(workspace,{recursive:true});
+   evidencePath=path.join(workspace,'evidence.txt');await writeFile(evidencePath,'original evidence');
+   const failures=path.join(input.configOverrides.runRoot,input.runId,'records/failure');
+   await mkdir(failures,{recursive:true});await writeFile(path.join(failures,'diagnostic.json'),'{}');
+   await mkdir(bundle);
+   return {...basic,runId:input.runId,caseBundlePath:bundle,status:outcome.status,exitCode:outcome.exitCode,operationalHealth:outcome.operationalHealth};
+  }});
+  assert.equal(result.caseResults.length,1);
+  assert.equal(result.caseResults[0].status,outcome.status);
+  const retainedPath=evidencePath.replace(path.join('var','batch-runtime'),path.join('var','logs','runs'));
+  if(outcome.retained)assert.equal(await readFile(retainedPath,'utf8'),'original evidence');
+  else await assert.rejects(readFile(retainedPath),{code:'ENOENT'});
+  assert.equal(await readFile(path.join(bundle,'diagnostics/failures/diagnostic.json'),'utf8'),'{}');
+ });
+}

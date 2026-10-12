@@ -311,7 +311,8 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
         };
       }
       if (result.status === "CANCELLED") cancellationSeen = true;
-      // Case Bundle 已原子落盘后，删除其隔离运行区；最终 var 只保留精简结果，不重复保存内部 records/artifacts。
+      // A failure bundle may contain only diagnostics/stdout, not committed All Trace.
+      // Keep failed/cancelled runtimes for evidence recovery; only clean completed workflows.
       if (result.caseBundlePath !== undefined) {
         try {
           // Keep redacted failure records before deleting the transient workspace/artifacts.
@@ -321,7 +322,9 @@ export async function runEvaluationBatch(input: BatchRunWorkflowInput): Promise<
             if(!info.isDirectory() || info.isSymbolicLink())throw new Error("Invalid failure diagnostics directory");
             await cp(failures,path.join(result.caseBundlePath,"diagnostics","failures"),{recursive:true,force:false,errorOnExist:true});
           }
-          await rm(isolatedRoot, { recursive: true, force: true });
+          if (result.status === "COMPLETED" && result.operationalHealth !== "FAILED") {
+            await rm(isolatedRoot, { recursive: true, force: true });
+          }
         } catch {
           result = { ...result, operationalHealth: "FAILED",
             failureGroups: [...result.failureGroups, "infrastructure_error"],

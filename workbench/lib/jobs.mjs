@@ -45,6 +45,16 @@ export class Jobs {
     for(const value of this.secrets??[]) if(value.length>=6) out=out.split(value).join('[REDACTED]');
     return out.replace(/(Bearer\s+)[^\s"']+/gi,'$1[REDACTED]').replace(/((?:api[_-]?key|authorization|password)\s*[:=]\s*)[^\s,}]+/gi,'$1[REDACTED]');
   }
+  cleanValue(value){
+    // Redact strings after parsing: numeric token budgets must not invalidate JSON.
+    if(typeof value==='string')return this.clean(value);
+    if(Array.isArray(value))return value.map(item=>this.cleanValue(item));
+    if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[
+      this.clean(key), /^(?:api[_-]?key|authorization|password|secret|(?:access[_-]?|refresh[_-]?|auth[_-]?)?token)$/i.test(key)
+        ? '[REDACTED]' : this.cleanValue(item)
+    ]));
+    return value;
+  }
   event(job,kind,text){
     if(kind==='stderr')recordCaseProgress(job,this.clean(text),stamp());
     job.sequence++;job.events.push({sequence:job.sequence,time:stamp(),kind,text:this.clean(text).slice(0,8192)});
@@ -122,10 +132,18 @@ export class Jobs {
     const buffers={stdout:'',stderr:''};
     const consume=(stream,line)=>{
       if(!line.trim())return;
-      this.event(job,stream,line);
+      let eventLine=line;
       if(stream==='stdout'&&line.length<=2*1024*1024){
-        try{const value=JSON.parse(line);if(value&&typeof value==='object'&&typeof value.schema==='string'&&value.schema.startsWith('evaldock.'))job.summary=JSON.parse(this.clean(JSON.stringify(value)));}catch{}
+        try{
+          const value=JSON.parse(line);
+          if(value&&typeof value==='object'&&typeof value.schema==='string'&&value.schema.startsWith('evaldock.')){
+            job.summary=this.cleanValue(value);
+            // Apply the same field redaction to persisted events as to the summary.
+            eventLine=JSON.stringify(job.summary);
+          }
+        }catch{}
       }
+      this.event(job,stream,eventLine);
     };
     for(const stream of ['stdout','stderr']){
       child[stream].setEncoding('utf8');

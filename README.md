@@ -184,6 +184,8 @@ var/
 └── logs/                # Runtime logs
 ```
 
+Batch runs retain failed, cancelled, and operationally unhealthy case workspaces under `var/logs/runs/<run>/` for evidence recovery. Healthy completed case workspaces are removed after their results are archived. Back up retained evidence before manually clearing it.
+
 Back up the complete result directory. If you use VM snapshots, copy results outside the VM before restoring one. Separate workspaces and process cleanup do not restore the state of the entire machine.
 
 </details>
@@ -200,8 +202,9 @@ Install dependencies and run the checks:
 ```sh
 pnpm install --frozen-lockfile
 pnpm run verify
-node --test workbench/lib/model-settings.test.mjs
 ```
+
+`verify` includes publication checks, dataset import tests, type checking, contract tests and workbench tests. Run `pnpm run test:workbench` for the workbench tests alone.
 
 The main CLI provides `inspect`, `plan`, `run`, and `report`. This example uses an already configured DSH target:
 
