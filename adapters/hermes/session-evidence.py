@@ -4,6 +4,23 @@ from pathlib import Path
 file = Path(sys.argv[1]).resolve()
 connection = sqlite3.connect(file.as_uri() + '?mode=ro', uri=True)
 connection.row_factory = sqlite3.Row
+
+def session_usage(session_id):
+    columns = {row['name'] for row in connection.execute('PRAGMA table_info(sessions)')}
+    fields = [key for key in ('input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'reasoning_tokens') if key in columns]
+    if not fields:
+        return None
+    native = connection.execute('SELECT ' + ','.join(fields) + ' FROM sessions WHERE id = ?', (session_id,)).fetchone()
+    if native is None:
+        return None
+    usage = {key: native[key] for key in fields if isinstance(native[key], (int, float)) and native[key] >= 0}
+    return usage or None
+
+if sys.argv[2] == '--session-usage':
+    print(json.dumps({'usage': session_usage(sys.argv[3])}))
+    connection.close()
+    sys.exit(0)
+
 archive = sys.argv[2] == '--session-archive'
 if archive:
     sessions = connection.execute("SELECT id, ended_at FROM sessions LIMIT 2").fetchall()
@@ -22,14 +39,7 @@ if archive:
     final = connection.execute("SELECT content, finish_reason FROM messages WHERE session_id = ? AND role = 'assistant' AND tool_calls IS NULL ORDER BY id DESC LIMIT 1", (session_id,)).fetchone()
     if final is None or not final['content'] or final['finish_reason'] not in ('stop', 'end_turn'):
         raise RuntimeError('HERMES_SESSION_INCOMPLETE')
-    columns = {row['name'] for row in connection.execute('PRAGMA table_info(sessions)')}
-    fields = [key for key in ('input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'reasoning_tokens') if key in columns]
-    usage = None
-    if fields:
-        native = connection.execute('SELECT ' + ','.join(fields) + ' FROM sessions WHERE id = ?', (session_id,)).fetchone()
-        usage = {key: native[key] for key in fields if isinstance(native[key], (int, float)) and native[key] >= 0}
-        usage = usage or None
-    result = {'sessionId': session_id, 'final': final['content'], 'rows': result, 'usage': usage}
+    result = {'sessionId': session_id, 'final': final['content'], 'rows': result, 'usage': session_usage(session_id)}
 output = json.dumps(result)
 if len(output.encode()) > 1048576:
     raise RuntimeError('HERMES_EVIDENCE_LIMIT')

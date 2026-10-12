@@ -16,6 +16,7 @@ export function piEvent(row,capture){
     const m=row.message;
     if(m?.role==='assistant'){
       capture.recordUsage(m.id??(Number.isFinite(m.timestamp)?'pi-response:'+m.timestamp+':'+m.model:undefined),m.usage);
+      capture.usageEvidence.inputTokenBasis='EXCLUDES_CACHE';
       if(m.stopReason==='error'||m.stopReason==='aborted'){capture.error='PI_MODEL_RESPONSE_FAILED';capture.add('runtime/error',{reason:capture.error,stopReason:m.stopReason,message:String(m.errorMessage??'').slice(0,2000)},at);}
       const answer=text(m.content);if(answer)capture.finalText(answer);
     }

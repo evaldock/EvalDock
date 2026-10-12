@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {mkdir,writeFile,symlink} from 'node:fs/promises';
+import {mkdir,writeFile,symlink,chmod} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {temporary} from './support.mjs';
 import {Capture,runProcess} from '../../adapters/shared/capture.mjs';
 import {piEvent} from '../../adapters/pi/adapter.mjs';
+import {createHermesAdapter} from '../../adapters/hermes/adapter.mjs';
+import {normalizeUsage} from '../../adapters/shared/capture.mjs';
 import {buildTrace} from '../../adapters/shared/evidence.mjs';
 import {normalizedEvent} from '../../adapters/shared/capture.mjs';
 import {projectTraceOverview} from '../../dist/src/reporting/trace-overview.js';
@@ -67,4 +69,14 @@ test('report token projection prefers session totals to duplicate response mirro
  const event=(id,type,data,sessionId='owned')=>({id,layer:'AGENT',content:{data:{sessionId,event:{type,data}}}});
  const trace={entries:[event('m','assistant/message',{message:{id:'m'},usage:{inputTokens:70,outputTokens:3}}),event('mirror','assistant/message',{message:{id:'m'},usage:{inputTokens:70,outputTokens:3}}),event('end','session/completion',{usage:{inputTokens:100,outputTokens:8}}),event('other','session/completion',{usage:{inputTokens:20}},'second')]};
  assert.deepEqual(projectTraceOverview(trace).usage,{input:120,output:8,reasoning:null,cacheRead:null});
+});
+
+test('Hermes streaming completion enriches omitted cache and reasoning counters from the owned DB',async t=>{
+ const root=await temporary(t),cli=path.join(root,'hermes'),caseDirectory=path.join(root,'case');await mkdir(caseDirectory);
+ await symlink('/usr/bin/python3',path.join(root,'python'));
+ await writeFile(cli,`#!/usr/bin/python3\nimport os,json,sqlite3\nfrom pathlib import Path\nc=sqlite3.connect(str(Path(os.environ['HERMES_HOME'])/'state.db'))\nc.execute('CREATE TABLE sessions(id TEXT,input_tokens INTEGER,output_tokens INTEGER,cache_read_tokens INTEGER,cache_write_tokens INTEGER,reasoning_tokens INTEGER)')\nc.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?)',('owned',100,5,80,0,2))\nc.commit();c.close()\nprint(json.dumps({'type':'system','session_id':'owned'}))\nprint(json.dumps({'type':'result','session_id':'owned','exit_code':0,'text':'done','tokens':{'input':100,'output':5,'total':185}}))\n`);await chmod(cli,0o700);
+ const adapter=createHermesAdapter({executable:cli,model:'synthetic'});
+ const r=await adapter.run({context:{env:process.env,protocol:{id:'hermes.stream-json/v1',flags:['--format']}},caseDirectory,cwd:root,prompt:'synthetic',deadlineMs:5000});
+ const u=normalizeUsage(r.result.usage);assert.equal(u.cacheReadTokens,80);assert.equal(u.reasoningTokens,2);
+ assert.equal(u.totalTokens,185);assert.equal(r.usageEvidence.inputTokenBasis,'EXCLUDES_CACHE');assert.equal(r.error,null);
 });

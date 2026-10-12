@@ -23,7 +23,7 @@ export async function inspectLangGraph(target,{execCommand=exec,loadEnvironment=
 }
 export function langGraphEvent(row,capture){
   if(row.type==='assistant/final'){capture.finalText(row.data?.text??'');capture.finalTruncated||=!!row.data?.truncated;}
-  else if(row.type==='session/usage')capture.recordUsage(row.data?.messageId,row.data?.usage);
+  else if(row.type==='session/usage'){capture.recordUsage(row.data?.messageId,row.data?.usage);capture.usageEvidence.inputTokenBasis='INCLUDES_CACHE';}
   else if(row.type==='runtime/completed')capture.result={stopReason:'end_turn',usage:capture.usage??null};
   else if(row.type==='runtime/error'){capture.error='LANGGRAPH_EXECUTION_FAILED';capture.add(row.type,row.data,row.at);}
   else if(row.type==='interrupt/raise'){capture.error='AGENT_TURN_INCOMPLETE';capture.add(row.type,row.data,row.at);}

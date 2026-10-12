@@ -12,6 +12,7 @@ export function openClawEvent(row,capture){
  if(row.type==='runtime/result'){
   const r=row.data;capture.finalText(r.final??'');capture.nativeSessionId=r.sessionId;
   capture.result={stopReason:r.ok&&r.status==='ok'?'end_turn':'error',usage:r.usage};
+  capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',scope:'SESSION_TOTAL',inputTokenBasis:'EXCLUDES_CACHE'};
   if(!r.ok||r.status!=='ok'){capture.error='OPENCLAW_EXECUTION_FAILED';capture.add('runtime/error',{message:r.error,status:r.status});}
  }else if(row.type==='runtime/error'||row.type==='probe/error'){capture.error='OPENCLAW_EXECUTION_FAILED';capture.add(row.type,row.data,row.at);}
  else capture.add(row.type,row.data,row.at);
@@ -41,7 +42,7 @@ export function createOpenClawAdapter(target){return {
    const r=await exec(target.node,[path.join(here,'transcript.mjs'),state,...capture.nativeSessionId?[capture.nativeSessionId]:[]],{timeout:10000,maxBuffer:400*1024,env});
    let body=r.stdout;for(const [k,v] of Object.entries(env))if(/KEY|TOKEN|SECRET|PASSWORD/.test(k)&&v.length>=8)body=body.split(v).join('[REDACTED]');
    const observed=JSON.parse(body);if(observed.error)throw Error(observed.error);
-   if(!normalizeUsage(capture.result?.usage)&&observed.usage){capture.result={...capture.result,usage:observed.usage};capture.usageEvidence={...observed.usageEvidence,source:'OWNED_NATIVE_TRANSCRIPT',omittedRows:observed.omitted};}
+   if(!normalizeUsage(capture.result?.usage)&&observed.usage){capture.result={...capture.result,usage:observed.usage};capture.usageEvidence={...observed.usageEvidence,source:'OWNED_NATIVE_TRANSCRIPT',inputTokenBasis:'EXCLUDES_CACHE',omittedRows:observed.omitted};}
    for(const row of observed.queue)capture.add(row.event.type,row.event.data,row.at);
    capture.omitted+=observed.omitted;capture.clipped+=observed.clipped;capture.nativeSessionId=observed.nativeSessionId;
    if(!capture.final&&observed.final)capture.finalText(observed.final);

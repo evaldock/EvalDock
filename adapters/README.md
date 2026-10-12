@@ -84,11 +84,14 @@ deduplicated. No unobserved thoughts or tools are fabricated.
 Cost evidence uses native completed-response counters or a native session total;
 repeated response IDs and mirrored snapshots are counted once. Pi retains completed
 message usage, LangGraph retains AI-message usage metadata, Hermes reads counters
-from its owned session database for archive-mode runs, and OpenClaw can use the owned
+from its owned session database (also enriching streaming cache/reasoning counters), and OpenClaw can use the owned
 transcript when its completion response omits usage. WorkBuddy reads only the newly
 owned session's native JSONL after completion and returns numeric usage, never the
 conversation text. Native context-window `used`/`size` values are not cumulative
 token consumption. Missing fields remain unknown, with source and coverage recorded.
+Native input accounting is explicit: WorkBuddy/LangGraph input includes cache reads;
+Pi/Hermes/OpenClaw report uncached input separately from cache reads/writes. Do not
+add cache to an input figure that already includes it.
 
 `session/completion` carries native usage and the measured execution interval in the
 existing all-trace format. Process timing ends at process exit, before cleanup and
