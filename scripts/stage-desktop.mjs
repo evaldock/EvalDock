@@ -16,6 +16,9 @@ for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('dist',path.join(out,'dist'),{recursive:true});
+for(const file of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs']){
+  await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
+}
 await cp('src/agent-trace/native-probe/lib',path.join(out,'src/agent-trace/native-probe/lib'),{recursive:true});
 await writeFile(path.join(out,'package.json'),JSON.stringify({type:'module',private:true}));
 console.log('Desktop runtime staged:',out);

@@ -24,6 +24,24 @@ and prerequisites before adding it. Linux services, browser accounts and simulat
 tools are not automatically provisioned. Source-only records cannot be imported.
 Import/export checks do not establish that an Agent can solve a task.
 
+## Desktop automatic preparation
+
+The Mac App downloads the reviewed three-task profile automatically when its local
+library is still the unchanged bundled demo. It downloads the pinned manifest and
+catalog, then only the selected public tasks, declared inputs and notices. No full
+snapshot, Python downloader, login or manual import is required. The overview and
+dataset page show real progress, cancellation and retry; automatic evaluation
+waits for successful validation and installation. Existing custom libraries are
+preserved. Successful imports use the desktop backup/recovery transaction and
+retain the original task IDs, provenance and unavailable-scoring state.
+
+This is automatic preparation of the reviewed pilot, not automatic selection from
+all 1,650 remote records. The existing Planner selects from the installed pilot;
+full remote candidate matching and environment preparation remain separate work.
+The download uses existing proxy environment variables or the macOS HTTPS proxy,
+without sending Planner/Judge credentials. Agent execution dependencies still
+apply. The following instructions remain available for source/CLI users.
+
 ## Prepare the public release
 
 Use Python 3.10+ and the framework's normal Node/pnpm setup. If you already have a

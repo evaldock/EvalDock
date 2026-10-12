@@ -3,10 +3,10 @@ import {fork} from 'node:child_process';
 import {mkdir,open} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {prepareWorkspace,importLibrary} from './workspace.mjs';
+import {prepareWorkspace,importLibrary,isBundledLibrary} from './workspace.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
 app.setName('EvalDock');
-let window,backend,origin,root,quitting=false,importing=false;
+let window,backend,origin,root,quitting=false,importing=false,automaticLibrary=false;
 if(!app.requestSingleInstanceLock())app.quit();
 else {
   app.on('second-instance',()=>{window?.show();window?.focus();});
@@ -14,7 +14,7 @@ else {
 }
 async function startBackend(){
   const log=await open(path.join(root,'desktop.log'),'a',0o600);
-  const child=fork(path.join(root,'desktop/server.mjs'),[],{cwd:root,execPath:process.execPath,env:{...process.env,ELECTRON_RUN_AS_NODE:'1',EVALDOCK_DATASETS_ROOT:path.join(root,'datasets'),PATH:[process.env.PATH,'/opt/homebrew/bin','/usr/local/bin','/usr/bin','/bin'].filter(Boolean).join(':')},stdio:['ignore',log.fd,log.fd,'ipc']});
+  const child=fork(path.join(root,'desktop/server.mjs'),[],{cwd:root,execPath:process.execPath,env:{...process.env,ELECTRON_RUN_AS_NODE:'1',EVALDOCK_AUTO_DATASETS:automaticLibrary?'1':'0',EVALDOCK_DATASETS_ROOT:path.join(root,'datasets'),PATH:[process.env.PATH,'/opt/homebrew/bin','/usr/local/bin','/usr/bin','/bin'].filter(Boolean).join(':')},stdio:['ignore',log.fd,log.fd,'ipc']});
   await log.close();backend=child;
   await new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{child.kill();reject(Error('本地服务启动超时，请查看数据目录中的 desktop.log'));},30000);
@@ -34,7 +34,9 @@ function trusted(event){
 async function start(){
   app.dock?.setIcon(path.join(here,'assets/icon.png'));
   root=path.join(app.getPath('userData'),'workspace');
-  await prepareWorkspace(app.isPackaged?path.join(process.resourcesPath,'runtime'):path.join(here,'../artifacts/desktop-runtime'),root);
+  const source=app.isPackaged?path.join(process.resourcesPath,'runtime'):path.join(here,'../artifacts/desktop-runtime');
+  await prepareWorkspace(source,root);
+  automaticLibrary=await isBundledLibrary(source,root);
   await mkdir(path.join(root,'desktop'),{recursive:true});
   await startBackend();
   window=new BrowserWindow({width:1240,height:840,minWidth:940,minHeight:650,title:'EvalDock',backgroundColor:'#f7f8fa',titleBarStyle:'hiddenInset',webPreferences:{preload:path.join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
@@ -63,7 +65,7 @@ async function start(){
       if(choice.canceled)return null;
       const status=await fetch(origin+'/api/control/app').then(r=>r.json());
       if(status.errors?.length||status.jobs.some(j=>['STARTING','RUNNING','CANCELLING'].includes(j.state)))throw Error('请等待评测结束，并确认运行记录可读取后再导入');
-      await stopBackend();
+      await stopBackend();automaticLibrary=false;
       let message;
       try{const result=await importLibrary(choice.filePaths[0],root);message=`已导入 ${result.datasets} 个测试集，共 ${result.cases} 题。旧题库已备份。`;}
       catch(error){message='导入失败：'+error.message;}

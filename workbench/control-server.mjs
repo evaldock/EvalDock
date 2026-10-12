@@ -19,7 +19,7 @@ import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-confi
 import {confined,token} from './lib/files.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const json=(res,status,value)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
-export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService}={}){
+export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService,libraryService}={}){
   const control=controller??new DshControl(root);if(!controller)await control.init();
   const workbuddy=workbuddyController??new WorkBuddyControl({root});if(!workbuddyController)await workbuddy.init();
   const agents=agentControllers??await initializeAgentControllers(root);
@@ -34,6 +34,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
       if(!hosts.includes(req.headers.host)||req.headers.origin&&!hosts.map(h=>'http://'+h).includes(req.headers.origin)||req.headers['sec-fetch-site']==='cross-site'){json(res,403,{error:'请求来源不允许'});return;}
       const u=new URL(req.url,'http://'+req.headers.host);
       if(u.pathname.startsWith('/api/control/')){
+        if(req.method==='GET'&&u.pathname==='/api/control/library'){json(res,200,libraryService?.status()??{automatic:false,state:'LOCAL'});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}
         if(req.method==='GET'&&u.pathname==='/api/control/app'){json(res,200,{...await appSummary({control,workbuddy,agents}),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/model-settings'){json(res,200,{settings:await modelSettings.get(),csrf});return;}
@@ -68,6 +69,10 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           let input;try{input=JSON.parse(raw);}catch{json(res,400,{error:'无效 JSON'});return;}
           if(!input||typeof input!=='object'||Array.isArray(input)){json(res,400,{error:'无效参数'});return;}
           const route=u.pathname.slice('/api/control/'.length);
+          if(route==='library/prepare'||route==='library/cancel'){
+            if(Object.keys(input).length||!libraryService)throw Error('自动题库准备仅支持桌面应用');
+            json(res,200,route==='library/prepare'?libraryService.start():await libraryService.cancel());return;
+          }
           if(route==='discovery/scan'){
             if(Object.keys(input).length)throw Error('扫描不接受路径或命令参数');
             json(res,200,await discovery.scan(true));return;
@@ -94,6 +99,8 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           if(input.evaluationConfig!==undefined)input.evaluationConfig=await validateEvaluationConfig(root,input.evaluationConfig);
           // Each controller owns one active run. Serialize its mutations without blocking independent Agents.
           const owner=runtimeMatch?runtimeMatch[1]:route.startsWith('workbuddy/')?'workbuddy':'dsh';
+          if(libraryService?.installing)throw Error('题库正在安装，请等待完成后重试');
+          if((route==='run'||route==='workbuddy/run'||runtimeMatch?.[2]==='run')&&input.evaluationConfig?.selection.kind!=='SELECTED'&&libraryService&&!libraryService.ready)throw Error('请等待自动题库准备完成；下载失败时可在测试集页面重试。');
           if(pendingMutations.has('discovery')){json(res,409,{error:'正在接入 Agent，请稍后重试'});return;}
           if(pendingMutations.has(owner)){json(res,409,{error:'该 Agent 有操作正在处理，请稍后重试'});return;}
           pendingMutations.add(owner);
@@ -140,7 +147,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
     }catch(e){if(!res.headersSent)json(res,e.code==='ENOENT'?404:409,{error:e.code==='ENOENT'?'文件尚未生成':e.message||'操作未完成',...(e.preflight?{preflight:e.preflight}:{})});else res.destroy();}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
-  return {server,control,workbuddy,agents};
+  return {server,control,workbuddy,agents,hasPendingMutations:()=>pendingMutations.size>0};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
   const {server,control,workbuddy,agents}=await startControlServer({port:Number(process.env.WORKBENCH_PORT??18767)});

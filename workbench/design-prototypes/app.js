@@ -3,7 +3,7 @@ const $=selector=>document.querySelector(selector);
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const names={dsh:'DSH',workbuddy:'WorkBuddy',pi:'Pi',langgraph:'LangGraph',qwenwork:'千问办公',doubaowork:'豆包办公',hermes:'Hermes',openclaw:'OpenClaw'};
 const pages={home:'概览',agents:'我的 Agent',datasets:'测试集',reports:'评测记录',settings:'设置'};
-let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
+let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
 const ui={datasetQuery:'',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
 const active=job=>['STARTING','RUNNING','CANCELLING'].includes(job.state);
 const targets=()=>summary.agents.flatMap(a=>a.targets.map(t=>({...t,kind:a.kind,advanced:a.advanced,active:a.active})));
@@ -47,9 +47,9 @@ let lastRenderedHtml;
 function render(){
  const current=page();$('#breadcrumb').textContent='工作空间 / '+pages[current];document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===current));
  let html='';
- if(current==='home')html=renderHome({summary,catalog,settings,discovery});
+ if(current==='home')html=renderHome({summary,catalog,settings,discovery,library});
  if(current==='agents')html=heading('我的 Agent','全部 Agent 与本机安装状态', `<button data-scan ${scanning?'disabled':''}>${scanning?'正在扫描…':'↻ 重新扫描'}</button>`)+`<div class="note agent-scan-note">${agentCatalog.length} 类 Agent · 已发现 ${new Set(discovery.agents.map(d=>d.kind)).size} 类本地安装 · ${discovery.scannedAt?'上次扫描 '+escape(new Date(discovery.scannedAt).toLocaleTimeString('zh-CN')):'正在扫描本机'}${discovery.errors.length?'<br>'+discovery.errors.map(escape).join('；'):''}</div><div class="agent-grid">${agentCards()}</div>`;
- if(current==='datasets')html=renderDatasets({catalog,ui});
+ if(current==='datasets')html=renderDatasets({catalog,ui,library});
  if(current==='reports')html=renderReports({summary,ui});
  if(current==='settings')html=heading('设置','配置评分服务和本地工作空间。')+`<div class="settings"><form id="model-form" class="card"><h2>评测模型</h2><p>Planner 负责选题，Judge 负责评分。API Key 仅保存在本机，留空保留已有值。</p>${['planner','judge'].map(role=>`<fieldset><legend>${role==='planner'?'Planner · 选题':'Judge · 评分'}</legend><label>模型名称<input name="${role}-model" required value="${escape(settings?.[role]?.model)}"></label><label>接口地址<input name="${role}-endpoint" required type="url" value="${escape(settings?.[role]?.endpoint)}"></label><label>API Key<input name="${role}-apiKey" type="password" autocomplete="off" placeholder="${settings?.[role]?.keyConfigured?'已配置；留空保留':'尚未配置'}"></label></fieldset>`).join('')}<button class="primary">保存模型设置</button></form><section class="card"><h2>本地工作空间</h2><p>题库、运行记录和配置保存在本机。模型密钥沿用 ~/.config/evaldock/models.env。</p><button data-open-data>打开数据目录</button> <button data-configure>打开 Agent 配置目录</button></section></div>`;
  if(html===lastRenderedHtml)return;
@@ -60,13 +60,14 @@ function render(){
  for(const detail of document.querySelectorAll('details[data-preserve]'))if(opened.has(detail.dataset.preserve))detail.open=true;
  if(['dataset-search','report-search'].includes(focusId)){const next=document.getElementById(focusId);next?.focus();try{next?.setSelectionRange(position,position);}catch{}}
 }
-async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery')]);discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf; if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{loading=false;}}
+async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d,l]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery'),api('library')]);library=l;discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf; if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{loading=false;}}
 function syncSelectionMode(){
  const manual=$('#selection-kind').value==='SELECTED';
  $('#manual-selection').hidden=!manual;$('#manual-selection').disabled=!manual;
  $('#automatic-selection-note').hidden=manual;
 }
-function openEvaluation(targetId,datasetId,items){
+async function openEvaluation(targetId,datasetId,items){
+ if(!items&&!datasetId){await ensureAutomaticLibrary();await refresh();}
  const available=targets().filter(t=>t.evaluationReady&&!t.active);
  if(!settings?.planner?.keyConfigured||!settings?.judge?.keyConfigured){notice('开始前请配置 Planner 和 Judge 的模型密钥。');location.hash='settings';return;}
  if(!catalog.datasets.length){notice('请先导入测试集。');location.hash='datasets';return;}
@@ -87,11 +88,13 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-dataset-detail')){ui.datasetId=button.dataset.datasetDetail;render();}
  if(button.hasAttribute('data-datasets-back')){ui.datasetId=null;render();}
  if(button.hasAttribute('data-clear-selection')){ui.selection.clear();render();}
- if(button.hasAttribute('data-start-selection'))openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
+ if(button.hasAttribute('data-start-selection'))await openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
  if(button.hasAttribute('data-scan')){scanning=true;render();try{discovery=await api('discovery/scan',{});notice(`扫描完成，发现 ${discovery.agents.length} 个安装入口。`);}finally{scanning=false;render();}}
  if(button.hasAttribute('data-open-agent')){button.disabled=true;await api(button.dataset.kind+'/open',button.dataset.kind==='workbuddy'?{}:{targetId:button.dataset.openAgent});notice('已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');await refresh();}
  if(button.hasAttribute('data-connect')){button.disabled=true;await api('discovery/connect',{id:button.dataset.connect});notice('已接入，正在检查运行条件。');await refresh();}
- if(button.hasAttribute('data-start'))openEvaluation(button.dataset.target,button.dataset.dataset);
+ if(button.hasAttribute('data-start'))await openEvaluation(button.dataset.target,button.dataset.dataset);
+ if(button.hasAttribute('data-library-prepare')){library=await api('library/prepare',{});render();}
+ if(button.hasAttribute('data-library-cancel')){library=await api('library/cancel',{});render();}
  if(button.hasAttribute('data-import')){button.disabled=true;const result=await desktop('importLibrary');if(result){notice(`已导入 ${result.datasets} 个测试集，共 ${result.cases} 题。`);await refresh();}}
  if(button.hasAttribute('data-configure')){await desktop('configureAgents');notice('在 agents.json 添加目标（参考同目录 agents.example.json）；DSH 修改 targets/real-dsh.json。保存后重新打开 App。');}
  if(button.hasAttribute('data-open-data'))await desktop('openData');
@@ -109,3 +112,24 @@ document.addEventListener('change',event=>{
  if(e.hasAttribute('data-select-dataset')){const d=catalog.datasets.find(d=>d.id===e.dataset.selectDataset);if(d){if(e.checked)ui.selection.set(d.id,new Set(d.cases.map(c=>c.index)));else ui.selection.delete(d.id);render();}}
  if(e.hasAttribute('data-select-case')){const id=e.dataset.selectCase,set=ui.selection.get(id)??new Set();if(e.checked)set.add(Number(e.dataset.index));else set.delete(Number(e.dataset.index));ui.selection.set(id,set);render();}
 });
+
+let libraryWait;
+async function ensureAutomaticLibrary(){
+ if(libraryWait)return libraryWait;
+ libraryWait=(async()=>{
+  library=await api('library');
+  if(!library.automatic||['READY','LOCAL'].includes(library.state))return;
+  if(library.state==='IDLE')library=await api('library/prepare',{});
+  notice('正在自动准备题库，完成后继续选择 Agent。');render();
+  while(['DOWNLOADING','INSTALLING'].includes(library.state)){
+   await new Promise(resolve=>setTimeout(resolve,500));library=await api('library');render();
+  }
+  if(library.state!=='READY')throw Error(library.error||'题库准备未完成，请在测试集页面重试。');
+  notice('题库已准备完成。');
+ })().finally(()=>{libraryWait=null;});
+ return libraryWait;
+}
+setInterval(async()=>{
+ if(!['DOWNLOADING','INSTALLING'].includes(library.state)||libraryWait)return;
+ try{library=await api('library');if(library.state==='READY')await refresh();else render();}catch{}
+},1000);
