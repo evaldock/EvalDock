@@ -14,9 +14,12 @@ test('desktop summary isolates offline Agent and retains other Agent records',as
  assert.equal(result.agents.find(a=>a.kind==='pi').targets[0].evaluationReady,true);assert.equal(result.jobs[0].id,'j');assert.ok(result.agents.find(a=>a.kind==='dsh').error);
 });
 test('library import validates content, archives previous version and records digest',async t=>{
- const root=await fixture(t);const result=await importLibrary(path.join(repo,'datasets'),root);
+ const root=await fixture(t),progress=[];const result=await importLibrary(path.join(repo,'datasets'),root,{onProgress:value=>progress.push(value)});
  assert.equal(result.cases,1);assert.match(result.sha256,/^[a-f0-9]{64}$/);assert.equal((await readdir(path.join(root,'dataset-history'))).length,1);
  assert.equal(JSON.parse(await readFile(path.join(root,'datasets/evaldock-import.json'))).sha256,result.sha256);
+ assert.ok(progress.some(value=>value.phase==='COPYING'&&value.completed>0));
+ assert.deepEqual(progress.filter(value=>value.phase==='VALIDATING'&&value.total),[{phase:'VALIDATING',completed:0,total:1},{phase:'VALIDATING',completed:1,total:1}]);
+ assert.equal(progress.at(-1).phase,'COMMITTING');
 });
 test('invalid library and symlinks leave installed library untouched',async t=>{
  const root=await fixture(t),source=path.join(root,'incoming');await mkdir(source);await writeFile(path.join(source,'catalog.md'),'invalid');

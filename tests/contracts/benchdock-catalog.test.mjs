@@ -131,6 +131,28 @@ test('checksum failures, cancellation and concurrent local edits retain local da
  }
 });
 
+test('byte progress follows streamed files, excludes failed attempts and includes verified cache hits',async t=>{
+ const f=await fixture(t),library=await f.service();await f.load(library);
+ const directory=library.status().catalog.datasets,inputName='datasets/sample/input/data.txt',bytes=f.files.get(inputName);
+ let attempts=0;const samples=[];
+ library.catalog.fetch=async(url,options)=>{
+  if(!url.endsWith(inputName))return f.fetchImpl(url,options);
+  const attempt=++attempts;samples.push(library.status().download.downloadedBytes);
+  return {ok:true,body:(async function*(){
+   yield bytes.subarray(0,3);samples.push(library.status().download.downloadedBytes);
+   if(attempt===1)throw Error('Synthetic interrupted response');
+   yield bytes.subarray(3);
+  })()};
+ };
+ library.downloadDataset(directory.find(dataset=>dataset.name==='Synthetic mixed set').id);await library.catalog.pending;
+ let status=library.status().download;
+ assert.equal(status.state,'READY');assert.equal(attempts,2);assert.equal(samples[2],samples[0]);assert.equal(samples[1]-samples[0],3);
+ assert.equal(status.downloadedBytes,status.totalBytes);assert.equal(status.phase,'COMPLETE');
+ library.downloadDataset(directory.find(dataset=>dataset.name==='Synthetic second set').id);await library.catalog.pending;
+ status=library.status().download;
+ assert.equal(status.state,'READY');assert.equal(status.downloadedBytes,status.totalBytes);assert.equal(status.cachedBytes,status.totalBytes);
+});
+
 test('directory cards show download, progress, failure and actual local readiness separately',()=>{
  const remote={id:'dataset.fixture/v1',name:'<img src=x onerror=bad>',caseCount:2,downloadableCases:1,sourceOnlyCases:1,labelIds:['label.artifact-delivery/v1'],downloadBytes:1024};
  const library={catalog:{state:'READY',datasets:[remote]},download:{state:'IDLE'}},catalog={datasets:[],scoring:{readyCases:0,totalCases:0,labelIds:[]}},ui={selection:new Map(),datasetQuery:'',datasetFilter:'all'};
@@ -140,6 +162,22 @@ test('directory cards show download, progress, failure and actual local readines
  catalog.datasets=[{id:remote.id,name:'Local fixture',labelIds:[],cases:[{index:0,title:'Local task',scoringState:'UNAVAILABLE'}]}];
  html=renderDatasets({catalog,ui,library});assert.match(html,/选择题目/);assert.match(html,/本地 1 题/);assert.match(html,/0 题评分参考已就绪/);assert.doesNotMatch(html,/data-library-download=/);
  ui.datasetFilter='download';assert.doesNotMatch(renderDatasets({catalog,ui,library}),/class="dataset-card"/);
+});
+
+test('download cards show byte percentages and keep installation visibly in progress after the download finishes',()=>{
+ const remote={id:'dataset.progress/v1',name:'Synthetic progress set',caseCount:1,downloadableCases:1,labelIds:[],downloadBytes:1024};
+ const catalog={datasets:[]},ui={selection:new Map(),datasetQuery:'',datasetFilter:'all'};
+ const library={catalog:{state:'READY',datasets:[remote]},download:{datasetId:remote.id,state:'DOWNLOADING',phase:'DOWNLOADING',completedFiles:0,totalFiles:1,downloadedBytes:256,totalBytes:1024}};
+ let html=renderDatasets({catalog,ui,library});
+ assert.match(html,/25%/);assert.match(html,/<progress[^>]*max="100"[^>]*value="25"/);assert.match(html,/256 B \/ 1\.0 KB/);
+ library.download={...library.download,state:'INSTALLING',phase:'COPYING',completedFiles:1,downloadedBytes:1024,installation:{completed:12}};
+ html=renderDatasets({catalog,ui,library});
+ assert.match(html,/下载完成/);assert.match(html,/已复制 12 个文件/);assert.match(html,/<progress[^>]*aria-label="题库安装进度"/);
+ assert.doesNotMatch(html,/<progress[^>]*value=/);assert.doesNotMatch(html,/100%/);
+ library.download={...library.download,phase:'VALIDATING',installation:{completed:7,total:20}};
+ html=renderDatasets({catalog,ui,library});
+ assert.match(html,/正在校验题目/);assert.match(html,/7 \/ 20 题/);assert.match(html,/35%/);
+ assert.match(html,/<progress[^>]*max="100"[^>]*value="35"/);
 });
 
 test('legacy local subsets keep their names, labels and selectable IDs without duplicate directory cards',()=>{

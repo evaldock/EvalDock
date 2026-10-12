@@ -33,6 +33,11 @@ download button installs only that subset's public tasks, declared inputs and
 notices. Source-only records are visible but cannot be downloaded or selected.
 Directory counts, installed counts and scoring-reference readiness are separate.
 
+Cards show byte-based download percentages and file counts, including verified
+cached bytes without double-counting failed attempts. Installation reports copied
+files and validated question counts separately; phases without a known total use
+an animated progress bar. A completed download does not mark installation complete.
+
 Explicit downloads add a dataset to the current library using the existing
 validation, backup and recovery transaction. Existing datasets, private references
 and import receipts are retained. Cancellation, checksum errors, active evaluations

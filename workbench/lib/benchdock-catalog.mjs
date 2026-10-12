@@ -78,18 +78,24 @@ export class BenchDockCatalog {
   async obtain(name,signal,progress=false){
     publicFile(name);
     const expected=this.manifest.get(name);if(!expected)throw Error('题库文件未列入校验清单');
+    const startingBytes=this.transfer.downloadedBytes;
     let bytes=await this.cached(name,expected);
+    if(bytes&&progress){this.transfer.downloadedBytes+=expected.bytes;this.transfer.cachedBytes+=expected.bytes;}
     if(!bytes){
       for(let attempt=0;attempt<3;attempt++){
         signal.throwIfAborted();
+        let received=0;
         try{
-          bytes=await this.fetchBytes(name,expected.bytes,signal,n=>{if(progress)this.transfer.downloadedBytes+=n;});
+          bytes=await this.fetchBytes(name,expected.bytes,signal,n=>{received+=n;if(progress)this.transfer.downloadedBytes=startingBytes+received;});
           if(bytes.length!==expected.bytes||sha(bytes)!==expected.sha256)throw Error('题库文件完整性校验失败');
           await this.saveCache(name,bytes);break;
-        }catch(error){signal.throwIfAborted();if(attempt===2)throw error;}
+        }catch(error){if(progress)this.transfer.downloadedBytes=startingBytes;signal.throwIfAborted();if(attempt===2)throw error;}
       }
     }
-    if(progress)this.transfer.completedFiles++;
+    if(progress){
+      this.transfer.completedFiles++;
+      if(this.transfer.completedFiles===this.transfer.totalFiles)this.transfer.phase='ASSEMBLING';
+    }
     return bytes;
   }
   acceptCatalog(bytes){
@@ -149,7 +155,7 @@ export class BenchDockCatalog {
     const totalBytes=[...group.files].reduce((sum,file)=>sum+(this.manifest.get(file)?.bytes??2*1024**3),0);
     if(totalBytes>2*1024**3)throw Error('所选测试集超过 2 GB 下载限制');
     const controller=new AbortController();this.controller=controller;
-    this.transfer={state:'DOWNLOADING',datasetId:id,name:group.name,completedFiles:0,totalFiles:group.files.size,downloadedBytes:0,totalBytes,error:null};
+    this.transfer={state:'DOWNLOADING',phase:'PREPARING',datasetId:id,name:group.name,completedFiles:0,totalFiles:group.files.size,downloadedBytes:0,cachedBytes:0,totalBytes,error:null};
     this.pending=this.install(group,controller.signal).catch(error=>{this.transfer={...this.transfer,state:controller.signal.aborted?'CANCELLED':'FAILED',error:controller.signal.aborted?null:/^(题|公开|本地|所选|请|无法|这个)/.test(error.message)?error.message:'无法下载或安装测试集，请检查网络或系统代理后重试。'};}).finally(()=>{this.pending=null;this.controller=null;});
     return this.downloadStatus();
   }
@@ -169,6 +175,7 @@ export class BenchDockCatalog {
       try{await lstat(path.join(this.root,'datasets',slug));throw Error('本地题库已包含同名目录，未覆盖你的文件。');}catch(error){if(error.code!=='ENOENT')throw error;}
       await mkdir(work,{recursive:true,mode:0o700});
       await cp(path.join(this.root,'datasets'),work,{recursive:true});
+      signal.throwIfAborted();this.transfer.phase='DOWNLOADING';
       const common=new Map();for(const name of ['LICENSE','NOTICE.md'])common.set(name,await this.obtain(name,signal,true));
       const obtained=new Set(common.keys());
       for(const row of group.rows){
@@ -197,11 +204,11 @@ export class BenchDockCatalog {
       await writeFile(path.join(work,slug,'delivery-profile.json'),policyBytes,{mode:0o600});
       signal.throwIfAborted();
       if(!await this.canInstall())throw Error('请等待评测结束后重试安装题库。');
-      this.transfer.state='INSTALLING';
+      this.transfer.state='INSTALLING';this.transfer.phase='CHECKING';
       if(await libraryFingerprint(path.join(this.root,'datasets'))!==original)throw Error('本地题库已变化，未覆盖你的修改；请重新下载。');
       if(!await this.canInstall())throw Error('请等待评测结束后重试安装题库。');
-      await importLibrary(work,this.root);
-      this.transfer={...this.transfer,state:'READY',cases:group.rows.length,error:null};this.onInstalled();
+      await importLibrary(work,this.root,{onProgress:({phase,...installation})=>{this.transfer.phase=phase;this.transfer.installation=installation;}});
+      this.transfer={...this.transfer,state:'READY',phase:'COMPLETE',cases:group.rows.length,error:null};this.onInstalled();
     }finally{await rm(work,{recursive:true,force:true});}
   }
 }

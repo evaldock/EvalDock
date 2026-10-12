@@ -58,7 +58,7 @@ export async function prepareWorkspace(source,root){
 }
 
 /** Import a complete library transactionally; retain the previous library for recovery. */
-export async function importLibrary(source,root){
+export async function importLibrary(source,root,{onProgress=()=>{}}={}){
   const canonical=await realpath(source),destinationRoot=await realpath(root);
   if(canonical===destinationRoot||destinationRoot.startsWith(canonical+path.sep))throw Error('请选择独立的题库文件夹，不能导入整个工作空间');
   const staging=path.join(root,'.dataset-import-'+randomUUID());
@@ -73,22 +73,31 @@ export async function importLibrary(source,root){
       bytes+=info.size;files++;
       if(bytes>4*1024**3||files>100000)throw Error('题库超过导入限制（4 GB / 100000 个文件）');
       const content=await readFile(from);digest.update(relative+'\0');digest.update(content);await writeFile(to,content,{mode:0o600});
+      onProgress({phase:'COPYING',completed:files});
     }else throw Error('题库只能包含普通文件和目录');
   }
   try{
+    onProgress({phase:'COPYING',completed:0});
     await copy();
     const {loadDatasetDescriptionCatalog}=await import(pathToFileURL(path.join(root,'dist/src/datasets/catalog.js')));
     const {currentQuestionCases,loadDatasetCase}=await import(pathToFileURL(path.join(root,'dist/src/datasets/loader.js')));
     const catalog=await loadDatasetDescriptionCatalog(path.join(staging,'catalog.md'));
-    let cases=0;
+    onProgress({phase:'VALIDATING',completed:0});
+    const datasets=[];let cases=0;
     for(const d of catalog){
       const questions=await currentQuestionCases(staging,d.datasetId);
       if(!questions.length)throw Error(d.name+' 没有可运行题目');
-      for(let i=0;i<questions.length;i++)await loadDatasetCase({datasetsRoot:staging,datasetId:d.datasetId,labelIds:d.labelIds,caseIndex:i});
+      datasets.push({dataset:d,count:questions.length});
       cases+=questions.length;
+    }
+    let validated=0;onProgress({phase:'VALIDATING',completed:validated,total:cases});
+    for(const {dataset:d,count} of datasets)for(let i=0;i<count;i++){
+      await loadDatasetCase({datasetsRoot:staging,datasetId:d.datasetId,labelIds:d.labelIds,caseIndex:i});
+      onProgress({phase:'VALIDATING',completed:++validated,total:cases});
     }
     const manifest={importedAt:new Date().toISOString(),sha256:digest.digest('hex'),datasets:catalog.length,cases};
     await writeFile(path.join(staging,'evaldock-import.json'),JSON.stringify(manifest,null,2));
+    onProgress({phase:'COMMITTING',completed:0});
     const destination=path.join(root,'datasets'),backup=path.join(root,'dataset-history',randomUUID());
     await mkdir(path.dirname(backup),{recursive:true,mode:0o700});
     await rename(destination,backup);

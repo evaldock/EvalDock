@@ -55,6 +55,34 @@ function renderDirectoryStatus(library){
  const failed=directory.state==='FAILED';
  return `<section class="library-preparation" role="status"><div><strong>${failed?'题库目录加载失败':'正在加载题库目录'}</strong><p>${esc(failed?directory.error:'获取可用测试集列表，题库内容在点击下载后准备。')}</p></div>${failed?'<button data-library-catalog>重试加载目录</button>':''}</section>`;
 }
+function byteSize(value){
+ const bytes=Math.max(0,Number(value)||0);
+ if(bytes<1024)return Math.floor(bytes)+' B';
+ const power=Math.min(3,Math.floor(Math.log(bytes)/Math.log(1024)));
+ return (bytes/1024**power).toFixed(1)+' '+['B','KB','MB','GB'][power];
+}
+function downloadProgress(transfer){
+ const installing=transfer.state==='INSTALLING',phase=transfer.phase||(installing?'CHECKING':'DOWNLOADING');
+ const titles={PREPARING:'正在准备下载',DOWNLOADING:'正在下载题库',ASSEMBLING:'正在整理题目',CHECKING:'正在检查本地题库',COPYING:'正在准备安装',VALIDATING:'正在校验题目',COMMITTING:'正在保存题库'};
+ const installation=transfer.installation??{};
+ let fraction=null,detail='';
+ if(phase==='DOWNLOADING'){
+  fraction=transfer.totalBytes>0?transfer.downloadedBytes/transfer.totalBytes:transfer.totalFiles>0?transfer.completedFiles/transfer.totalFiles:null;
+  detail=(transfer.totalBytes>0?`${byteSize(transfer.downloadedBytes)} / ${byteSize(transfer.totalBytes)} · `:'')+`${transfer.completedFiles??0} / ${transfer.totalFiles??0} 个文件`;
+  if(transfer.cachedBytes>0)detail+=` · 含缓存 ${byteSize(transfer.cachedBytes)}`;
+ }else if(phase==='VALIDATING'){
+  fraction=installation.total>0?installation.completed/installation.total:null;
+  detail=installation.total>0?`${installation.completed} / ${installation.total} 题已校验`:'正在读取题目，确认校验数量';
+ }else if(phase==='COPYING')detail=`已复制 ${installation.completed??0} 个文件，正在准备本地安装`;
+ else if(phase==='PREPARING')detail='正在保留现有题库并准备下载文件';
+ else if(phase==='ASSEMBLING')detail='下载完成，正在整理公开题目与输入文件';
+ else if(phase==='COMMITTING')detail='校验完成，正在保存题库与备份';
+ else detail='下载完成，正在检查现有题库';
+ const percent=fraction===null?null:Math.min(100,Math.max(0,Math.floor((Number(fraction)||0)*100)));
+ const activeStep=installing||phase==='ASSEMBLING'?1:0;
+ const label=installing?'题库安装进度':'题库下载进度';
+ return `<div class="dataset-download-progress"><div class="dataset-progress-heading" role="status"><strong>${titles[phase]||'正在安装题库'}</strong>${percent===null?'<span class="dataset-progress-spinner" aria-hidden="true"></span>':`<b>${percent}%</b>`}</div><div class="dataset-progress-track ${percent===null?'indeterminate':''}"><progress ${percent===null?'':`max="100" value="${percent}"`} aria-label="${label}"></progress>${percent===null?'<span aria-hidden="true"></span>':''}</div><small>${esc(detail)}</small><ol class="dataset-progress-steps">${['下载文件','校验安装','完成'].map((name,index)=>`<li class="${index<activeStep?'complete':index===activeStep?'current':''}"><span>${index<activeStep?'✓':index+1}</span>${index===0&&activeStep>0?'下载完成':name}</li>`).join('')}</ol></div>`;
+}
 function datasetCard(dataset,ui,library){
  const download=library?.download,transfer=download?.datasetId===dataset.id?download:null,busy=transfer&&['DOWNLOADING','INSTALLING'].includes(transfer.state);
  const state=dataset.local?dataset.cases.length<dataset.caseCount?'部分在本地':'已在本地':busy?transfer.state==='INSTALLING'?'正在安装':'下载中':transfer?.state==='FAILED'?'下载失败':transfer?.state==='CANCELLED'?'已取消':dataset.downloadableCases?'待下载':'仅来源信息';
@@ -62,7 +90,7 @@ function datasetCard(dataset,ui,library){
  const size=dataset.downloadBytes>=1024**2?(dataset.downloadBytes/1024**2).toFixed(1)+' MB':Math.ceil((dataset.downloadBytes??0)/1024)+' KB';
  const action=dataset.local?`<button data-dataset-detail="${esc(dataset.id)}">选择题目 →</button>`:busy?`<button data-library-download-cancel ${transfer.state==='INSTALLING'?'disabled':''}>${transfer.state==='INSTALLING'?'正在安装':'取消下载'}</button>`:dataset.downloadableCases?`<button data-library-download="${esc(dataset.id)}" ${pending?'disabled':''}>${transfer?.state==='FAILED'||transfer?.state==='CANCELLED'?'重新下载':'下载题库'} ↓</button>`:'<button disabled>仅提供来源</button>';
  const detail=dataset.local?`${dataset.remote?` · 本地 ${dataset.cases.length} 题`:''}${dataset.cases.some(c=>c.scoringState)?' · '+dataset.cases.filter(c=>c.scoringState==='READY').length+' 题评分参考已就绪':''}${ui.selection.get(dataset.id)?.size?' · 已选 '+ui.selection.get(dataset.id).size:''}`:dataset.downloadableCases?` · 可下载 ${dataset.downloadableCases} 题 · ${size}`:' · 需从原始来源获取';
- return `<article class="dataset-card"><div class="dataset-card-head"><span class="dataset-symbol">▦</span><span class="pill ${dataset.local?'ready':busy?'discovered':'neutral'}">${state}</span></div><h3>${esc(dataset.name)}</h3><div class="label-chips">${(dataset.labelIds??[]).map(id=>`<span>${esc(labelName(id))}</span>`).join('')}${dataset.sourceOnlyCases?`<span>线上 ${dataset.sourceOnlyCases} 题仅来源信息</span>`:''}</div>${busy?`<div class="run-progress" role="status"><progress max="${transfer.totalFiles||1}" value="${transfer.completedFiles||0}" aria-label="题库下载进度"></progress><small>${transfer.state==='INSTALLING'?'正在校验并安装':`${transfer.completedFiles} / ${transfer.totalFiles} 个文件`}</small></div>`:transfer?.state==='FAILED'?`<p class="dataset-download-error" role="status">${esc(transfer.error)}</p>`:''}<div class="dataset-card-foot"><span>${dataset.caseCount} 题${esc(detail)}</span>${action}</div></article>`;
+ return `<article class="dataset-card"><div class="dataset-card-head"><span class="dataset-symbol">▦</span><span class="pill ${dataset.local?'ready':busy?'discovered':'neutral'}">${state}</span></div><h3>${esc(dataset.name)}</h3><div class="label-chips">${(dataset.labelIds??[]).map(id=>`<span>${esc(labelName(id))}</span>`).join('')}${dataset.sourceOnlyCases?`<span>线上 ${dataset.sourceOnlyCases} 题仅来源信息</span>`:''}</div>${busy?downloadProgress(transfer):transfer?.state==='FAILED'?`<p class="dataset-download-error" role="status">${esc(transfer.error)}</p>`:''}<div class="dataset-card-foot"><span>${dataset.caseCount} 题${esc(detail)}</span>${action}</div></article>`;
 }
 export function renderDatasets({catalog,ui,library}){
  const count=selectionCount(catalog,ui.selection),selected=catalog.datasets.find(d=>d.id===ui.datasetId);
