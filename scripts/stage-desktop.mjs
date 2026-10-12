@@ -15,6 +15,9 @@ for(const file of tracked){
 for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility/dsh.mjs','adapters/shared/factory.mjs','adapters/compatibility/contracts.mjs','adapters/compatibility/identity.mjs','adapters/compatibility/store.mjs','adapters/compatibility/check.mjs','adapters/compatibility/cli.mjs','adapters/langgraph/preflight.py','adapters/shared/cli-interface.mjs','workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
+for(const file of ['workbench/design-prototypes/score-radar.js','workbench/design-prototypes/score-radar.css']){
+  await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
+}
 await cp('dist',path.join(out,'dist'),{recursive:true});
 for(const file of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
