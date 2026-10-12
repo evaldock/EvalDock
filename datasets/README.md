@@ -20,6 +20,22 @@ For shared-adapter runs, inspect `var/evaluation-results/agents/<targetId>/runs/
 - Per-case `session.json`, reports, `all-trace/` and `output/` provide execution and delivery evidence. A missing case result alone does not prove the task never started; inspect the available session, progress and trace evidence after interruptions.
 - Check scores separately: execution completion does not establish answer correctness or successful scoring. Preserve the full result directory, import receipt and EvalDock revision when comparing runs.
 
+## Automatic selection response validation
+
+The common Planner validates model-selected Dataset IDs, Case counts, budgets and
+explanation fields before admitting a plan. `reason` remains limited to 1–500
+characters; the prompts ask for 100–200 characters and put detailed justification
+in `evidence`. `marginal_value` remains limited to 500 characters.
+
+An invalid model plan triggers at most two additional requests with the original
+inputs and the exact validation diagnostic. All requests share the configured
+Planner timeout and cancellation signal. The accepted plan comes from a new model
+response: EvalDock does not truncate explanations, substitute a Dataset or relax
+validation. Persistent validation failures still stop before Agent execution.
+HTTP/transport failures are not retried by this format recovery.
+`[evaldock:planner]` retry events contain attempt numbers and validation diagnostics,
+without credentials or the rejected response body.
+
 ## Count the source files
 
 Run from the repository root (this checks file counts, not successful runtime loading or execution):

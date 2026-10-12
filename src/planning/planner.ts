@@ -1,5 +1,5 @@
 /**
- * 文件功能：把真实 Agent 静态观测、外部 Dataset 描述目录和测试规模交给一次 LLM 请求，
+ * 文件功能：把真实 Agent 静态观测、外部 Dataset 描述目录和测试规模交给 LLM，
  * 生成 Dataset 与题量计划。Dataset 标签由目录提供，模型不判断或生成 Agent 标签。
  */
 import { readFile } from "node:fs/promises";
@@ -13,6 +13,7 @@ import type { AgentStaticInfo } from "./agent-static.js";
 const DEFAULT_ENDPOINT = "https://api.deepseek.com/chat/completions";
 const DEFAULT_MODEL = "deepseek-flash";
 const DEFAULT_TIMEOUT_MS = 60_000;
+const MAX_RESPONSE_ATTEMPTS = 3;
 
 /** MVP 只保留一套经过验证的 STANDARD 规划策略。 */
 export type DatasetTestProfile = "STANDARD";
@@ -103,6 +104,15 @@ export interface OpenAiCompatibleDatasetMatcherOptions {
   readonly now?: () => number;
   /** 调试只观察请求体；API Key 永远不会传入。 */
   readonly requestObserver?: (requestBody: JsonObject) => void;
+  /** Only local validation diagnostics are exposed, never the rejected response or credentials. */
+  readonly onValidationRetry?: (event: PlannerValidationRetry) => void;
+}
+
+export interface PlannerValidationRetry {
+  readonly failedAttempt: number;
+  readonly nextAttempt: number;
+  readonly maxAttempts: number;
+  readonly reason: string;
 }
 
 interface PreparedDatasetSelection {
@@ -454,7 +464,7 @@ function renderPlannerPrompt(template: string, prepared: PreparedDatasetSelectio
     replacements[placeholder as (typeof PROMPT_PLACEHOLDERS)[number]]);
 }
 
-/** 一次 OpenAI-compatible 请求；没有标签请求、Agent loop、重试或格式修复。 */
+/** One valid plan; up to two model corrections share the original deadline and strict validator. */
 export class OpenAiCompatibleDatasetMatcher implements DatasetMatcher {
   readonly #endpoint: string;
   readonly #apiKey: string;
@@ -466,6 +476,7 @@ export class OpenAiCompatibleDatasetMatcher implements DatasetMatcher {
   readonly #fetch: typeof fetch;
   readonly #now: () => number;
   readonly #requestObserver: ((requestBody: JsonObject) => void) | undefined;
+  readonly #onValidationRetry: ((event: PlannerValidationRetry) => void) | undefined;
 
   public constructor(options: OpenAiCompatibleDatasetMatcherOptions) {
     const endpoint = new URL(options.endpoint);
@@ -486,6 +497,7 @@ export class OpenAiCompatibleDatasetMatcher implements DatasetMatcher {
     this.#fetch = options.fetchImpl ?? fetch;
     this.#now = options.now ?? Date.now;
     this.#requestObserver = options.requestObserver;
+    this.#onValidationRetry = options.onValidationRetry;
   }
 
   public async select(input: DatasetSelectionInput): Promise<DatasetSelectionPlan> {
@@ -498,41 +510,69 @@ export class OpenAiCompatibleDatasetMatcher implements DatasetMatcher {
     const startedAt = this.#now();
     const timeoutSignal = AbortSignal.timeout(this.#timeoutMs);
     const signal = input.signal === undefined ? timeoutSignal : AbortSignal.any([input.signal, timeoutSignal]);
-    const requestBody = Object.freeze({
-      model: this.#model,
-      messages: Object.freeze([
-        Object.freeze({ role: "user", content: prompt }),
-      ]),
-      temperature: 0,
-      max_tokens: 393_216,
-      response_format: Object.freeze({ type: "json_object" }),
-    });
-    this.#requestObserver?.(requestBody);
-    const response = await this.#fetch(this.#endpoint, {
-      method: "POST",
-      headers: { authorization: `Bearer ${this.#apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify(requestBody),
-      signal,
-    });
-    if (!response.ok) throw new Error(`Unified Planner request failed with HTTP ${response.status}`);
-    const payload = asObject(await response.json(), "Unified Planner HTTP response");
-    if (!Array.isArray(payload.choices) || payload.choices.length < 1) {
-      throw new Error("Unified Planner HTTP response has no choices");
+    let validationError: string | undefined;
+    for (let attempt = 1; attempt <= MAX_RESPONSE_ATTEMPTS; attempt++) {
+      signal.throwIfAborted();
+      const correction = validationError === undefined ? [] : [Object.freeze({role: "user", content: JSON.stringify({
+        action: "Regenerate the complete selection JSON for the unchanged inputs above.",
+        validation_error: validationError,
+        requirements: [
+          "Return only the JSON object required by output_schema, without Markdown or extra fields.",
+          "Each reason must be non-empty and at most 500 characters, including punctuation and spaces. Aim for 100–200 characters; put detailed evidence in evidence.",
+          "Each marginal_value must be at most 500 characters.",
+          "Use only available Dataset IDs and preserve all eligibility rules, Dataset/Case counts and policy budgets.",
+        ],
+      })})];
+      const requestBody = Object.freeze({
+        model: this.#model,
+        messages: Object.freeze([
+          Object.freeze({ role: "user", content: prompt }),
+          ...correction,
+        ]),
+        temperature: 0,
+        max_tokens: 393_216,
+        response_format: Object.freeze({ type: "json_object" }),
+      });
+      this.#requestObserver?.(requestBody);
+      const response = await this.#fetch(this.#endpoint, {
+        method: "POST",
+        headers: { authorization: `Bearer ${this.#apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify(requestBody),
+        signal,
+      });
+      if (!response.ok) throw new Error(`Unified Planner request failed with HTTP ${response.status}`);
+      const payload = asObject(await response.json(), "Unified Planner HTTP response");
+      if (!Array.isArray(payload.choices) || payload.choices.length < 1) {
+        throw new Error("Unified Planner HTTP response has no choices");
+      }
+      const choice = asObject(payload.choices[0], "Unified Planner choice");
+      const message = asObject(choice.message, "Unified Planner message");
+      if (typeof message.content !== "string") throw new Error("Unified Planner message content must be a string");
+      signal.throwIfAborted();
+      let initial: ReturnType<typeof parsePlan>;
+      try {
+        initial = parsePlan(message.content, prepared);
+      } catch (error) {
+        signal.throwIfAborted();
+        if (attempt === MAX_RESPONSE_ATTEMPTS) throw error;
+        validationError = error instanceof Error ? error.message : "Unified Planner response validation failed";
+        this.#onValidationRetry?.(Object.freeze({
+          failedAttempt: attempt, nextAttempt: attempt + 1, maxAttempts: MAX_RESPONSE_ATTEMPTS, reason: validationError,
+        }));
+        continue;
+      }
+      const parsed = input.testSize?.caseCount === undefined ? initial : allocateCaseCount(initial,prepared.candidates.map(candidate=>({...candidate,availableCaseCount:Math.min(candidate.availableCaseCount,policy.maxCasesPerDataset)})),input.testSize.caseCount);
+      return Object.freeze({
+        schema: "evaldock.mvp.unified-planner-result/v1",
+        profile: prepared.policy.profile,
+        selectedDatasets: parsed.selectedDatasets,
+        evaluationLabelIds: parsed.evaluationLabelIds,
+        totalCaseCount: parsed.totalCaseCount,
+        model: this.#model,
+        durationMs: Math.max(0, this.#now() - startedAt),
+      });
     }
-    const choice = asObject(payload.choices[0], "Unified Planner choice");
-    const message = asObject(choice.message, "Unified Planner message");
-    if (typeof message.content !== "string") throw new Error("Unified Planner message content must be a string");
-    const initial = parsePlan(message.content, prepared);
-    const parsed = input.testSize?.caseCount === undefined ? initial : allocateCaseCount(initial,prepared.candidates.map(candidate=>({...candidate,availableCaseCount:Math.min(candidate.availableCaseCount,policy.maxCasesPerDataset)})),input.testSize.caseCount);
-    return Object.freeze({
-      schema: "evaldock.mvp.unified-planner-result/v1",
-      profile: prepared.policy.profile,
-      selectedDatasets: parsed.selectedDatasets,
-      evaluationLabelIds: parsed.evaluationLabelIds,
-      totalCaseCount: parsed.totalCaseCount,
-      model: this.#model,
-      durationMs: Math.max(0, this.#now() - startedAt),
-    });
+    throw new Error("Unified Planner response attempts exhausted");
   }
 }
 
@@ -554,6 +594,9 @@ export function createDefaultDatasetMatcher(
     promptRoot: environment.EVALDOCK_PLANNER_PROMPT_ROOT ?? path.join(cwd, "planning", "prompts"),
     policyFile: environment.EVALDOCK_PLANNER_POLICY_FILE ?? path.join(cwd, "planning", "policies.json"),
     difficultyFile: path.join(cwd, "planning", "case-difficulty.json"),
+    onValidationRetry: event => {
+      process.stderr.write(`[evaldock:planner] ${JSON.stringify({event: "RESPONSE_VALIDATION_RETRY", ...event})}\n`);
+    },
     ...(environment.EVALDOCK_DEBUG_PLANNER_PROMPT === "1" ? {
       requestObserver: (requestBody: JsonObject) => {
         process.stderr.write(`[evaldock:planner-prompt] ${JSON.stringify(requestBody, null, 2)}\n`);

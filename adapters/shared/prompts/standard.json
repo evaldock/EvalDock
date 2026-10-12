@@ -75,6 +75,7 @@
     "DIRECT 只能表示 Dataset description 直接施测 capability ledger 中的Agent 目标；仅有 label 相交、README-only、或泛化关键词时必须使用 PROXY。",
     "target_capabilities 不得包含快照/ledger 未声明的能力；无法证明的能力声明计入 unsupported inference。",
     "满足 policy.min_datasets 且所有 must_cover 能力已有 DIRECT 覆盖时停止；新增 Dataset 必须证明非零 marginal_value，禁止用‘更全面’或填充预算作为理由。",
+    "reason 建议 100–200 字符，硬上限 500 字符；marginal_value 也不得超过 500 字符。字符计数包含标点和空白；详细依据放在 evidence，不在 reason 中重复展开。",
     "只输出 output_schema 定义的 JSON，不输出分析过程、Markdown 或额外字段。"
   ],
   "decision_procedure": [
@@ -89,7 +90,7 @@
       {
         "dataset_id": "available_datasets 中的原始 ID",
         "case_count": 3,
-        "reason": "不超过 500 字；说明直接/代理能力匹配、label/description 依据和运行限制",
+        "reason": "建议 100–200 字符，最多 500 字符；说明直接/代理能力匹配、label/description 依据和运行限制",
         "match_type": "DIRECT | PROXY | BASELINE",
         "target_capabilities": ["capability ledger 中的原始 capability id"],
         "evidence": ["label_id、description 施测对象、eligibility/runtime 状态"],
