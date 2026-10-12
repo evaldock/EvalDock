@@ -64,7 +64,8 @@ test('the real request payload supplies percentage standards and preserves a moc
     return new Response(JSON.stringify({choices: [{message: {content: '{"score":83.5,"reason":"Supported fixture"}'}}]}));
   }});
   const result = await judge.evaluate(input);
-  const prompt = JSON.parse(body.messages[1].content);
+  const prompt = JSON.parse(body.messages.at(-1).content);
+  assert.deepEqual(JSON.parse(body.messages[1].content).all_trace, input.allTrace);
   assert.equal(prompt.label.scoringStandard.scoring_scale.max, 100);
   assert.doesNotMatch(prompt.output_schema.score, /4\.25/);
   assert.equal(result.score, 83.5);

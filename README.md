@@ -99,6 +99,8 @@ A dimension with insufficient evidence is marked `UNASSESSABLE`. Judge request o
 
 `EFFECT` mode evaluates deliverables. `FULL` mode also uses execution evidence. Read aggregate scores alongside the assessed dimensions and task coverage. Historical reports retain their original criteria and are not converted to a new scale.
 
+Same-case labels are scored in groups of four, sharing the full evidence once per request. Shared context precedes the rubrics to improve provider cache reuse. Reports record requests, token usage and cache hits without counting a shared request twice. Set `EVALDOCK_JUDGE_BATCH_SIZE=1` for separate requests. [Judge configuration](docs/JUDGE-COST.md).
+
 ## Supported agents
 
 Eight agents currently have adapters. Codex and Claude Code are planned additions.

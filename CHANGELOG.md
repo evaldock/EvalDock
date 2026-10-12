@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Multi-label Judge requests share unchanged Case evidence, defaulting to four labels per request. CLI, shared Agent adapters and deferred BenchDock scoring use the same entry point; custom single-label judges remain compatible.
+- Shared prompt content precedes label rubrics for provider prefix caching. Physical Judge requests are limited to four per process. `EVALDOCK_JUDGE_BATCH_SIZE=1` restores individual requests; `EVALDOCK_JUDGE_MAX_OUTPUT_TOKENS` sets the response budget (default 16,384).
+- Score diagnostics record physical request IDs and provider token/cache usage, including transient retries. HTML reports deduplicate shared requests and distinguish unknown usage. Batch responses require exact label IDs and valid evidence citations; malformed label results do not trigger automatic single-label retries.
+
 ### Fixed
 
 - File observation accepts literal filenames such as `[Content_Types].xml` from unpacked Office documents. Configured paths still reject wildcard expressions, and observed paths still reject traversal and absolute paths.

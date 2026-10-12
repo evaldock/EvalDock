@@ -10,6 +10,15 @@ export interface JudgeInput {
   /** EFFECT exposes only the final answer and delivered files to Judge. */
   readonly evaluationMode?: "EFFECT" | "FULL";
 }
+export interface JudgeRequestUsage {
+  readonly requestId: string;
+  readonly labelIds: readonly string[];
+  readonly requestBytes: number;
+  readonly inputTokens: number | null;
+  readonly outputTokens: number | null;
+  readonly cacheHitTokens: number | null;
+  readonly cacheMissTokens: number | null;
+}
 export interface LabelScore {
   readonly weight?: number;
   readonly schema: "evaldock.label-score/v1";
@@ -27,12 +36,16 @@ export interface LabelScore {
   readonly evidenceIds: readonly string[];
   /** Recoverable response normalization, separate from the model rationale. */
   readonly warnings?: readonly string[];
-  readonly diagnostics?: { readonly httpStatus?: number; readonly finishReason?: string; readonly attempts?: number; readonly providerCategory?: string; readonly providerBodyTruncated?: boolean; readonly requestBytes?: number; readonly traceBytes?: number; readonly transportCode?: string };
+  readonly diagnostics?: { readonly httpStatus?: number; readonly finishReason?: string; readonly attempts?: number; readonly providerCategory?: string; readonly providerBodyTruncated?: boolean; readonly requestBytes?: number; readonly traceBytes?: number; readonly transportCode?: string; readonly requests?: readonly JudgeRequestUsage[] };
   readonly model: string;
   readonly createdAt: string;
   readonly contentDigest: ContentDigest;
 }
-export interface LabelJudge { evaluate(input: JudgeInput): Promise<LabelScore>; }
+export interface LabelJudge {
+  evaluate(input: JudgeInput): Promise<LabelScore>;
+  /** Optional: scores must match input order. Each label still has its own rubric and result. */
+  evaluateBatch?(inputs: readonly JudgeInput[]): Promise<readonly LabelScore[]>;
+}
 export interface DimensionScore {
   readonly labelId: string;
   readonly score: number | null;

@@ -60,6 +60,7 @@ test('deferred evaluator binds the private reference to the exact public task re
  await json(referenceFile,bundle);
  let calls=0;
  const judge={evaluate:async input=>{calls++;assert.equal(input.evaluationMode,'EFFECT');assert.equal(input.case.grading.weight,0.5);assert.equal(input.case.grading.reference.answer,'synthetic evaluator secret');return parseLabelScore(JSON.stringify({status:'SCORED',score:7,reason:'Synthetic test only',evidence_ids:[]}),input,'fixture');}};
+ const single=judge.evaluate;judge.evaluateBatch=async inputs=>Promise.all(inputs.map(single));judge.evaluate=async()=>{throw Error('Batch Judge should be used');};
  const scored=await scoreBenchDockReport({reportFile,referenceFile,judge});assert.equal(scored.scores[0].score,7);assert.equal(calls,1);
  assert.equal(scored.evaluationMode,'EFFECT');
  assert.ok(!JSON.stringify(scored).includes('synthetic evaluator secret'));

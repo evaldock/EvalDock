@@ -1,3 +1,4 @@
+import { summarizeJudgeUsage } from "../evaluation/judge-usage.js";
 /** Display only: the original report layout over the current immutable result record. */
 import type { EvaluationResult, ResultData } from "./types.js";
 import { previewJson } from "./html-preview.js";
@@ -39,6 +40,7 @@ export function renderReportHtml(data: EvaluationResult | ResultData): string {
     data.allTraceRef ? traceDetail(title, kind, undefined, layer) :
       detail(title, kind === "integrity" ? { sources: data.allTrace?.sources, integrity: data.allTrace?.integrity } :
         kind === "entries" && layer ? data.allTrace?.entries.filter(entry => entry.layer === layer) : data.allTrace?.[kind]);
+  const judgeUsage = summarizeJudgeUsage(data.scores);
   const scored = data.scores.filter(score => score.status === "SCORED").length;
   const errors = data.scores.filter(score => score.status === "ERROR").length;
   const unassessable = data.scores.filter(score => score.status === "UNASSESSABLE").length;
@@ -135,7 +137,12 @@ export function renderReportHtml(data: EvaluationResult | ResultData): string {
     evidenceDetail("Agent 的执行记录", "entries", "AGENT") +
     evidenceDetail("采集覆盖状态", "coverage") + evidenceDetail("来源和完整性记录", "integrity") +
     evidenceDetail("全部证据实际内容", "entries") + "</section>" +
-    '<section id="judges"><h2>4. 逐标签评分的真实记录</h2>' + (dimensions || '<p class="empty">尚未形成维度评分</p>') +
+     '<section id="judges"><h2>4. 逐标签评分的真实记录</h2>' +
+    table([["Judge 请求数",judgeUsage.requestCount], ["输入 / 输出 token（已报告）",text(judgeUsage.inputTokens)+" / "+text(judgeUsage.outputTokens)],
+      ["缓存命中 / 未命中 token（已报告）",text(judgeUsage.cacheHitTokens)+" / "+text(judgeUsage.cacheMissTokens)],
+      ["缓存命中率",judgeUsage.cacheHitRate===null?"未知":(100*judgeUsage.cacheHitRate).toFixed(1)+"%"],
+      ["usage 未完整返回的请求",judgeUsage.unknownUsageRequests],["未跟踪请求的旧版或自定义评分",judgeUsage.untrackedScoreCount]]) +
+    '<p class="note">按请求 ID 去重，含重试；缓存命中已包含在输入 token 内。未知用量不记为零，统计不是完整账单。</p>' + (dimensions || '<p class="empty">尚未形成维度评分</p>') +
     (scores || '<p class="empty">尚未生成 Judge 记录</p>') + "</section>" +
     '<section id="files"><h2>5. 交付文件与环境变化</h2><h3>交付文件</h3><table><thead><tr><th>文件</th><th>记录状态</th></tr></thead><tbody>' +
     (outputs || '<tr><td colspan="2">没有已归档的交付文件</td></tr>') + "</tbody></table>" +

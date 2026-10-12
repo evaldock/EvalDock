@@ -1,3 +1,4 @@
+import { evaluateLabels } from "../evaluation/evaluate-labels.js";
 import {selectAllDatasets} from "../planning/all-datasets.js";
 import { submissionContent, submissionIndex, SUBMISSION_CONTENT_BUDGET_BYTES } from "../all-trace/submission.js";
 /**
@@ -70,7 +71,7 @@ import { assembleAllTrace } from "../all-trace/assemble.js";
 import { executeWebTarget, inspectWebTarget } from "../runtime/web-target.js";
 import type { AllTrace, SubmissionFile as SubmissionFileEvidenceInput } from "../all-trace/types.js";
 import { loadLabels, type LabelDefinition } from "../labels/catalog.js";
-import { createDefaultLabelJudge, unavailableReferenceScore } from "../evaluation/llm-label-judge.js";
+import { createDefaultLabelJudge } from "../evaluation/llm-label-judge.js";
 import { aggregateScores } from "../evaluation/scoring.js";
 import type { LabelJudge, LabelScore, DimensionScore } from "../evaluation/types.js";
 import { buildResult, parseVerifiedReportDocument, serializeReportDocument } from "../reporting/record.js";
@@ -1644,9 +1645,9 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
     const judge=input.labelJudge ?? createDefaultLabelJudge(process.env,input.signal);
     const scoreRefs: Ref<LabelScore>[]=[];
     // Every label receives the same complete trace assembled above; only the rubric changes.
-    for(const label of facts.labels) {
-      const judgeInput={label,case:facts.caseData!,allTrace:facts.allTrace,...input.evaluationMode?{evaluationMode:input.evaluationMode}:{}};
-      const score=facts.caseData!.grading.mode === "unavailable" ? unavailableReferenceScore(judgeInput) : await judge.evaluate(judgeInput);
+    const judgeInputs=facts.labels.map(label=>({label,case:facts.caseData!,allTrace:facts.allTrace!,...input.evaluationMode?{evaluationMode:input.evaluationMode}:{}}));
+    const scores=await evaluateLabels(judge,judgeInputs);
+    for(const score of scores) {
       scoreRefs.push(await save.immutable(score,score.scoreId));
       facts.scores.push(score);
       if(score.status==="ERROR") await save.failure(makeFailure(graph.scope,"JUDGE_FAILURE","EVALDOCK","JUDGE","SCORING","LABEL_JUDGE_ERROR",score.reason));

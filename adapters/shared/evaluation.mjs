@@ -1,3 +1,4 @@
+import {evaluateLabels} from '../../dist/src/evaluation/evaluate-labels.js';
 import {samplePlannedCases} from '../../dist/src/planning/case-sampling.js';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -12,7 +13,7 @@ import {countDatasetQuestionCases,loadDatasetCase} from '../../dist/src/datasets
 import {createDefaultDatasetMatcher} from '../../dist/src/planning/planner.js';
 import {selectAllDatasets} from '../../dist/src/planning/all-datasets.js';
 import {loadLabels} from '../../dist/src/labels/catalog.js';
-import {createDefaultLabelJudge,unavailableReferenceScore} from '../../dist/src/evaluation/llm-label-judge.js';
+import {createDefaultLabelJudge} from '../../dist/src/evaluation/llm-label-judge.js';
 import {aggregateScores} from '../../dist/src/evaluation/scoring.js';
 import {buildResult,serializeReportDocument} from '../../dist/src/reporting/record.js';
 import {renderReportHtml} from '../../dist/src/reporting/html.js';
@@ -98,7 +99,12 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
         trace=buildTrace({scope,capture,before,after,delivery,startedAt,endedAt,agent:adapter.trace});
         traceRef=await writeTraceDirectory({caseDirectory:caseDir,trace,maxBytes:20*1024*1024,readArtifact:async a=>{const b=delivery.bodies.get(a.artifactId);if(!b)throw Error('AGENT_ARTIFACT_UNAVAILABLE');return b;}});
         const caseLabels=labels.filter(l=>data.labelIds.includes(l.labelId));if(caseLabels.length!==data.labelIds.length)throw new Error('AGENT_LABEL_NOT_FOUND');
-        const scores=[];const judgingAllowed=!capture.error||['WORKBUDDY_TASK_TIMEOUT','WORKBUDDY_TURN_INCOMPLETE','AGENT_TASK_TIMEOUT','AGENT_TURN_INCOMPLETE'].includes(capture.error);if(judgingAllowed&&!signal?.aborted)for(const label of caseLabels){caseProgress(ordinal,item,'JUDGING',{labelId:label.labelId,labelIndex:scores.length+1,labelCount:caseLabels.length});scores.push(data.grading.mode==='unavailable'?unavailableReferenceScore({label,case:data,allTrace:trace}):await judge.evaluate({label,case:data,allTrace:trace,evaluationMode:evaluationConfig?.mode??'FULL'}));if(signal?.aborted)break;}
+        const scores=[];
+        const judgingAllowed=!capture.error||['WORKBUDDY_TASK_TIMEOUT','WORKBUDDY_TURN_INCOMPLETE','AGENT_TASK_TIMEOUT','AGENT_TURN_INCOMPLETE'].includes(capture.error);
+        if(judgingAllowed&&!signal?.aborted){
+          caseProgress(ordinal,item,'JUDGING',{labelCount:caseLabels.length});
+          scores.push(...await evaluateLabels(judge,caseLabels.map(label=>({label,case:data,allTrace:trace,evaluationMode:evaluationConfig?.mode??'FULL'})),signal));
+        }
         caseProgress(ordinal,item,'REPORTING');
         report=buildResult({evaluationMode:evaluationConfig?.mode??'FULL',runId,scope,target:summary.target,inspection:{toolSchemas:inspection.toolSchemas??[],limitations:inspection.limitations,probeSchema:'evaldock.all-trace/v1',probeConfigured:true,headlessDriverStatus:inspection.driver??'DESKTOP_RPC',permissionPreset:inspection.permissionPreset??'APPLICATION_DEFAULT',sandboxMode:'WORKSPACE_ONLY_NOT_SANDBOX'},plan:{status:'FROZEN',casePlan:{datasetId:item.dataset.datasetId,labelIds:data.labelIds,environmentId:kind+'.workspace',deadlineMs:data.deadlineMs,allowedPaths:data.allowedPaths,forbiddenPaths:['private','checks']}},case:data,labels:caseLabels,execution:{task,agentSessionIds:capture.sessionId?[capture.sessionId]:[],terminationKind:capture.error??capture.result?.stopReason??'UNKNOWN',exitCode:capture.error?1:0,stdout:capture.final??'',stdoutCapturedBytes:Buffer.byteLength(capture.final??''),stdoutCaptureTruncated:!!capture.finalTruncated,stdoutReportTruncated:!!capture.finalTruncated,startedAt,endedAt,durationMs:Date.parse(endedAt)-Date.parse(startedAt)},allTraceRef:traceRef,scores,dimensions:aggregateScores(scores),artifacts:trace.artifacts,timeline:[{number:1,label:name+' 任务执行',status:capture.error?'FAILED':'SUCCEEDED',objectRefs:capture.sessionId?[capture.sessionId]:[],failureGroups:[]}],currentPhase:'REPORTED',runState:capture.error?'FAILED':'COMPLETED',operationalHealth:capture.error||scores.some(s=>s.status==='ERROR')?'DEGRADED':'HEALTHY',fixture:false,securityIsolation:summary.securityIsolation,environmentState:'WORKSPACE_RETAINED_GLOBAL_RESET_NOT_PERFORMED',failures:capture.error?[{code:capture.error,severity:'ERROR',message:capture.error}]:[]},'evaldock-agent-adapter/1');
         await writeFile(path.join(caseDir,'report.json'),serializeReportDocument(report),{flag:'wx',mode:0o600});await writeFile(path.join(caseDir,'report.html'),renderReportHtml(report),{flag:'wx',mode:0o600});await writeReportLoader(caseDir);

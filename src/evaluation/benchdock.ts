@@ -1,10 +1,11 @@
+import { evaluateLabels } from "./evaluate-labels.js";
 /** Trusted evaluator-side join. Never installs, executes or copies private checkers. */
 import path from "node:path";
 import { readEvidenceFile, readTraceDirectory } from "../all-trace/store.js";
 import { digestBytes, digestValue, type JsonObject } from "../core/models.js";
 import { parseVerifiedReportDocument } from "../reporting/record.js";
 import { aggregateScores } from "./scoring.js";
-import type { LabelJudge, LabelScore } from "./types.js";
+import type { LabelJudge } from "./types.js";
 
 export async function scoreBenchDockReport(input: {
   reportFile: string; referenceFile: string; judge: LabelJudge;
@@ -29,8 +30,7 @@ export async function scoreBenchDockReport(input: {
   if (digestValue(allTrace.scope).value !== digestValue(report.evaluationScope ?? report.scope).value) throw new Error("Trace scope does not match the report");
   const body = {...report.case, seedEntries: [], grading: {mode:"reference", reference:bundle.reference, ...(weight === undefined ? {} : {weight})}};
   const caseData = {...body, contentDigest: digestValue(body, ["contentDigest"])};
-  const scores: LabelScore[] = [];
-  for (const label of report.labels) scores.push(await input.judge.evaluate({label, case:caseData, allTrace, evaluationMode}));
+  const scores=await evaluateLabels(input.judge,report.labels.map(label=>({label,case:caseData,allTrace,evaluationMode})));
   const result = {schema:"evaldock.benchdock-deferred-scores/v1", taskId:origin.task_id,
     evaluationMode, datasetRevision:origin.revision, sourceReportDigest:report.contentDigest,
     privateReferenceDigest:digestBytes(raw), scoringMethod:"EVALDOCK_LLM_LABEL_JUDGE_NOT_UPSTREAM_OFFICIAL",
