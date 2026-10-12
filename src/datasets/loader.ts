@@ -1,3 +1,5 @@
+import {freezeDatasetInput,DEFAULT_MAX_DATASET_INPUT_BYTES,type DatasetInputSource} from "../storage/dataset-inputs.js";
+import type {SeedEntrySpec} from "../runtime/environment.js";
 /** question.json + public inputs + private grading references. */
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
@@ -99,7 +101,31 @@ export interface DatasetCase {
   readonly question: JsonObject;
   readonly contentDigest: ContentDigest;
 }
-async function currentCase(questionFile: string, selectedLabels: readonly LabelId[]): Promise<DatasetCase> {
+const datasetInputSources = new WeakMap<object, ReadonlyMap<string, DatasetInputSource>>();
+/** Resolve controller-only source paths only for the exact frozen public input entry. */
+export function resolveDatasetSeedEntries(caseData: DatasetCase, entries: readonly unknown[] = caseData.seedEntries): readonly SeedEntrySpec[] {
+  return entries.map((raw) => {
+    const entry = object(raw, "seed entry");
+    const common = {
+      portablePath: String(validatePortablePath(entry.portablePath, "seed portablePath")),
+      entryType: entry.entryType as "DIRECTORY" | "FILE",
+      mode: String(entry.mode), readOnlyForTarget: entry.readOnlyForTarget === true,
+    };
+    if (entry.encoding === "file") {
+      const frozen = caseData.seedEntries.find(item => item.portablePath === entry.portablePath);
+      const sourceFile = datasetInputSources.get(caseData)?.get(common.portablePath);
+      if (!frozen || !sourceFile || digestValue(frozen).value !== digestValue(entry).value) {
+        throw new Error("Unbound or changed dataset input seed");
+      }
+      return { ...common, sourceFile };
+    }
+    return { ...common,
+      ...(entry.content === undefined ? {} : { content: String(entry.content) }),
+      ...(entry.encoding === undefined ? {} : { encoding: entry.encoding as "utf8" | "base64" }),
+    };
+  });
+}
+async function currentCase(questionFile: string, selectedLabels: readonly LabelId[],maxDatasetInputBytes=DEFAULT_MAX_DATASET_INPUT_BYTES): Promise<DatasetCase> {
   const question = await json(questionFile);
   if (question.schema !== "evaldock.question/v1") throw new Error(`${questionFile} has an unsupported schema`);
   const questionId = string(question.id, "question.id");
@@ -123,6 +149,7 @@ async function currentCase(questionFile: string, selectedLabels: readonly LabelI
 
   const caseRoot = path.dirname(questionFile);
   const inputs: CaseInputFile[] = [];
+  const inputSources=new Map<string,DatasetInputSource>();
   const destinations = new Set<string>();
   const entries: JsonObject[] = [
     { entryType: "DIRECTORY", mode: "0555", portablePath: "input", readOnlyForTarget: true },
@@ -150,14 +177,14 @@ async function currentCase(questionFile: string, selectedLabels: readonly LabelI
     const canonical = await realpath(sourcePath);
     const publicRoot = path.join(await realpath(caseRoot), "input") + path.sep;
     if (!canonical.startsWith(publicRoot)) throw new Error("Public input resolves outside input/");
-    const bytes = await readFile(sourcePath);
+    const frozenInput=await freezeDatasetInput(sourcePath,path.join(await realpath(caseRoot),"input"),maxDatasetInputBytes);
     const type = mediaType(sourcePath);
-    inputs.push({source, destination: String(destination), delivery, mediaType:type, sha256:digestBytes(bytes).value});
+    inputs.push({source, destination: String(destination), delivery, mediaType:type, sha256:frozenInput.source.sha256});
     // 作者提供摘要时必须核验；未提供时，实际字节仍由Case/Artifact 摘要冻结。
     // 不回写题库，也不把不匹配的已声明摘要替换为计算值。
     if (item.sha256 !== undefined) {
       const declaredSha256 = string(item.sha256, `question.inputs[${index}].sha256`);
-      if (!/^[a-f0-9]{64}$/u.test(declaredSha256) || digestBytes(bytes).value !== declaredSha256) {
+      if (!/^[a-f0-9]{64}$/u.test(declaredSha256) || frozenInput.source.sha256 !== declaredSha256) {
         throw new Error(`${questionId} input digest mismatch`);
       }
     }
@@ -166,10 +193,10 @@ async function currentCase(questionFile: string, selectedLabels: readonly LabelI
       mode: "0444",
       portablePath: String(destination),
       readOnlyForTarget: true,
-      encoding: "base64",
-      content: bytes.toString("base64"),
+      ...(frozenInput.inlineBytes===undefined?{encoding:"file",source,contentDigest:{algorithm:"sha256",value:frozenInput.source.sha256,byteLength:frozenInput.source.byteLength}}:{encoding:"base64",content:frozenInput.inlineBytes.toString("base64")}),
       mediaType: mediaType(sourcePath),
     });
+    inputSources.set(String(destination),frozenInput.source);
   }
 
   // Environment provisioning is manual. No setup dispatch or Case-requirement check.
@@ -250,18 +277,20 @@ async function currentCase(questionFile: string, selectedLabels: readonly LabelI
     question,
     grading: resolvedGrading,
   };
-  return freezeJson({ ...result, contentDigest: digestValue(result) });
+  const frozen=freezeJson({ ...result, contentDigest: digestValue(result) });
+  datasetInputSources.set(frozen,inputSources);
+  return frozen;
 }
 
 /** 只加载 Case；不会读取 labels、Trace 配置，也不生成 Judge/Metric/Gate。 */
 export async function loadDatasetCase(input: {
   readonly datasetsRoot: string; readonly datasetId: DatasetId;
-  readonly labelIds: readonly LabelId[]; readonly caseIndex?: number;
+  readonly labelIds: readonly LabelId[]; readonly caseIndex?: number; readonly maxDatasetInputBytes?:number;
 }): Promise<DatasetCase> {
   const index = input.caseIndex ?? 0;
   if (!Number.isSafeInteger(index) || index < 0) throw new Error("caseIndex must be non-negative");
   const cases = await currentQuestionCases(input.datasetsRoot,input.datasetId);
   const file = cases[index];
   if (file === undefined) throw new Error("Dataset Case is unavailable");
-  return currentCase(file,input.labelIds);
+  return currentCase(file,input.labelIds,input.maxDatasetInputBytes);
 }

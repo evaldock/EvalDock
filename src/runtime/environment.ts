@@ -1,3 +1,4 @@
+import {copyDatasetInput,type DatasetInputSource} from "../storage/dataset-inputs.js";
 /**
  * 文件职责：为每个 Attempt 创建受约束的 Workspace 与 Runtime Home，冻结目标文件树，播种场景资源，并执行重置和清理。
  * 核心流程：校验根目录、稳定标识和便携路径，创建精确的 run/case/attempt 目录，复制只读运行材料，随后按工作流阶段播种、重置或删除。
@@ -26,6 +27,7 @@ export interface SeedEntrySpec {
   entryType: "DIRECTORY" | "FILE";
   mode: string;
   readOnlyForTarget: boolean;
+  sourceFile?:DatasetInputSource;
   content?: string;
   encoding?: "utf8" | "base64";
 }
@@ -564,6 +566,12 @@ export async function seedEnvironment(
         mode: entry.mode,
         readOnlyForTarget: entry.readOnlyForTarget,
       });
+      continue;
+    }
+    if(entry.sourceFile!==undefined) {
+      if(entry.content!==undefined||entry.encoding!==undefined)throw new Error("Ambiguous dataset input seed");
+      const copied=await copyDatasetInput(entry.sourceFile,destination,mode);
+      resources.push({portablePath,entryType:"FILE",mode:entry.mode,readOnlyForTarget:entry.readOnlyForTarget,...copied});
       continue;
     }
     if (entry.content === undefined || (entry.encoding !== "utf8" && entry.encoding !== "base64")) {

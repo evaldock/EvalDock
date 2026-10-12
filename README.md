@@ -169,6 +169,8 @@ Prepare any tools, databases, or external services required by a dataset separat
 
 Open reports from the workbench to inspect scores, traces, output files, and Judge records.
 
+Re-score an archived Case without running the Agent again: `pnpm rescore --report /path/to/case/report.json`. Each run creates a separate score revision; the original report stays unchanged. [Usage](docs/RESCORE.md).
+
 For shared-adapter runs, `plan.json` records the selected queue; `run.json`, per-case sessions, reports and traces establish the actual execution evidence. See the [evidence guide](datasets/README.md#distribution-loading-and-execution-counts). Execution completion does not establish answer correctness or completed scoring.
 
 The planned Docker release will persist results in a host-mounted directory. The mount path will be documented with the Compose release. The `var/` paths below apply to the current source version.

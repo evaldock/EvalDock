@@ -170,6 +170,8 @@ datasets/
 
 在工作台打开评测记录，可以查看分数、Trace、交付文件和 Judge 记录。
 
+可用 `pnpm rescore --report /path/to/case/report.json` 重评历史 Case，无需重跑 Agent。每次生成独立评分版本，原报告保留。[使用说明](docs/RESCORE.md)。
+
 共享适配器的 `plan.json` 记录选题队列，`run.json` 及逐题会话、报告和 Trace 用于核对实际执行情况，详见[证据核对说明](datasets/README.md#distribution-loading-and-execution-counts)。执行完成不等于答案正确或评分完成。
 
 Docker 版计划通过挂载目录将结果保存在宿主机，具体路径随 Compose 发布说明。下面的 `var/` 路径仅适用于当前源码版。

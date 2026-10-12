@@ -10,7 +10,7 @@ import {safeErrorDiagnostics} from '../../dist/src/core/errors.js';
 import {loadModelEnvironment} from '../../dist/src/platform/model-environment.js';
 import {projectPaths} from '../../dist/src/platform/paths.js';
 import {loadDatasetDescriptionCatalog} from '../../dist/src/datasets/catalog.js';
-import {countDatasetQuestionCases,loadDatasetCase} from '../../dist/src/datasets/loader.js';
+import {countDatasetQuestionCases,loadDatasetCase,resolveDatasetSeedEntries} from '../../dist/src/datasets/loader.js';
 import {createDefaultDatasetMatcher} from '../../dist/src/planning/planner.js';
 import {selectAllDatasets} from '../../dist/src/planning/all-datasets.js';
 import {loadLabels} from '../../dist/src/labels/catalog.js';
@@ -88,9 +88,9 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
       const scope={targetId,runId,caseId:item.caseId,attemptId:item.caseId+'.attempt-1'};
       let data,capture={queue:[],seen:0,final:'',error:null,cleanup:'NOT_STARTED'},before={entries:[],truncated:true},after=before,traceRef,trace,report;
       try{
-        data=await loadDatasetCase({datasetsRoot,datasetId:item.dataset.datasetId,labelIds:item.dataset.evaluationLabelIds,caseIndex:item.caseIndex});
+        data=await loadDatasetCase({datasetsRoot,datasetId:item.dataset.datasetId,labelIds:item.dataset.evaluationLabelIds,caseIndex:item.caseIndex,maxDatasetInputBytes:Number(env.EVALDOCK_MAX_DATASET_INPUT_BYTES??1073741824)});
         if(!adapter.supportsAttachments&&data.inputs.some(i=>i.delivery==='chat-attachment'))throw new Error('AGENT_CHAT_ATTACHMENT_UNSUPPORTED');
-        await seedWorkspace(workspace,data.seedEntries);before=await snapshot(workspace);
+        await seedWorkspace(workspace,resolveDatasetSeedEntries(data));before=await snapshot(workspace);
         const task=data.task+'\n\n工作目录：'+(adapter.workspaceDescription?.(workspace)??workspace)+'\n提供的输入文件：'+(data.inputs.map(i=>i.destination).join('、')||'无')+'\n请将需要交付的文件写入：'+data.allowedPaths.join('、')+'。';
         caseProgress(ordinal,item,'EXECUTING');
         capture=await adapter.run({context,root,caseDirectory:caseDir,caseData:data,cwd:workspace,prompt:task,deadlineMs:Math.min(data.deadlineMs,30*60*1000),signal,onSession:(sessionId,processInfo={})=>{caseProgress(ordinal,item,'EXECUTING',{sessionId});return atomic(path.join(caseDir,'session.json'),{schema:'evaldock.agent-session/v1',agentKind:kind,sessionId,...processInfo,runId,caseId:item.caseId,workspace,startedAt,cleanup:'PENDING'});}});

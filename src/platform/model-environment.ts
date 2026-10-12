@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { parseEnv } from "node:util";
 
-const modelSetting = /^EVALDOCK_(PLANNER|JUDGE)_(API_KEY|MODEL|MODEL_ENDPOINT|TIMEOUT_MS|MAX_RETRIES)$/u;
+const modelSetting = /^EVALDOCK_(PLANNER|JUDGE)_(API_KEY|MODEL|MODEL_ENDPOINT|TIMEOUT_MS|MAX_RETRIES|BATCH_SIZE|MAX_OUTPUT_TOKENS|MAX_INPUT_BYTES)$/u;
 
 /** Evaluator credentials are separate from the target Agent's DSH environment. */
 export async function loadModelEnvironment(

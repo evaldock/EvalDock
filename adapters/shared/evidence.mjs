@@ -1,3 +1,4 @@
+import {copyDatasetInput} from '../../dist/src/storage/dataset-inputs.js';
 import path from 'node:path';
 import {mkdir,writeFile,readdir,lstat,open,realpath} from 'node:fs/promises';
 import {constants} from 'node:fs';
@@ -14,6 +15,7 @@ export async function seedWorkspace(root,entries){
   await mkdir(root,{recursive:true,mode:0o700});if(await realpath(root)!==root)throw new Error('AGENT_UNSAFE_WORKSPACE');
   for(const e of entries){validatePortablePath(e.portablePath);const dest=path.join(root,e.portablePath);
     if(e.entryType==='DIRECTORY'){await mkdir(dest,{recursive:true,mode:0o700});continue;}
+    if(e.entryType==='FILE'&&e.sourceFile){await mkdir(path.dirname(dest),{recursive:true,mode:0o700});await copyDatasetInput(e.sourceFile,dest,0o444);continue;}
     if(e.entryType!=='FILE'||e.encoding!=='base64')throw new Error('AGENT_UNSUPPORTED_INPUT');
     await mkdir(path.dirname(dest),{recursive:true,mode:0o700});await writeFile(dest,Buffer.from(e.content,'base64'),{flag:'wx',mode:0o444});
   }

@@ -13,8 +13,11 @@ Configure these environment variables on the process that launches evaluation:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `EVALDOCK_JUDGE_BATCH_SIZE` | `4` | Labels per request, from 1 to 8. Set 1 for individual-label scoring. |
+| `EVALDOCK_JUDGE_MAX_INPUT_BYTES` | `1048576` | Maximum serialized HTTP request body after lossless pooling; a byte limit, not a model token limit. |
 | `EVALDOCK_JUDGE_MAX_OUTPUT_TOKENS` | `16384` | Maximum output tokens per request; choose a value supported by the model. |
 | `EVALDOCK_JUDGE_TIMEOUT_MS` | `240000` | Per-request timeout, starting after the concurrency queue. |
+
+Repeated long strings in shared evidence are pooled once with explicit JSON paths; the original JSON can be reconstructed without changing evidence IDs or rubrics. The exact serialized request is checked before journaling or dispatch. `JUDGE_INPUT_TOO_LARGE` sends no request and is not retried. Diagnostics record original bytes, saved bytes and the limit. This does not guarantee a provider context fit: tokenizer and output-token limits still apply. [Re-score archived evidence](RESCORE.md) after adjusting a budget or rubric.
 
 At most four physical requests run concurrently **per process**, including separate Case Judge instances. Separate CLI processes have separate limits. No evidence is truncated by this optimization. If a group exceeds the provider's context limit, it remains an error; there is no automatic, potentially costly single-label fallback. Reduce the batch size before a deliberate rerun. Missing or malformed results affect the relevant labels; invalid whole responses affect the whole group.
 
@@ -33,8 +36,11 @@ The journal is written before dispatch and immediately after receiving the publi
 | 环境变量 | 默认值 | 用途 |
 | --- | --- | --- |
 | `EVALDOCK_JUDGE_BATCH_SIZE` | `4` | 每次请求 1–8 个标签；设为 1 恢复逐标签请求。 |
+| `EVALDOCK_JUDGE_MAX_INPUT_BYTES` | `1048576` | 无损压缩后 HTTP 请求正文的字节上限，不是模型 token 上限。 |
 | `EVALDOCK_JUDGE_MAX_OUTPUT_TOKENS` | `16384` | 每次请求的输出上限，需符合所用模型限制。 |
 | `EVALDOCK_JUDGE_TIMEOUT_MS` | `240000` | 单次请求超时毫秒数，从结束并发排队后开始计算。 |
+
+共享证据中重复的长文本只保存一份，通过明确的 JSON 路径还原；证据 ID 和评分标准不变。发送和记录请求前检查实际序列化大小，超限返回 `JUDGE_INPUT_TOO_LARGE`，不调用、不重试。诊断保留原始大小、节省字节数和上限。这不是精确 token 预算，仍需符合服务商的上下文与输出限制。调整预算或标准后可[重评历史证据](RESCORE.md)。
 
 每个进程最多同时发送 4 次请求；多题共用此限制，不同 CLI 进程分别计数。这次优化不截断证据。超过模型上下文限制会保留错误，不自动拆成逐标签请求重跑。可降低分组大小后主动复测。单个标签缺失、重复或引用无效时保留该标签错误，整份响应无效时整组报错。
 

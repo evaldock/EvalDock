@@ -36,7 +36,7 @@ export interface LabelScore {
   readonly evidenceIds: readonly string[];
   /** Recoverable response normalization, separate from the model rationale. */
   readonly warnings?: readonly string[];
-  readonly diagnostics?: { readonly httpStatus?: number; readonly finishReason?: string; readonly attempts?: number; readonly providerCategory?: string; readonly providerBodyTruncated?: boolean; readonly requestBytes?: number; readonly traceBytes?: number; readonly transportCode?: string; readonly requests?: readonly JudgeRequestUsage[] };
+  readonly diagnostics?: { readonly httpStatus?: number; readonly finishReason?: string; readonly attempts?: number; readonly providerCategory?: string; readonly providerBodyTruncated?: boolean; readonly requestBytes?: number; readonly originalRequestBytes?: number; readonly inputLimitBytes?: number; readonly savedInputBytes?: number; readonly traceBytes?: number; readonly transportCode?: string; readonly requests?: readonly JudgeRequestUsage[] };
   readonly model: string;
   readonly createdAt: string;
   readonly contentDigest: ContentDigest;

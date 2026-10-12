@@ -37,6 +37,7 @@ export interface MvpConfigValues {
   stableWindowMs: number;
   stableMaxWaitMs: number;
   maxArtifactBytes: number;
+  maxDatasetInputBytes:number;
   contentMode: string;
   allowedModelEndpoints: readonly string[];
   minimumIsolationLevel: "AGENT_SEPARATED" | "SESSION_SEPARATED";
@@ -75,6 +76,7 @@ const CONFIG_FIELDS = new Set<keyof MvpConfigValues>([
   "stableWindowMs",
   "stableMaxWaitMs",
   "maxArtifactBytes",
+  "maxDatasetInputBytes",
   "contentMode",
   "allowedModelEndpoints",
   "minimumIsolationLevel",
@@ -95,6 +97,7 @@ const ENVIRONMENT_FIELDS: Readonly<Record<string, keyof MvpConfigValues>> = {
   EVALDOCK_CASE_DEADLINE_MS: "caseDeadlineMs",
   EVALDOCK_STABLE_WINDOW_MS: "stableWindowMs",
   EVALDOCK_STABLE_MAX_WAIT_MS: "stableMaxWaitMs",
+  EVALDOCK_MAX_DATASET_INPUT_BYTES:"maxDatasetInputBytes",
   EVALDOCK_MAX_ARTIFACT_BYTES: "maxArtifactBytes",
   EVALDOCK_CONTENT_MODE: "contentMode",
   EVALDOCK_ALLOWED_MODEL_ENDPOINTS: "allowedModelEndpoints",
@@ -131,6 +134,7 @@ function defaults(cwd: string): Omit<MvpConfigValues, "targetRoot"> {
     stableWindowMs: 250,
     stableMaxWaitMs: 5_000,
     maxArtifactBytes: 67_108_864,
+    maxDatasetInputBytes:1_073_741_824,
     contentMode: "DIGEST",
     allowedModelEndpoints: [],
     minimumIsolationLevel: "AGENT_SEPARATED",
@@ -163,7 +167,7 @@ function environmentValues(environment: NodeJS.ProcessEnv): Record<string, unkno
       field === "caseDeadlineMs" ||
       field === "stableWindowMs" ||
       field === "stableMaxWaitMs" ||
-      field === "maxArtifactBytes"
+      field === "maxArtifactBytes" || field === "maxDatasetInputBytes"
     ) {
       values[field] = Number(raw);
     } else if (field === "allowedModelEndpoints" || field === "secretRefNames") {
@@ -345,6 +349,7 @@ export async function freezeConfig(options: FreezeConfigOptions): Promise<Config
     caseDeadlineMs: validatePositiveInteger(merged.caseDeadlineMs, "caseDeadlineMs"),
     stableWindowMs: validatePositiveInteger(merged.stableWindowMs, "stableWindowMs"),
     stableMaxWaitMs: validatePositiveInteger(merged.stableMaxWaitMs, "stableMaxWaitMs"),
+    maxDatasetInputBytes:validatePositiveInteger(merged.maxDatasetInputBytes,"maxDatasetInputBytes"),
     maxArtifactBytes: validatePositiveInteger(merged.maxArtifactBytes, "maxArtifactBytes"),
     contentMode: merged.contentMode,
     allowedModelEndpoints,

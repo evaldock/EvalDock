@@ -684,6 +684,7 @@ export interface ConfigSnapshot {
   readonly stableWindowMs: number;
   readonly stableMaxWaitMs: number;
   readonly maxArtifactBytes: number;
+  readonly maxDatasetInputBytes: number;
   readonly contentMode: string;
   readonly allowedModelEndpoints: readonly string[];
   readonly minimumIsolationLevel: "AGENT_SEPARATED" | "SESSION_SEPARATED";

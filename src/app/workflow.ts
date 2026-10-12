@@ -175,7 +175,7 @@ import {
   type DatasetTestProfile,
 } from "../planning/planner.js";
 import { loadDatasetDescriptionCatalog } from "../datasets/catalog.js";
-import { countDatasetQuestionCases, loadDatasetCase, type DatasetCase } from "../datasets/loader.js";
+import { countDatasetQuestionCases, loadDatasetCase, resolveDatasetSeedEntries, type DatasetCase } from "../datasets/loader.js";
 import { loadCaseExecutionInput } from "../runtime/case-input.js";
 
 
@@ -639,7 +639,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
       throw new WorkflowStop("Dataset Planner selected an unavailable Dataset", 2, "PLAN_UNSATISFIABLE");
     }
     facts.caseData = await loadDatasetCase({
-      datasetsRoot,datasetId:selectedDataset.datasetId,labelIds:selectedDataset.evaluationLabelIds,caseIndex,
+      datasetsRoot,datasetId:selectedDataset.datasetId,labelIds:selectedDataset.evaluationLabelIds,caseIndex,maxDatasetInputBytes:services.config.maxDatasetInputBytes,
     });
     const labels=await loadLabels(path.resolve(input.labelsRoot ?? process.env.EVALDOCK_LABEL_ROOT ?? path.join(input.cwd,"labels")));
     facts.labels = Object.freeze(facts.caseData.labelIds.map(id=>{
@@ -930,7 +930,7 @@ export async function runEvaluationWorkflow(input: RunWorkflowInput): Promise<Wo
     await save.control(graph.scope, "ENV_PREPARE", "SUCCEEDED", {
       startedAt: prepareStartedAt,
     });
-    const seedEntries = seedSpecs(planBuild.evaluationPlan);
+    const seedEntries = seedSpecs(planBuild.evaluationPlan,facts.caseData);
     const seedStartedAt = new Date().toISOString() as IsoDateTime;
     let seeded: Awaited<ReturnType<typeof seedEnvironment>>;
     try {
@@ -2597,9 +2597,10 @@ function createPersistence(services: ApplicationServices, facts: MutableWorkflow
 }
 
 /** 把冻结 Plan 的 JSON seedSpec 转成 Runtime Environment 接受的强类型条目。 */
-function seedSpecs(plan: EvaluationPlan): readonly SeedEntrySpec[] {
+function seedSpecs(plan: EvaluationPlan,caseData?:DatasetCase): readonly SeedEntrySpec[] {
   const seed = plan.casePlan.seedSpec as Record<string, unknown>;
   if (!Array.isArray(seed.entries)) throw new Error("frozen seedSpec.entries is missing");
+  if(caseData)return resolveDatasetSeedEntries(caseData,seed.entries);
   return seed.entries.map((value) => {
     if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("seed entry is invalid");
     const entry = value as Record<string, unknown>;

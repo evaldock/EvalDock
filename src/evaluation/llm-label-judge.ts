@@ -1,3 +1,4 @@
+import {compactSharedInput, DEFAULT_JUDGE_MAX_INPUT_BYTES, POOL_INSTRUCTION} from "./judge-input-budget.js";
 import path from "node:path";
 import {createJudgeRequestAuditSink,judgeRequestBodyDigest,type JudgeRequestAuditRecord} from "./judge-request-audit.js";
 /** 同一份 all trace + 本次冻结的 label 标准 + Case 专用评分材料 -> 数值评分。 */
@@ -13,7 +14,7 @@ export interface LabelJudgeOptions {
   endpoint:string; apiKey:string; model:string; timeoutMs?:number; fetchImpl?:typeof fetch;
   maxAttempts?:number; retryDelayMs?:number;
   /** 1 restores individual-label requests; maximum 8 labels per shared trace. */
-  batchSize?:number; maxOutputTokens?:number;
+  batchSize?:number; maxOutputTokens?:number; maxInputBytes?:number;
   auditDirectory?:string; requestAudit?:(record:JudgeRequestAuditRecord)=>Promise<void>;
   signal?:AbortSignal; requestObserver?:(body:object)=>void;
 }
@@ -129,6 +130,7 @@ export class OpenAiCompatibleLabelJudge implements LabelJudge {
     if (options.retryDelayMs !== undefined && (!Number.isFinite(options.retryDelayMs) || options.retryDelayMs < 0 || options.retryDelayMs > 30000)) throw new Error("Invalid Judge retry delay");
     if (options.batchSize !== undefined && (!Number.isInteger(options.batchSize) || options.batchSize < 1 || options.batchSize > 8)) throw new Error("Invalid Judge batchSize");
     if (options.maxOutputTokens !== undefined && (!Number.isSafeInteger(options.maxOutputTokens) || options.maxOutputTokens < 1)) throw new Error("Invalid Judge maxOutputTokens");
+    if (options.maxInputBytes !== undefined && (!Number.isSafeInteger(options.maxInputBytes) || options.maxInputBytes < 1)) throw new Error("Invalid Judge maxInputBytes");
     this.options={...options};
     this.audit=options.requestAudit??(options.auditDirectory?createJudgeRequestAuditSink(options.auditDirectory):undefined);
   }
@@ -184,7 +186,7 @@ export class OpenAiCompatibleLabelJudge implements LabelJudge {
   private async evaluateOnce(inputs:readonly JudgeInput[]):Promise<LabelScore[]> {
     const input=inputs[0]!;
     const warnings:string[]=[];
-    const diagnostics:{httpStatus?:number;finishReason?:string;providerCategory?:string;providerBodyTruncated?:boolean;requestBytes?:number;traceBytes?:number;transportCode?:string}={};
+    const diagnostics:{-readonly [K in keyof NonNullable<LabelScore["diagnostics"]>]:NonNullable<LabelScore["diagnostics"]>[K]}={};
     let auditRecord:JudgeRequestAuditRecord|undefined;
     const persist=async(record:JudgeRequestAuditRecord)=>{
       if(!this.audit)return;
@@ -201,8 +203,15 @@ export class OpenAiCompatibleLabelJudge implements LabelJudge {
       if(this.options.signal?.aborted) throw new JudgeResponseError("JUDGE_CANCELLED");
       const body={model:this.options.model,messages:judgeMessages(inputs),
         temperature:0,max_tokens:this.options.maxOutputTokens??16384,response_format:{type:"json_object"}};
+      body.messages[0]!.content += " " + POOL_INSTRUCTION;
+      diagnostics.originalRequestBytes=Buffer.byteLength(JSON.stringify(body));
+      body.messages[1]!.content=compactSharedInput(body.messages[1]!.content);
       const serialized=JSON.stringify(body);
       requestBytes=Buffer.byteLength(serialized);
+      diagnostics.inputLimitBytes=this.options.maxInputBytes??DEFAULT_JUDGE_MAX_INPUT_BYTES;
+      diagnostics.savedInputBytes=diagnostics.originalRequestBytes-requestBytes;
+      if(diagnostics.savedInputBytes>0)warnings.push("SHARED_EVIDENCE_LOSSLESSLY_POOLED");
+      if(requestBytes>diagnostics.inputLimitBytes)throw new JudgeResponseError("JUDGE_INPUT_TOO_LARGE");
       // An optional diagnostic hook must not invalidate a scoring request or mutate its payload.
       try { this.options.requestObserver?.(body); } catch { warnings.push("REQUEST_OBSERVER_FAILED"); }
       release=await judgeRequests.acquire(this.options.signal);
@@ -314,6 +323,7 @@ export function createDefaultLabelJudge(environment:NodeJS.ProcessEnv=process.en
     timeoutMs:Number(environment.EVALDOCK_JUDGE_TIMEOUT_MS??240000),
     batchSize:Number(environment.EVALDOCK_JUDGE_BATCH_SIZE??4),
     maxOutputTokens:Number(environment.EVALDOCK_JUDGE_MAX_OUTPUT_TOKENS??16384),
+    maxInputBytes:Number(environment.EVALDOCK_JUDGE_MAX_INPUT_BYTES??DEFAULT_JUDGE_MAX_INPUT_BYTES),
     ...(signal===undefined?{}:{signal}),
   });
   return {
