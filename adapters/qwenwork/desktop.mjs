@@ -1,5 +1,7 @@
 import {createRendererCapture} from '../shared/renderer-capture.mjs';
 import {Desktop} from '../shared/desktop.mjs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 const routes=new Set(['auth.authCheck','localProjects.create','chats.create','chats.get','agent.submitMessage','agent.cancelStream','agent.getStreamingState']);
 export function installBridge(){
   if(!['sendMessage','onMessage'].every(key=>typeof window.electronTRPC?.[key]==='function')||!['onChatStreamChunk','onChatStreamComplete','onChatStreamError'].every(key=>typeof window.desktopApi?.[key]==='function'))return false;
@@ -12,7 +14,7 @@ export function installBridge(){
   });window.__evaldockQwenRPCVersion=2;return true;
 }
 export class QwenDesktop extends Desktop {
-  static async connect(){const client=await Desktop.connect({port:18492,match:t=>t.url.startsWith('file:///Applications/QwenWorkCN.app/Contents/Resources/app.asar/out/renderer/index.html')});Object.setPrototypeOf(client,QwenDesktop.prototype);try{if(!await client.evaluate(`(${installBridge.toString()})()`))throw Error('AGENT_INTERFACE_CHANGED');return client;}catch(e){client.close();throw e;}}
+  static async connect({appPath='/Applications/QwenWorkCN.app',endpoint}={}){const renderer=pathToFileURL(path.join(appPath,'Contents/Resources/app.asar/out/renderer/index.html')).href;const client=await Desktop.connect({port:18492,endpoint,match:t=>t.url?.split(/[?#]/,1)[0]===renderer});Object.setPrototypeOf(client,QwenDesktop.prototype);try{if(!await client.evaluate(`(${installBridge.toString()})()`))throw Error('AGENT_INTERFACE_CHANGED');client.protocol={id:'qwen.rpc-stream/v1',events:['message-parts-patch','tool-input-available']};return client;}catch(e){client.close();throw e;}}
   async invoke(path,type='query',input){if(!routes.has(path))throw Error('AGENT_CHANNEL_NOT_ALLOWED');return this.evaluate(`window.__evaldockQwenRPC(${JSON.stringify(path)},${JSON.stringify(type)},${JSON.stringify(input)})`,50000);}
   async authenticated(){const status=await this.invoke('auth.authCheck');return status?.loggedIn===true;}
 }

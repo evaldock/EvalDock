@@ -14,11 +14,11 @@ export async function inspectLangGraph(target,{execCommand=exec,loadEnvironment=
     status.status='INSTALLED';
     const environment=await loadEnvironment(),home=await mkdtemp(path.join(tmpdir(),'evaldock-graph-check-'));
     try{
-      const result=await execCommand(target.python,[path.join(here,'preflight.py'),target.entrypoint],{cwd:home,timeout:15000,maxBuffer:65536,env:{...environment,HOME:home,PYTHONPATH:path.join(target.sourceRoot,'src'),PYTHONUNBUFFERED:'1',PYTHONDONTWRITEBYTECODE:'1',EVALDOCK_WORKSPACE:home,DEFAULT_MODEL:target.model??'deepseek-v4-flash',LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',ANONYMIZED_TELEMETRY:'False',USE_FAKE_MODEL:'false'}});
+      const result=await execCommand(target.python,[path.join(here,'preflight.py'),target.entrypoint],{cwd:home,timeout:30000,maxBuffer:65536,env:{...environment,HOME:home,PYTHONPATH:path.join(target.sourceRoot,'src'),PYTHONUNBUFFERED:'1',PYTHONDONTWRITEBYTECODE:'1',EVALDOCK_WORKSPACE:home,DEFAULT_MODEL:target.model??'deepseek-v4-flash',LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',ANONYMIZED_TELEMETRY:'False',USE_FAKE_MODEL:'false'}});
       const check=JSON.parse(result.stdout);if(check.ready!==true)throw Error('LANGGRAPH_INTERFACE_UNAVAILABLE');
-      status.version=check.version;status.executionReady=true;status.probeReady=true;status.status='READY';status.evaluationReady=true;
+      status.version=check.version;status.protocol=check.protocol;status.executionReady=true;status.probeReady=true;status.status='READY';status.evaluationReady=true;
     }finally{await rm(home,{recursive:true,force:true});}
-  }catch(error){status.status=status.status==='NOT_INSTALLED'?'NOT_INSTALLED':'UNAVAILABLE';status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.reasonCode=error.message==='AGENT_MODEL_KEY_MISSING'?error.message:'LANGGRAPH_INTERFACE_UNAVAILABLE';}
+  }catch(error){status.status=status.status==='NOT_INSTALLED'?'NOT_INSTALLED':'UNAVAILABLE';status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.reasonCode=error.message==='AGENT_MODEL_KEY_MISSING'?error.message:error.killed&&error.signal==='SIGTERM'?'LANGGRAPH_STARTUP_TIMEOUT':'LANGGRAPH_INTERFACE_UNAVAILABLE';}
   return status;
 }
 export function langGraphEvent(row,capture){

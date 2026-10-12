@@ -10,7 +10,8 @@ async def check(entrypoint):
     graph, context = await _materialize_graph_async(
         _import_factory(entrypoint), {"configurable": {"thread_id": "evaldock-interface-check"}})
     try:
-        if not any(callable(getattr(graph, name, None)) for name in ("stream", "astream")):
+        methods = [name for name in ("astream", "stream") if callable(getattr(graph, name, None))]
+        if not methods:
             raise TypeError("Graph has no streaming interface")
     finally:
         if context is not None:
@@ -22,7 +23,7 @@ async def check(entrypoint):
         version = importlib.metadata.version("langgraph")
     except importlib.metadata.PackageNotFoundError:
         version = None
-    return {"ready": True, "version": version}
+    return {"ready": True, "version": version, "protocol": {"id": "langgraph.events/v1", "methods": methods}}
 
 if __name__ == "__main__":
     try:

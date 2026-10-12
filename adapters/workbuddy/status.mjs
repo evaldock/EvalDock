@@ -9,7 +9,7 @@ export async function inspectWorkBuddy({appPath=APP,endpoint,execCommand=exec,co
   try{
     const p=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',appPath+'/Contents/Info.plist'],{timeout:3000,maxBuffer:1024*1024})).stdout);status.version=p.CFBundleShortVersionString;status.build=p.CFBundleVersion;status.bundle=p.CFBundleIdentifier;
     if(p.CFBundleIdentifier!=='com.tencent.workbuddy.mac'){status.status='INCOMPATIBLE';status.reasonCode='WORKBUDDY_APP_ID_MISMATCH';return status;}
-    status.status='INSTALLED';desktop=await connect();if(desktop.evaluate)status.runtimeIdentity=await desktop.evaluate('({startedAt:performance.timeOrigin})');status.executionReady=true;status.probeReady=true;
+    status.status='INSTALLED';desktop=await connect();if(desktop.evaluate)status.runtimeIdentity=await desktop.evaluate('({startedAt:performance.timeOrigin})');status.protocol={id:'workbuddy.session-port/v1'};status.executionReady=true;status.probeReady=true;
     const authenticated=await desktop.authenticated();status.status=authenticated?'READY':'LOGIN_REQUIRED';status.evaluationReady=authenticated;if(!authenticated)status.reasonCode='WORKBUDDY_LOGIN_REQUIRED';
   }catch(e){status.evaluationReady=false;status.executionReady=false;status.probeReady=false;status.reasonCode=e.message?.startsWith('WORKBUDDY_')?e.message:status.status==='NOT_INSTALLED'?'WORKBUDDY_NOT_INSTALLED':'WORKBUDDY_INSPECTION_FAILED';if(status.status!=='NOT_INSTALLED')status.status='UNAVAILABLE';}
   finally{desktop?.close();}return status;

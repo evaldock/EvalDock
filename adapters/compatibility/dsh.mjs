@@ -11,6 +11,7 @@ import {hash,sourceDigest} from './identity.mjs';
 import {executeTarget} from '../../dist/src/runtime/target.js';
 import {readDshSessionArchive,dshSessionCwd,dshSessionsToProbeJsonl} from '../../dist/src/runtime/dsh-session-trace.js';
 import {setTimeout as delay} from 'node:timers/promises';
+import {detectWebProtocol} from '../../dist/src/runtime/dsh-web-protocol.js';
 
 async function archives(home){
  const result=new Map(),base=path.join(home,'sessions');
@@ -102,7 +103,7 @@ async function inspectHeadless(d){
  for(const [key,file] of [['patch',path.join(profile,'cordis.patch.yml')],['settings',path.join(d.dshHome,'settings.yaml')]]){
   configuration[key+'Digest']=await readFile(file,'utf8').then(hash).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
  }
- return {evaluationReady:true,version:pkg.version,components,configuration};
+ return {evaluationReady:true,version:pkg.version,components,configuration,protocol:{id:'dsh.headless-session/v1',archiveFormats:['v4','v3','legacy']}};
 }
 async function runHeadless(descriptor,{cwd,caseDirectory,prompt,deadlineMs,signal,onSession}){
  const home=path.join(caseDirectory,'runtime');await mkdir(path.join(home,'tmp'),{recursive:true});
@@ -131,7 +132,7 @@ export function createDshCompatibilityAdapter(descriptor){
   async inspect(){
    if(!descriptor.webEndpoint)return inspectHeadless(descriptor);
    const [state,configuration]=await Promise.all([inspectWebTarget(descriptor),dshConfiguration(descriptor)]);
-   return {evaluationReady:true,version:state.dshVersion,installRoot:descriptor.sourceRoot,components:configuration.plugins,runtimeIdentity:{pid:state.web?.pid},configuration:{profileDigest:configuration.profileDigest,runtimeDigest:await sourceDigest(path.join(descriptor.sourceRoot,'lib')),model:state.web?.model,permission:state.permissionPreset}};
+   return {evaluationReady:true,protocol:{id:'dsh.web-session/v1',wire:await detectWebProtocol(descriptor.webEndpoint)},version:state.dshVersion,installRoot:descriptor.sourceRoot,components:configuration.plugins,runtimeIdentity:{pid:state.web?.pid},configuration:{profileDigest:configuration.profileDigest,runtimeDigest:await sourceDigest(path.join(descriptor.sourceRoot,'lib')),model:state.web?.model,permission:state.permissionPreset}};
   },
   prepare:async()=>({}),dispose(){},
   async run({cwd,caseDirectory,prompt,deadlineMs,signal,onSession}){

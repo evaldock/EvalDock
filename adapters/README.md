@@ -10,6 +10,35 @@ See [application identities, version restrictions and validation evidence](SUPPO
 before selecting a target. Historical results apply only to the recorded version
 and test scope; version checks passing do not establish end-to-end validation.
 
+## Automatic protocol selection across versions
+
+Inspection records the installed version and the selected protocol separately. A
+release number is not a whitelist: the adapter checks actual interfaces and chooses
+only an implemented contract. The behavior suite then validates execution, evidence
+and cleanup before admitting a formal run. An unknown or ambiguous interface stops
+admission with its reason; it never becomes a successful result or a zero score.
+
+| Family | Implemented version differences |
+| --- | --- |
+| DSH | Legacy and Remote Web RPC; Headless v4, v3 and legacy archives. Web and Headless retain separate receipts. |
+| Pi | Advertised required/optional flags; print parsers that reject `--`; both environment-reference grammars without storing the key in a model file or argv. |
+| Hermes | Prefer `stream-json`; older CLI contracts use one completed session in the owned native database. Raw terminal output and reasoning are discarded. |
+| OpenClaw | Inspect the actual `cli agent exec` interface; retain the existing JSON/compressed transcript schema checks. |
+| LangGraph | Inspect actual `stream`/`astream` methods; retain known event/signature variants. A cold startup timeout is reported separately. |
+| WorkBuddy | Check the desktop bridge and session MessagePort contract for the selected application. |
+| QwenWork | Check RPC and streaming subscriptions; handle projected patches and raw tool events for the selected application. |
+| DoubaoWork | Bind known exported module contracts; use legacy chunk IDs only as checked hints. Missing/ambiguous exports stop admission. |
+
+QwenWork and DoubaoWork accept `appPath` and loopback `endpoint`, as WorkBuddy
+already does. File renderers must belong to the selected install; custom-scheme
+Doubao renderers also require the listening process to belong to that application.
+Launch uses `CFBundleExecutable`, rather than guessing it from the application name.
+Receipts bind the selected protocol and native executable bytes, including apps
+without `app.asar`. A changed installation or driver requires another behavior check.
+
+This supports versions that implement these known contracts. It does not generate
+adapters for arbitrary future protocols or infer a Graph's tools from its version.
+
 The process/desktop adapters use shared/evaluation.mjs for planning, workspace
 inputs, the bounded three-Case queue, judging and reports. Each adapter supplies:
 

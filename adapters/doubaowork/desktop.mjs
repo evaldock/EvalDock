@@ -3,24 +3,30 @@ import {createRendererCapture} from '../shared/renderer-capture.mjs';
 import {randomUUID} from 'node:crypto';
 import {startDoubao} from './collector.mjs';
 import {prepareWorkspace} from './workspace.mjs';
+import {doubaoModule,bindDoubao} from './interface.mjs';
+import {assertDesktopOwner} from '../shared/desktop-owner.mjs';
 export {startDoubao} from './collector.mjs';
-/** Version-bound module IDs from the installed office renderer. No cookie/token extraction. */
-export async function installDoubao(){
+/** Discover registered contracts; known lazy chunks remain a checked legacy fallback. */
+export async function installDoubao(resolve=doubaoModule,bind=bindDoubao){
   if(!window.__evaldockDoubaoRequire){
     const chunks=window['@flow-web/desktop:stable'];if(!Array.isArray(chunks))return false;
     chunks.push([['evaldock-office-bridge'],{},r=>{window.__evaldockDoubaoRequire=r;}]);
   }
   const r=window.__evaldockDoubaoRequire;
-  await r.e('94281');if(typeof r(35673).getIsLoggedIn!=='function')return false;
-  if(!r(35673).getIsLoggedIn())return {ready:false,reasonCode:'AGENT_LOGIN_REQUIRED'};
-  for(const id of [788925,957165,446276,656207,71834,521109,63487,201753,609347,639732,734835,421540,886735])if(!r.m[id])return false;
-  const im=await r(788925).D('chatIMService'),service=await im?.getMessageService();
+  const authSpec={id:35673,properties:{getIsLoggedIn:'function'},marker:'getIsLoggedIn'};
+  let auth;
+  try{auth=resolve(r,authSpec);}catch(e){if(e.message!=='AGENT_INTERFACE_CHANGED')throw e;try{await r.e('94281');}catch{throw Error('AGENT_INTERFACE_CHANGED');}auth=resolve(r,authSpec);}
+  if(!auth.getIsLoggedIn())return {ready:false,reasonCode:'AGENT_LOGIN_REQUIRED'};
+  let modules;
+  try{modules=bind(r,resolve);}catch(e){if(e.message!=='AGENT_INTERFACE_CHANGED')throw e;try{await r.e('7153');}catch{throw Error('AGENT_INTERFACE_CHANGED');}modules=bind(r,resolve);}
+  window.__evaldockDoubaoBindings=modules;
+  const im=await modules.injection.D('chatIMService'),service=await im?.getMessageService();
   return typeof service?.sendMessage==='function'&&typeof service?.breakMessage==='function';
 }
 export class DoubaoDesktop extends Desktop {
-  static async connect(){const client=await Desktop.connect({port:18493,match:t=>/^(?:doubaowork|chrome):\/\/doubaowork-chat\//.test(t.url)});Object.setPrototypeOf(client,DoubaoDesktop.prototype);try{const check=await client.evaluate(`(${installDoubao.toString()})()`,20000);if(check?.reasonCode==='AGENT_LOGIN_REQUIRED')throw Error(check.reasonCode);if(check!==true)throw Error('AGENT_INTERFACE_CHANGED');return client;}catch(e){client.close();throw e;}}
-  readiness(){return this.evaluate(`(async()=>{const r=window.__evaldockDoubaoRequire;await r.e('7153');const env=await r(209715).sandboxEnvironmentController.query();return {ready:!!(env.isReady&&env.environmentId),reasonCode:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'};})()`);}
-  authenticated(){return this.evaluate(`window.__evaldockDoubaoRequire(35673).getIsLoggedIn()===true`);}
+  static async connect({appPath='/Applications/DoubaoWork.app',endpoint='http://127.0.0.1:18493',verifyOwner=assertDesktopOwner}={}){await verifyOwner(endpoint,appPath);const client=await Desktop.connect({endpoint,match:t=>/^(?:doubaowork|chrome):\/\/doubaowork-chat\/chat\//.test(t.url)});Object.setPrototypeOf(client,DoubaoDesktop.prototype);try{const check=await client.evaluate(`(${installDoubao.toString()})(${doubaoModule.toString()},${bindDoubao.toString()})`,20000);if(check?.reasonCode==='AGENT_LOGIN_REQUIRED')throw Error(check.reasonCode);if(check!==true)throw Error('AGENT_INTERFACE_CHANGED');client.protocol={id:'doubao.office-services/v1',moduleBinding:'EXPORTED_CONTRACTS'};return client;}catch(e){client.close();throw e;}}
+  readiness(){return this.evaluate(`(async()=>{const env=await window.__evaldockDoubaoBindings.environment.sandboxEnvironmentController.query();return {ready:!!(env.isReady&&env.environmentId),reasonCode:'AGENT_LOCAL_RUNTIME_UNAVAILABLE'};})()`);}
+  authenticated(){return this.evaluate(`window.__evaldockDoubaoBindings.auth.getIsLoggedIn()===true`);}
 }
 export async function runDoubao(desktop,{prompt,deadlineMs,signal,onSession,caseData,cwd}){
   if(typeof cwd!=='string'||!cwd.startsWith('/'))throw Error('AGENT_WORKSPACE_REQUIRED');

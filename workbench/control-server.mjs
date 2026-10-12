@@ -88,7 +88,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
               const match=(await discovery.scan(true)).agents.find(a=>a.id===input.id);
               if(!match?.target)throw Error('安装已变化或尚不能自动接入，请重新扫描');
               const targets=await loadTargets(root),target={...match.target,id:match.target.id+'-'+match.id};
-              const existing=targets.find(t=>t.id===target.id||t.kind===target.kind&&(target.executable?t.executable===target.executable:!t.executable));
+              const existing=targets.find(t=>t.id===target.id||t.kind===target.kind&&(target.executable?t.executable===target.executable:target.appPath?(t.appPath??('/Applications/'+(target.kind==='qwenwork'?'QwenWorkCN':'DoubaoWork')+'.app'))===target.appPath:!t.executable));
               if(!existing)await saveDiscoveryConfig(path.join(root,'config/agents.json'),{schema:'evaldock.agent-targets/v1',targets:[...targets,target]});
               await agents[target.kind].refreshTargets();
               json(res,200,{ok:true,targetId:existing?.id??target.id});return;

@@ -41,6 +41,7 @@ export async function runEvaluation({root,runId,signal,testSize,validationDatase
     if(compatibility.status!=='COMPATIBLE')throw Error('AGENT_COMPATIBILITY_'+compatibility.status);
     await compatibilityService.verify(adapter,compatibility);
     const inspection=await adapter.inspect();if(!inspection.evaluationReady)throw new Error(inspection.reasonCode??'AGENT_NOT_READY');
+    summary.protocol=inspection.protocol??null;
     summary.agentVersion=inspection.version;summary.target={targetId,targetType:'FULL_AGENT',agentKind:kind,agentName:name,agentVersion:inspection.version,installRoot:inspection.installRoot,components:inspection.components??[]};
     await atomic(path.join(runDir,'inspection.json'),{...inspection,...summary.target,toolSchemas:inspection.toolSchemas??[],limitations:inspection.limitations});
     

@@ -24,7 +24,7 @@ for(const [inspect,expected,help] of cli)test(inspect.name+' checks execution fl
 async function directory(t){const root=await mkdtemp(path.join(tmpdir(),'evaldock-interface-'));t.after(()=>rm(root,{recursive:true,force:true}));return root;}
 test('Pi requires a successful RPC preflight beyond package discovery',async t=>{
  const root=await directory(t);await writeFile(path.join(root,'package.json'),'{"version":"99"}');const executable=path.join(root,'pi.mjs');await writeFile(executable,'');
- let passed=false;const options={loadEnvironment:async()=>({}),preflight:async()=>({status:passed?'PASSED':'FAILED',issues:passed?[]:[{code:'PI_STARTUP_FAILED'}]})};
+ let passed=false;const options={execCommand:async()=>({stdout:'--mode --print --no-session --provider --model'}),loadEnvironment:async()=>({}),preflight:async()=>({status:passed?'PASSED':'FAILED',issues:passed?[]:[{code:'PI_STARTUP_FAILED'}]})};
  const target={packageRoot:root,executable};assert.equal((await inspectPi(target,options)).reasonCode,'PI_STARTUP_FAILED');passed=true;assert.equal((await inspectPi(target,options)).evaluationReady,true);
 });
 test('Graph inspection loads the configured object, checks streaming and closes its context',async t=>{

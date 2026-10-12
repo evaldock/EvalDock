@@ -40,7 +40,7 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
     const key=def.kind+':'+canonical;if(found.has(key))return;
     const id=createHash('sha256').update(key).digest('hex').slice(0,20);
     const item={id,kind:def.kind,name:def.name,path:location,resolvedPath:canonical,type,version:metadata.version??null,supported:!def.unsupported,evaluationReady:false,target:null};
-    if(type==='app'&&def.bundle&&metadata.bundle===def.bundle&&location===`/Applications/${def.apps[0]}`)item.target={id:'local-'+def.kind,kind:def.kind,name:def.name};
+    if(type==='app'&&def.bundle&&metadata.bundle===def.bundle)item.target={id:'local-'+def.kind,kind:def.kind,name:def.name,appPath:location};
     if(type==='cli'){
       const pkg=await packageAt(canonical);
       if(pkg&&def.packages?.includes(pkg.name)){

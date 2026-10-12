@@ -87,7 +87,7 @@ test('office launch does not inherit the desktop server Node mode',async()=>{
  const previous=process.env.ELECTRON_RUN_AS_NODE;process.env.ELECTRON_RUN_AS_NODE='1';
  try{
   let options;
-  const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1',port:18492,Desktop:{connect:async()=>{throw Error('AGENT_NOT_CONNECTED');}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1'})}),spawnProcess:(file,args,opts)=>{options=opts;const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;}});
+  const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1',port:18492,Desktop:{connect:async()=>{throw Error('AGENT_NOT_CONNECTED');}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1',CFBundleExecutable:'Electron'})}),spawnProcess:(file,args,opts)=>{assert.equal(file,'/Applications/Test.app/Contents/MacOS/Electron');options=opts;const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;}});
   await adapter.launch();assert.ok(options.env);assert.equal(options.env.ELECTRON_RUN_AS_NODE,undefined);assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1');
  }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
 });
@@ -143,8 +143,9 @@ test('Qwen renamed tool stream events do not certify a text-only successful resp
 
 test('Doubao logged-out lazy modules are an environment blocker before protocol diagnosis',async()=>{
  const {installDoubao}=await import('../../adapters/doubaowork/desktop.mjs');
- const r=id=>id===35673?{getIsLoggedIn:()=>false}:undefined;r.m={};r.e=async()=>{};
+ const {doubaoModule,bindDoubao}=await import('../../adapters/doubaowork/interface.mjs');
+ const r=id=>id===35673?{getIsLoggedIn:()=>false}:undefined;r.m={};r.e=async()=>{r.m[35673]=()=>({getIsLoggedIn:()=>false});};
  const ctx=vm.createContext({window:{__evaldockDoubaoRequire:r}});
- const check=await vm.runInContext(`(${installDoubao.toString()})()`,ctx);
+ const check=await vm.runInContext(`(${installDoubao.toString()})(${doubaoModule.toString()},${bindDoubao.toString()})`,ctx);
  assert.equal(check.reasonCode,'AGENT_LOGIN_REQUIRED');
 });

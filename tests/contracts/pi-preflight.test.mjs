@@ -13,7 +13,8 @@ async function fixture(t,source){
   await mkdir(path.join(root,'packages/coding-agent'),{recursive:true});
   await writeFile(path.join(root,'packages/coding-agent/package.json'),JSON.stringify({version:'1'}));
   for(const e of extensions){await mkdir(e.path);await writeFile(path.join(e.path,'package.json'),JSON.stringify({name:e.name,version:e.version,pi:{extensions:e.entries}}));}
-  await writeFile(executable,source(extensions,root));
+  await writeFile(executable,`if(process.argv.includes('--help')){console.log('--mode --print --no-session --provider --model --extension --no-extensions --no-skills --no-prompt-templates --no-themes --no-context-files --thinking');process.exit(0);}
+`+source(extensions,root));
   const target={id:'pi',kind:'pi',name:'Pi',sourceRoot:root,executable,extensions:extensions.map(e=>e.name),extensionCatalog:extensions.map(e=>({name:e.name,path:e.path}))};
   return {root,target,inspection:{evaluationReady:true,version:'1',installRoot:root,extensions}};
 }

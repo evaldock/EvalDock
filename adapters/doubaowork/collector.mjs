@@ -1,12 +1,12 @@
 /** Serialized into the renderer. Reads only newly owned sessions and discovered child threads. */
 export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLocal){
  const root=window.__evaldockDoubaoSessions??=Object.create(null);if(root[sessionId])throw Error('AGENT_DUPLICATE_SESSION');
- const r=window.__evaldockDoubaoRequire;if(!r(35673).getIsLoggedIn())throw Error('AGENT_LOGIN_REQUIRED');
- const im=await r(788925).D('chatIMService'),service=await im.getMessageService(),ts=await im.getThreadMessageService();
- const config=r(521109).Wp('chatInputStore').getState(),mode=config.modeSelectValue;
- if(!r(63487).MR(mode,config.modeSelectConfigs))throw Error('AGENT_OFFICE_MODE_UNAVAILABLE');
+ const modules=window.__evaldockDoubaoBindings;if(!modules.auth.getIsLoggedIn())throw Error('AGENT_LOGIN_REQUIRED');
+ const im=await modules.injection.D('chatIMService'),service=await im.getMessageService(),ts=await im.getThreadMessageService();
+ const config=modules.input.Wp('chatInputStore').getState(),mode=config.modeSelectValue;
+ if(!modules.mode.MR(mode,config.modeSelectConfigs))throw Error('AGENT_OFFICE_MODE_UNAVAILABLE');
  const taskParam=await prepareLocal({sessionId,cwd});
- const c=createCapture(sessionId),types=r(201753).zcD,threads=new Map(),store=r(734835).I;
+ const c=createCapture(sessionId),types=modules.types.zcD,threads=new Map(),store=modules.messages.I;
  let chatTerminal=false,chatSuccess=false,disposed=false,submitted=false,subscription,unwatch,finalCheckScheduled=false,released=false,cancelling=false,unresolvedTask=false;
  const stateListeners=new Set(),notifyState=()=>{for(const fn of stateListeners)fn();};
  const terminalStatuses=new Set([2,3,4]);
@@ -41,7 +41,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   // One bootstrap read when a task card appears. Native service resumes its event
   // stream; subsequent collection is store subscription, never timer/history polling.
   (async()=>{await ts.loadThreadMessageList({threadId:id,options:{limit:20}});scanThread(id,t);
-   if(!t.terminal){const info=await r(639732).V({thread_id:id});const status=info.data?.thread_info?.ext?.thread_status;if(['completed','failed','cancelled','canceled','terminated'].includes(status)){t.terminal=true;t.failed=status!=='completed';}}
+   if(!t.terminal){const info=await modules.thread.V({thread_id:id});const status=info.data?.thread_info?.ext?.thread_status;if(['completed','failed','cancelled','canceled','terminated'].includes(status)){t.terminal=true;t.failed=status!=='completed';}}
   })().catch(fail).finally(()=>{t.loading=false;notifyState();check();});
  };
  const observe=(m,thread)=>{
@@ -68,10 +68,10 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   c.seen++;
  };
  unwatch=store.subscribe(()=>{for(const [id,t]of threads)scanThread(id,t);});
- const release=async()=>{if(released)return;released=true;try{return await r(421540).rS({communicate:r(886735)._(),request:{agentType:'organizer',localMessageId:sessionId,sandboxId:taskParam.client_option.sandbox_id,source:'evaldock'}});}catch{return null;}};
+ const release=async()=>{if(released)return;released=true;try{return await modules.release.rS({communicate:modules.communicate._(),request:{agentType:'organizer',localMessageId:sessionId,sandboxId:taskParam.client_option.sandbox_id,source:'evaldock'}});}catch{return null;}};
  root[sessionId]={wait:c.wait,async cancel(){
   cancelling=true;
-  for(const t of threads.values())if(!t.terminal){try{ts.markCurrentSessionUserCancel({threadId:t.id});const res=await r(609347).iv.AGWTaskTerminate({thread_id:t.id});const info=await r(639732).V({thread_id:t.id});const status=info.data?.thread_info?.ext?.thread_status;t.terminal ||= res.code===0&&['completed','failed','cancelled','canceled','terminated'].includes(status);}catch{}}
+  for(const t of threads.values())if(!t.terminal){try{ts.markCurrentSessionUserCancel({threadId:t.id});const res=await modules.terminate.iv.AGWTaskTerminate({thread_id:t.id});const info=await modules.thread.V({thread_id:t.id});const status=info.data?.thread_info?.ext?.thread_status;t.terminal ||= res.code===0&&['completed','failed','cancelled','canceled','terminated'].includes(status);}catch{}}
   if(submitted&&!chatTerminal){try{await service.breakMessage({session:service.lifecycleRegistry.getSession(sessionId)});}catch{}}
   const confirmed=()=>!unresolvedTask&&(!submitted||chatTerminal)&&[...threads.values()].every(t=>t.terminal&&!t.loading);
   if(!confirmed())await new Promise(resolve=>{const finish=()=>{clearTimeout(timer);stateListeners.delete(checkState);resolve();},checkState=()=>{if(confirmed())finish();};const timer=setTimeout(finish,12000);stateListeners.add(checkState);checkState();});
@@ -79,7 +79,7 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
   c.finish('AGENT_CANCELLED');await release();return stopped;
  },async extract(){disposed=true;unwatch?.();subscription?.unsubscribe();await release();delete root[sessionId];return {...c.extract(),backgroundThreadIds:[...threads.keys()],workspace:cwd};}};
  try{
-  const message=r(957165).createSendMessage({conversationContext:{local_conversation_id:'local_'+sessionId,bot_id:r(656207).IO(r(71834).NW.getState())},message:{unique_id:sessionId,content_blocks_v2:[r(446276).mapTextToTextBlock(prompt)],ext:{autoNavigate:'0',conversation_mode:'office',use_deep_think:mode,agent_mode:'1',general_task_param:JSON.stringify(taskParam)}}});
+  const message=modules.send.createSendMessage({conversationContext:{local_conversation_id:'local_'+sessionId,bot_id:modules.bot.IO(modules.conversation.NW.getState())},message:{unique_id:sessionId,content_blocks_v2:[modules.text.mapTextToTextBlock(prompt)],ext:{autoNavigate:'0',conversation_mode:'office',use_deep_think:mode,agent_mode:'1',general_task_param:JSON.stringify(taskParam)}}});
   service.sendMessage({sessionId,messages:[message],sendMode:'normal',session:{reportParams:{}}});submitted=true;
   const native=service.lifecycleRegistry.getSession(sessionId);if(typeof native?.subscribe!=='function')throw Error('AGENT_INTERFACE_CHANGED');subscription=native.subscribe();
   (async()=>{try{for await(const {message:m}of subscription){if(!m)continue;observe(m);if(m.final_status?.session){chatTerminal=true;notifyState();chatSuccess=m.final_status.session==='Success';check();}}

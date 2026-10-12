@@ -7,7 +7,7 @@ import {StringDecoder} from 'node:string_decoder';
 import {piLaunch} from './launch.mjs';
 
 export function piConfigurationKey(inspection){
-  return createHash('sha256').update(JSON.stringify([inspection.version,inspection.installRoot,inspection.permissionPreset??'PI_DEFAULT_TOOLS',(inspection.extensions??[]).filter(e=>e.enabled).map(e=>[e.name,e.version,e.path,e.entries]).sort((a,b)=>a[0].localeCompare(b[0]))])).digest('hex');
+  return createHash('sha256').update(JSON.stringify([inspection.protocol??null,inspection.version,inspection.installRoot,inspection.permissionPreset??'PI_DEFAULT_TOOLS',(inspection.extensions??[]).filter(e=>e.enabled).map(e=>[e.name,e.version,e.path,e.entries]).sort((a,b)=>a[0].localeCompare(b[0]))])).digest('hex');
 }
 export function startupIssues(stderr,extensions){
   const owner=value=>extensions.find(e=>value===e.path||value.startsWith(e.path+path.sep))?.name;

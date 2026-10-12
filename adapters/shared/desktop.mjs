@@ -4,12 +4,14 @@ export class Desktop {
     ws.addEventListener('message',event=>{let m;try{m=JSON.parse(event.data);}catch{return;}const p=this.pending.get(m.id);if(!p)return;this.pending.delete(m.id);p.dispose();m.error?p.reject(new Error('AGENT_TRANSPORT_ERROR')):p.resolve(m.result);});
     ws.addEventListener('close',()=>{for(const p of this.pending.values()){p.dispose();p.reject(new Error('AGENT_DISCONNECTED'));}this.pending.clear();});
   }
-  static async connect({port,match}){
-    const endpoint=`http://127.0.0.1:${port}`;
+  static async connect({port,endpoint=`http://127.0.0.1:${port}`,match}){
+    const origin=new URL(endpoint);
+    if(origin.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(origin.hostname)||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)throw Error('AGENT_INVALID_ENDPOINT');
+    endpoint=origin.origin;
     let targets;try{const r=await fetch(endpoint+'/json/list',{signal:AbortSignal.timeout(2500)});if(!r.ok)throw Error();targets=await r.json();}catch{throw new Error('AGENT_NOT_CONNECTED');}
     const t=targets.find(x=>x.type==='page'&&match(x));
     if(!t)throw new Error('AGENT_WINDOW_NOT_READY');
-    const url=new URL(t.webSocketDebuggerUrl);if(url.hostname!=='127.0.0.1'||url.port!==String(port))throw new Error('AGENT_INVALID_ENDPOINT');
+    const url=new URL(t.webSocketDebuggerUrl);if(url.protocol!=='ws:'||url.host!==origin.host||url.username||url.password)throw new Error('AGENT_INVALID_ENDPOINT');
     const ws=new WebSocket(url);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.close();reject(new Error('AGENT_CONNECT_TIMEOUT'));},3000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('AGENT_CONNECT_FAILED'));},{once:true});});
     const client=new Desktop(ws);return client;
   }

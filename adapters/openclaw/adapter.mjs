@@ -1,4 +1,4 @@
-import {checkCliInterface} from '../shared/cli-interface.mjs';
+import {selectCliProfile,inspectionEnvironment} from '../shared/cli-interface.mjs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
@@ -17,7 +17,7 @@ export function openClawEvent(row,capture){
 }
 export async function inspectOpenClaw(target,{execCommand=exec,loadEnvironment=loadAgentEnvironment}={}){
  const s={agentKind:'openclaw',name:target.name,installRoot:target.sourceRoot,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'OPENCLAW_COMPLETION_TRANSCRIPT',permissionPreset:'HEADLESS_CODING_WORKSPACE',components:[],toolSchemas:['read','write','edit','exec','process'].map(name=>({name,source:'OPENCLAW_CODING_PROFILE_DECLARATION'})),limitations:['任务结束触发一次原生会话记录读取；保留工具调用、结果和最终回答，不轮询。','每题独立配置、状态、会话和工作目录，不接入聊天渠道。','仅投递文本和工作目录文件；系统级状态不自动重置。']};
- try{const r=await execCommand(target.node,[target.executable,'--version'],{timeout:15000,maxBuffer:65536}).catch(()=>({stdout:''}));s.version=r.stdout.trim().split("\n")[0]||null;s.status='INSTALLED';await checkCliInterface({command:target.node,args:[target.executable,'agent','exec','--help'],required:['--config', '--state-dir', '--cwd', '--model', '--message-file', '--code-mode', '--json', '--timeout'],execCommand});s.executionReady=true;s.probeReady=true;await loadEnvironment();s.status='READY';s.evaluationReady=true;}
+ try{const r=await execCommand(target.node,[target.executable,'--version'],{timeout:15000,maxBuffer:65536,env:inspectionEnvironment()}).catch(()=>({stdout:''}));s.version=r.stdout.trim().split("\n")[0]||null;s.status='INSTALLED';s.protocol=await selectCliProfile({command:target.node,args:[target.executable,'agent','exec','--help'],profiles:[{id:'openclaw.agent-exec/v1',required:['--config','--state-dir','--cwd','--model','--message-file','--code-mode','--json','--timeout']}],execCommand});s.executionReady=true;s.probeReady=true;await loadEnvironment();s.status='READY';s.evaluationReady=true;}
  catch(e){s.evaluationReady=false;s.executionReady=false;s.probeReady=false;if(s.status!=='NOT_INSTALLED')s.status='UNAVAILABLE';s.reasonCode=/^AGENT_[A-Z_]+$/.test(e.message)?e.message:'OPENCLAW_CONFIGURATION_UNAVAILABLE';}
  return s;
 }

@@ -22,7 +22,7 @@ export async function sourceDigest(root){
 export async function fingerprint(adapter,inspection){
   const protocol=PROTOCOLS[adapter.kind];if(!protocol)throw Error('AGENT_PROTOCOL_NOT_REGISTERED');
   const configuration=adapter.configuration??{},files=[];
-  const candidates=new Set([configuration.executable,configuration.node,configuration.python,configuration.entrypoint?.split(':')[0],
+  const candidates=new Set([configuration.executable,inspection.executable,configuration.node,configuration.python,configuration.entrypoint?.split(':')[0],
     ...(inspection.installRoot?.endsWith('.app')?[path.join(inspection.installRoot,'Contents/Info.plist'),path.join(inspection.installRoot,'Contents/Resources/app.asar')]:[]),
     ...[configuration.packageRoot,configuration.sourceRoot].filter(Boolean).flatMap(root=>['package.json','pnpm-lock.yaml','uv.lock','poetry.lock','requirements.txt'].map(f=>path.join(root,f))),
     ...(configuration.extensionCatalog??[]).filter(x=>(configuration.extensions??[]).includes(x.name)).map(x=>path.join(x.path,'package.json'))].filter(Boolean));
@@ -35,7 +35,7 @@ export async function fingerprint(adapter,inspection){
     try{runtimeSources.push([dir,await sourceDigest(dir)]);}catch(e){if(e.code!=='ENOENT')throw e;runtimeSources.push([dir,'MISSING']);}
   }
   const dependencies=configuration.python?hash((await promisify(execFile)(configuration.python,['-c','import importlib.metadata,json; print(json.dumps(sorted((d.metadata["Name"],d.version) for d in importlib.metadata.distributions())))'],{timeout:15000,maxBuffer:1048576})).stdout):null;
-  const identity={runtimeIdentity:inspection.runtimeIdentity??null,runtimeSources,dependencies,runtimeConfiguration:inspection.configuration??null,targetId:adapter.targetId,kind:adapter.kind,protocol,version:inspection.version??null,build:inspection.build??null,bundle:inspection.bundle??null,
+  const identity={runtimeIdentity:inspection.runtimeIdentity??null,negotiatedProtocol:inspection.protocol??null,runtimeSources,dependencies,runtimeConfiguration:inspection.configuration??null,targetId:adapter.targetId,kind:adapter.kind,protocol,version:inspection.version??null,build:inspection.build??null,bundle:inspection.bundle??null,
     platform:os.platform(),arch:os.arch(),osRelease:os.release(),node:process.version,configuration:hash(configuration),components:inspection.components??[],files,
     driver:await sourceDigest(path.dirname(here)),nativeDriver:adapter.kind.startsWith('dsh-')?await sourceDigest(path.resolve(here,'../../dist/src')):null,suite:SUITE_VERSION};
   return {digest:hash(identity),identity};

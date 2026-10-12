@@ -13,5 +13,10 @@ export async function piLaunch(target,inspection,home,{mode='json',env={}}={}) {
     await writeFile(path.join(policyDir,'config.json'),JSON.stringify({permission:{'*':'allow'},yoloMode:true,permissionReviewLog:true}),{mode:0o600});
   }
   const extensions=inspection.extensions.filter(e=>e.enabled).flatMap(e=>e.entries.map(entry=>path.resolve(e.path,entry)));
-  return {command:process.execPath,args:[target.executable,'--mode',mode,...mode==='json'?['--print']:[],'--no-session','--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files','--provider','deepseek-evaldock','--model',model,'--thinking','off',...extensions.flatMap(x=>['--extension',x])],env:{...env,...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{}),HOME:home,PI_CODING_AGENT_DIR:agentHome,PI_OFFLINE:'1'}};
+  const supports=flag=>!inspection.protocol||inspection.protocol.flags.includes(flag);
+  if(extensions.length&&!supports('--extension'))throw Error('AGENT_CLI_INTERFACE_CHANGED');
+  // Legacy Pi looks up the entire string as an env name; newer Pi expands $NAME.
+  // Supply both aliases in memory, keeping the secret out of models.json and argv.
+  const credentialAlias=env.DEEPSEEK_API_KEY?{'$DEEPSEEK_API_KEY':env.DEEPSEEK_API_KEY}:{};
+  return {command:target.node??process.execPath,args:[target.executable,'--mode',mode,...mode==='json'?['--print']:[],'--no-session',...['--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files'].filter(supports),'--provider','deepseek-evaldock','--model',model,...supports('--thinking')?['--thinking','off']:[],...extensions.flatMap(x=>['--extension',x])],env:{...env,...credentialAlias,...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{}),HOME:home,PI_CODING_AGENT_DIR:agentHome,PI_OFFLINE:'1'}};
 }
