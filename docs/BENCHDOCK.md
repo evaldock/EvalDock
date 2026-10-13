@@ -71,6 +71,12 @@ evaluation dialog does not install tasks. Downloads use existing proxy environme
 variables or the macOS HTTPS proxy without sending Planner/Judge credentials.
 The reviewed pilot preparation route remains available for source/CLI users.
 
+The App defaults to a one-Case automatic evaluation and offers a 1–3 Case selector.
+The same `COUNT` configuration is captured for online preparation and the formal
+run; oversized preparation plans fail before task downloads. Standard-size and
+manual selection remain explicit alternatives. This does not change subset-card
+downloads: use the small-count evaluation option for a bounded pilot.
+
 ## Prepare the public release
 
 Use Python 3.10+ and the framework's normal Node/pnpm setup. If you already have a

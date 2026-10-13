@@ -65,6 +65,7 @@ export class OnlineSelection {
       if(!candidate||seen.has(selected.datasetId)||!Number.isSafeInteger(selected.caseCount)||selected.caseCount<1||selected.caseCount>candidate.availableCaseCount)throw Error('所选测试集或题量无效');
       seen.add(selected.datasetId);
     }
+    if(config.selection.kind==='COUNT'&&plan.selectedDatasets.reduce((sum,item)=>sum+item.caseCount,0)>config.selection.caseCount)throw Error('所选题量超过本次限制，请重新匹配');
     this.value={...this.value,phase:'DOWNLOADING',model:plan.model,selectedDatasets:plan.selectedDatasets.map(item=>({id:item.datasetId,name:candidates.find(candidate=>candidate.datasetId===item.datasetId).name,caseCount:item.caseCount,reason:item.reason}))};
     const requiredDownloads=[];
     for(const selected of plan.selectedDatasets){

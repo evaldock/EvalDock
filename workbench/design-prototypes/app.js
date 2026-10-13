@@ -1,9 +1,11 @@
 import {renderHome,renderDatasets,renderReports,selectedItems,friendlyMessage} from './product-pages.js';
+import {renderAgentCards} from './agent-cards.js';
+import {appEvaluationConfig,startAppEvaluation} from './app-evaluation.js';
 const $=selector=>document.querySelector(selector);
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const names={dsh:'DSH',workbuddy:'WorkBuddy',pi:'Pi',langgraph:'LangGraph',qwenwork:'千问办公',doubaowork:'豆包办公',hermes:'Hermes',openclaw:'OpenClaw'};
 const pages={home:'概览',agents:'我的 Agent',datasets:'测试集',reports:'评测记录',settings:'设置'};
-let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
+let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',discovery={agents:[],errors:[]},scanning=false;
 let agentModelSettings={keyConfigured:false};
 const pendingConnections=new Set();
 const ui={datasetQuery:'',datasetFilter:'all',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
@@ -26,26 +28,7 @@ const agentCatalog=[
  {kind:'codex',name:'Codex',format:'png',description:'评测适配器待接入',planned:true},
  {kind:'claude',name:'Claude Code',format:'png',description:'评测适配器待接入',planned:true},
 ];
-function agentCards(){
- const configured=targets();
- return agentCatalog.map(brand=>{
-   const installed=discovery.agents.filter(d=>d.kind===brand.kind);
-   const connected=configured.filter(t=>t.kind===brand.kind);
-   const ready=connected.filter(t=>t.evaluationReady);
-   const state=ready.length?'可评测':installed.length?(brand.planned?'已发现 · 待适配':'已发现'):'待安装';
-   const version=installed.find(d=>d.version)?.version;
-   const waiting=connected.find(t=>!t.evaluationReady);
-   const descriptions={AGENT_NOT_CONNECTED:'已接入，启动连接后即可检查登录状态',AGENT_LOGIN_REQUIRED:'请在 Agent 应用中完成登录',AGENT_WINDOW_NOT_READY:'等待 Agent 窗口加载完成',WORKBUDDY_NOT_CONNECTED:'尚未连接 WorkBuddy，请启动连接',WORKBUDDY_LOGIN_REQUIRED:'请在 WorkBuddy 中完成登录',WORKBUDDY_WINDOW_NOT_READY:'等待 WorkBuddy 窗口加载完成',WORKBUDDY_INTERFACE_CHANGED:'WorkBuddy 调用接口不可用，需检查适配',WORKBUDDY_EVENT_TRANSPORT_UNAVAILABLE:'WorkBuddy 事件传输接口不可用',WORKBUDDY_APP_ID_MISMATCH:'安装的应用标识与 WorkBuddy 不符',WORKBUDDY_INSPECTION_FAILED:'WorkBuddy 接口检查失败，请重新检查连接'};
-   const description=descriptions[waiting?.reasonCode]||(waiting?.reasonCode?friendlyMessage(waiting.reasonCode):brand.description);
-   const available=installed.find(d=>d.target&&!connected.some(t=>t.id==='local-'+d.kind+'-'+d.id||t.installRoot===d.path||d.target?.sourceRoot&&t.installRoot===d.target.sourceRoot));
-   const launchable=['qwenwork','doubaowork'].includes(brand.kind)&&waiting?.reasonCode==='AGENT_NOT_CONNECTED'||brand.kind==='workbuddy'&&waiting?.reasonCode==='WORKBUDDY_NOT_CONNECTED';
-   const needsModel=waiting?.reasonCode==='AGENT_MODEL_KEY_MISSING';
-   const connecting=pendingConnections.has(`${brand.kind}:${waiting?.id}`);
-   const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}" ${connecting?'disabled':''}>${connecting?'正在连接…':'启动连接'}</button>`:needsModel?`<button data-agent-model>配置模型</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
-
-   return `<article class="agent-card ${ready.length?'is-ready':installed.length?'is-discovered':''}"><div class="agent-card-heading"><img src="assets/agents/${brand.kind}.${brand.format}" width="28" height="28" alt=""><h3>${brand.name}</h3><span class="pill ${ready.length?'ready':installed.length?'discovered':''}">${state}</span></div><p class="agent-description">${escape(description)}</p><div class="agent-card-footer"><span>${escape(version|| (installed.length?'版本未读取':brand.planned?'计划接入':'已支持'))}${installed.length>1?' · '+installed.length+' 个安装':''}</span>${action}</div></article>`;
- }).join('');
-}
+function agentCards(){return renderAgentCards({brands:agentCatalog,targets:targets(),discovery,pendingConnections});}
 
 function agentModelForm(){
  return `<form id="agent-model-form" class="card"><h2>被测 Agent 模型</h2><p>Pi、Hermes、OpenClaw 和 LangGraph 的任务执行使用 DeepSeek，需要单独配置密钥。办公 Agent 请在原应用中完成登录。</p><label>DeepSeek API Key<input id="agent-api-key" name="apiKey" type="password" autocomplete="off" placeholder="${agentModelSettings.keyConfigured?'已配置；留空保留':'尚未配置'}"></label><p>密钥仅保存在本机，保存后返回「我的 Agent」查看运行条件。</p><button class="primary">保存 Agent 密钥</button></form>`;
@@ -68,11 +51,17 @@ function render(){
  for(const detail of document.querySelectorAll('details[data-preserve]'))if(opened.has(detail.dataset.preserve))detail.open=true;
  if(['dataset-search','report-search'].includes(focusId)){const next=document.getElementById(focusId);next?.focus();try{next?.setSelectionRange(position,position);}catch{}}
 }
-async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d,l,a]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery'),api('library'),api('agent-model-settings')]);agentModelSettings=a.settings;library=l;discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf; if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{loading=false;}}
+let refreshPending;
+function refresh(){
+ if(refreshPending)return refreshPending;
+ refreshPending=(async()=>{try{const [s,c,m,d,l,a]=await Promise.all([api('app'),api('evaluation-catalog'),api('model-settings'),api('discovery'),api('library'),api('agent-model-settings')]);agentModelSettings=a.settings;library=l;discovery=d;summary=s;catalog=c;settings=m.settings;csrf=m.csrf;if(page()!=='settings'||!$('#model-form'))render();if(s.errors?.length)notice(s.errors.join('；'));}catch(e){notice('无法读取本地服务：'+e.message);}finally{refreshPending=null;}})();
+ return refreshPending;
+}
 function syncSelectionMode(){
  const manual=$('#selection-kind').value==='SELECTED';
  $('#manual-selection').hidden=!manual;$('#manual-selection').disabled=!manual;
  $('#automatic-selection-note').hidden=manual;$('#automatic-source').hidden=manual;
+ $('#small-selection').hidden=$('#selection-kind').value!=='COUNT';$('#case-count').disabled=$('#selection-kind').value!=='COUNT';
 }
 async function openEvaluation(targetId,datasetId,items){
  await refresh();
@@ -80,17 +69,31 @@ async function openEvaluation(targetId,datasetId,items){
  const available=targets().filter(t=>t.evaluationReady&&!t.active);
  if(!catalog.datasets.length){notice('请先导入测试集。');location.hash='datasets';return;}
  $('#agent-select').innerHTML=targets().map(t=>`<option value="${escape(t.kind+':'+t.id)}" ${t.id===targetId&&t.evaluationReady&&!t.active?'selected':''} ${!t.evaluationReady||t.active?'disabled':''}>${escape(t.name||names[t.kind])}${t.active?' · 正在评测':!t.evaluationReady?' · '+escape(t.reasonCode?friendlyMessage(t.reasonCode):'暂不可用'):''}</option>`).join('');
- $('#selection-progress').hidden=true;$('#evaluation-error').textContent='';$('#selection-kind').value=items||datasetId?'SELECTED':'STANDARD';$('#selection-source').value='LOCAL';$('#selection-source').querySelector('[value=ONLINE]').disabled=!window.evaldockDesktop;syncSelectionMode();
+ $('#selection-progress').hidden=true;$('#evaluation-error').textContent='';$('#selection-kind').value=items||datasetId?'SELECTED':'COUNT';$('#case-count').value='1';$('#selection-source').value='LOCAL';$('#selection-source').querySelector('[value=ONLINE]').disabled=!window.evaldockDesktop;syncSelectionMode();
  $('#dataset-selection').innerHTML=catalog.datasets.map(d=>{const selected=items?items.find(item=>item.datasetId===d.id)?.caseIndices??[]:(datasetId&&d.id===datasetId)?d.cases.map(c=>c.index):[];return `<details class="eval-case-group" ${selected.length?'open':''}><summary>${escape(d.name)} · ${d.cases.length} 题</summary><label><input type="checkbox" data-eval-all="${escape(d.id)}" ${selected.length===d.cases.length?'checked':''}>全选</label>${d.cases.map(c=>`<label><input type="checkbox" data-eval-case="${escape(d.id)}" value="${c.index}" ${selected.includes(c.index)?'checked':''}>${escape(c.title)}</label>`).join('')}</details>`;}).join('');$('#evaluation-error').textContent=available.length?'':'目前没有已就绪且空闲的 Agent，请前往「我的 Agent」查看连接、版本或运行状态。';$('#submit-evaluation').disabled=!available.length;$('#evaluation-agent-setup').hidden=!!available.length;if(available.length&&!available.some(t=>t.id===targetId))$('#agent-select').value=available[0].kind+':'+available[0].id;$('#evaluation').showModal();
 }
 $('#close-dialog').onclick=()=>$('#evaluation').close();
 $('#evaluation-agent-setup').onclick=()=>{$('#evaluation').close();location.hash='agents';};
-$('#evaluation-form').onsubmit=async event=>{event.preventDefault();const button=$('#submit-evaluation');button.disabled=true;try{const chosen=catalog.datasets.flatMap(d=>{const indices=[...document.querySelectorAll('[data-eval-case]:checked')].filter(input=>input.dataset.evalCase===d.id).map(input=>Number(input.value));return indices.length?[{datasetId:d.id,caseIndices:indices}]:[];});const manual=$('#selection-kind').value==='SELECTED';if(manual&&!chosen.length)throw Error('请至少选择一道题目');const [kind,targetId]=$('#agent-select').value.split(':');if(!manual&&$('#selection-source').value==='ONLINE')await prepareOnlineSelection(kind,targetId);const identity=kind==='dsh'?{revision:(await api('status')).revision}:kind==='workbuddy'?{}:{targetId};const started=await api(kind==='dsh'?'run':kind+'/run',{...identity,evaluationConfig:{mode:$('#mode-select').value,selection:manual?{kind:'SELECTED',items:chosen}:{kind:'STANDARD'}}});ui.jobId=started.result?.id??null;$('#evaluation').close();location.hash='reports';notice('评测已启动。');await refresh();}catch(e){$('#evaluation-error').textContent=friendlyMessage(e.message);}finally{button.disabled=false;}};
+let evaluationSubmitting=false;
+$('#evaluation-form').onsubmit=async event=>{
+ event.preventDefault();if(evaluationSubmitting)return;
+ const button=$('#submit-evaluation');button.disabled=true;evaluationSubmitting=true;
+ const controls=[...$('#evaluation-form').querySelectorAll('select,input')].map(element=>({element,disabled:element.disabled}));
+ try{
+  const items=catalog.datasets.flatMap(d=>{const indices=[...document.querySelectorAll('[data-eval-case]:checked')].filter(input=>input.dataset.evalCase===d.id).map(input=>Number(input.value));return indices.length?[{datasetId:d.id,caseIndices:indices}]:[];});
+  const config=appEvaluationConfig({mode:$('#mode-select').value,selectionKind:$('#selection-kind').value,caseCount:$('#case-count').value,items});
+  const [agentKind,targetId]=$('#agent-select').value.split(':'),source=$('#selection-source').value;
+  for(const {element} of controls)element.disabled=true;
+  const started=await startAppEvaluation({agentKind,targetId,source,config},{api,prepareOnline:prepareOnlineSelection});
+  ui.jobId=started.result?.id??null;$('#evaluation').close();location.hash='reports';notice('评测已启动。');await refresh();
+ }catch(e){$('#evaluation-error').textContent=friendlyMessage(e.message);}
+ finally{for(const {element,disabled} of controls)element.disabled=disabled;button.disabled=false;evaluationSubmitting=false;}
+};
 let preparingOnline=false;
-async function prepareOnlineSelection(agentKind,targetId){
+async function prepareOnlineSelection(agentKind,targetId,evaluationConfig){
  preparingOnline=true;$('#selection-progress').hidden=false;$('#cancel-selection').hidden=false;$('#close-dialog').disabled=true;
  try{
-  let selection=await api('library/select',{agentKind,targetId,evaluationConfig:{mode:$('#mode-select').value,selection:{kind:'STANDARD'}}});
+  let selection=await api('library/select',{agentKind,targetId,evaluationConfig});
   while(selection.state==='PREPARING'){
    $('#selection-progress').textContent=({CATALOG:'正在校验线上目录…',MATCHING:'Planner 正在匹配测试集…',DOWNLOADING:'正在准备所需题目…'})[selection.phase]||'正在准备…';
    await new Promise(resolve=>setTimeout(resolve,500));library=await api('library');selection=library.selection;
@@ -109,6 +112,8 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-reports-back')){ui.jobId=null;render();}
  if(button.hasAttribute('data-report-filter')){ui.reportFilter=button.dataset.reportFilter;render();}
  if(button.hasAttribute('data-refresh-records'))await refresh();
+ if(button.hasAttribute('data-refresh-agent')){button.disabled=true;await refresh();}
+ if(button.hasAttribute('data-agent-records')){location.hash='reports';render();}
  if(button.hasAttribute('data-dataset-detail')){ui.datasetId=button.dataset.datasetDetail;render();}
  if(button.hasAttribute('data-dataset-filter')){ui.datasetFilter=button.dataset.datasetFilter;render();}
  if(button.hasAttribute('data-datasets-back')){ui.datasetId=null;render();}

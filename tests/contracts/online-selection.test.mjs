@@ -61,3 +61,20 @@ test('invalid plans, busy environments and cancellation stop before installing',
   f.start();await waiting;await f.selection.cancel();assert.equal(f.selection.status().state,'CANCELLED');assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),before);
   assert.throws(()=>f.selection.start({agentKind:'pi',targetId:'fixture',evaluationConfig:{mode:'FULL',selection:{kind:'SELECTED',items:[{datasetId:'unknown',caseIndices:[0]}]}}}),/仅支持自动/);
 });
+test('COUNT passes the requested 1 to 3 case budget to the preparation Planner',async t=>{
+  const f=await fixture(t,{empty:true});
+  for(const count of [1,2,3]){
+    f.setCount(count);f.start();await f.selection.pending;
+    assert.equal(f.selection.status().state,'READY');assert.deepEqual(f.input().testSize,{caseCount:count});
+    assert.equal((await evaluationCatalog(f.root)).scoring.totalCases,count);
+    assert.equal(f.requests.filter(name=>name.endsWith('/data.txt')).length,count);
+  }
+});
+test('an oversized preparation plan is rejected before any task download or library change',async t=>{
+  const f=await fixture(t),before=await libraryFingerprint(path.join(f.root,'datasets'));
+  f.selection.matcherFactory=()=>({select:async input=>({selectedDatasets:[{datasetId:input.availableDatasets.find(item=>item.name==='Synthetic large set').datasetId,caseCount:9}]})});
+  f.start();await f.selection.pending;
+  assert.equal(f.selection.status().state,'FAILED');assert.match(f.selection.status().error,/题量超过/);
+  assert.equal(f.requests.filter(name=>name.endsWith('/data.txt')).length,0);
+  assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),before);
+});
