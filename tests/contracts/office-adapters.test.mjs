@@ -81,14 +81,26 @@ test('Qwen projected patches merge snapshots and retain final answer after empty
  const c=ctx.window.__evaldockQwenSessions.owned;await c.wait;const out=c.extract();assert.equal(out.final,'Final answer');assert.equal(out.queue.length,2);assert.ok(out.duplicates>90);
 });
 
-test('office launch does not inherit the desktop server Node mode',async()=>{
+for(const [kind,port] of [['qwenwork',18492],['doubaowork',18493]])test(`${kind} launch opens its desktop without inheriting the server Node mode`,async()=>{
  const {createOfficeAdapter}=await import('../../adapters/shared/office-adapter.mjs');
  const {EventEmitter}=await import('node:events');
  const previous=process.env.ELECTRON_RUN_AS_NODE;process.env.ELECTRON_RUN_AS_NODE='1';
  try{
-  let options;
-  const adapter=createOfficeAdapter({kind:'qwenwork',id:'test'},{app:'/Applications/Test.app',bundle:'test',version:'1',port:18492,Desktop:{connect:async()=>{throw Error('AGENT_NOT_CONNECTED');}},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1',CFBundleExecutable:'Electron'})}),spawnProcess:(file,args,opts)=>{assert.equal(file,'/Applications/Test.app/Contents/MacOS/Electron');options=opts;const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;}});
-  await adapter.launch();assert.ok(options.env);assert.equal(options.env.ELECTRON_RUN_AS_NODE,undefined);assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1');
+  let connected=false,launch;
+  const adapter=createOfficeAdapter({kind,id:'test'},{app:'/Applications/Test.app',bundle:'test',port,Desktop:{connect:async()=>{
+    if(!connected)throw Error('AGENT_NOT_CONNECTED');
+    return {authenticated:async()=>true,close(){}};
+  }},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1',CFBundleExecutable:'Electron'})}),spawnProcess:(file,args,options)=>{
+    launch={file,args,options};connected=(options.env??process.env).ELECTRON_RUN_AS_NODE!=='1';
+    const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;
+  }});
+  assert.equal((await adapter.inspect()).reasonCode,'AGENT_NOT_CONNECTED');
+  assert.equal((await adapter.launch()).status,'LAUNCH_REQUESTED');
+  assert.equal((await adapter.inspect()).evaluationReady,true,'Start connection must expose the desktop interface');
+  assert.equal(launch.file,'/Applications/Test.app/Contents/MacOS/Electron');
+  assert.deepEqual(launch.args,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+port]);
+  assert.equal(launch.options.env.PATH,process.env.PATH);
+  assert.equal(process.env.ELECTRON_RUN_AS_NODE,'1','The evaluation backend must retain its own Node mode');
  }finally{if(previous===undefined)delete process.env.ELECTRON_RUN_AS_NODE;else process.env.ELECTRON_RUN_AS_NODE=previous;}
 });
 
