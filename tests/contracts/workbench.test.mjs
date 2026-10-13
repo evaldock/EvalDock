@@ -66,8 +66,13 @@ test('ordinary API jobs cannot reintroduce saved workbench sizing arguments',asy
  const jobs=new Jobs({repoRoot:root,stateRoot:path.join(root,'jobs'),targets:[{id:'real',descriptor:'/target',config,fixture:false}],cliPath:cli,cliPrefix:[cli],nodePath:process.execPath,maxConcurrentJobs:1});await jobs.init();t.after(()=>jobs.shutdown());
  const view=await jobs.start({action:'run',targetId:'real',datasetCount:1,caseCount:1,casesPerDataset:1,allDatasets:true,maxCases:1});
  const record=jobs.get(view.id);assert.deepEqual(record.request,{action:'run',targetId:'real'});
- for(let n=0;n<100&&jobs.children.size;n++)await new Promise(resolve=>setTimeout(resolve,10));
+ const child=jobs.children.get(view.id);
+ if(child){const {once}=await import('node:events');await once(child,'close');}
+ // temporary() registered removal first; finish durable writes before teardown starts.
+ await jobs.shutdown();
  assert.ok(!record.summary.args.includes('--case-count'));assert.ok(!record.summary.args.includes('--all-datasets'));
+ const persisted=JSON.parse(await readFile(path.join(root,'jobs',view.id+'.json'),'utf8'));
+ assert.equal(persisted.state,'SUCCEEDED');assert.deepEqual(persisted.request,record.request);
 });
 
 test('static view without a run uses current VM inspection, never the bundled example snapshot',async()=>{

@@ -45,10 +45,11 @@ export class BenchDockLibrary {
     this.pending=null;this.controller=null;
     this.completed=new Set();
   }
-  status(){return {...this.value,...this.catalog?{catalog:this.catalog.status(),download:this.catalog.downloadStatus()}:{}};}
+  status(){return {...this.value,...this.catalog?{catalog:this.catalog.status(),download:this.catalog.downloadStatus()}:{},...this.selection?{selection:this.selection.status()}:{}};}
   get installing(){return this.value.state==='INSTALLING'||!!this.catalog?.installing;}
-  get busy(){return !!this.pending||!!this.catalog?.busy;}
+  get busy(){return !!this.pending||!!this.catalog?.busy||!!this.selection?.busy;}
   get ready(){return ['READY','LOCAL'].includes(this.value.state);}
+  get canEvaluateLocally(){return this.ready||this.value.state==='IDLE'&&!this.pending&&!this.catalog?.busy&&!this.selection?.busy;}
   async init(){
     this.profileBytes=await readFile(path.join(this.root,'config/benchdock-pilot.json'));
     this.profile=JSON.parse(this.profileBytes);
@@ -89,12 +90,13 @@ export class BenchDockLibrary {
   }
   loadCatalog(){this.catalog.load();return this.status();}
   downloadDataset(id){
-    if(this.pending)throw Error('请等待当前题库准备结束后下载。');
+    if(this.pending||this.selection?.busy)throw Error('请等待当前题库准备结束后下载。');
     this.catalog.startDownload(id);return this.status();
   }
   async cancelDownload(){await this.catalog.cancel();return this.status();}
-  async close(){await Promise.all([this.cancel(),this.catalog?.close()]);}
+  async close(){await this.selection?.cancel();await Promise.all([this.cancel(),this.catalog?.close()]);}
   start(){
+    if(this.selection?.busy)throw Error('请等待线上匹配结束后开始自动选题。');
     if(this.catalog?.busy)throw Error('请等待测试集下载结束后开始自动选题。');
     if(this.pending||this.ready)return this.status();
     if(!this.value.automatic)return this.status();

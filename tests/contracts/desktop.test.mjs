@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,cp,readFile,writeFile,rm,symlink,mkdir,readdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {importLibrary} from '../../desktop/workspace.mjs';
+import {importLibrary,prepareWorkspace} from '../../desktop/workspace.mjs';
 import {appSummary} from '../../workbench/lib/app-summary.mjs';
 const repo=process.cwd();
 async function fixture(t){const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-desktop-'));t.after(()=>rm(root,{recursive:true,force:true}));await cp(path.join(repo,'dist'),path.join(root,'dist'),{recursive:true});await writeFile(path.join(root,'package.json'),'{"type":"module"}');await cp(path.join(repo,'datasets'),path.join(root,'datasets'),{recursive:true});return root;}
@@ -27,4 +27,21 @@ test('invalid library and symlinks leave installed library untouched',async t=>{
  await assert.rejects(importLibrary(source,root));assert.equal(await readFile(path.join(root,'datasets/catalog.md'),'utf8'),previous);
  await symlink('/etc/hosts',path.join(source,'input.txt'));await assert.rejects(importLibrary(source,root),/符号链接/);
  assert.equal(await readFile(path.join(root,'datasets/catalog.md'),'utf8'),previous);
+});
+test('first workspace setup and later code upgrades preserve user config, library and results',async t=>{
+ const root=await fixture(t),source=path.join(root,'runtime');await mkdir(source);
+ for(const name of ['dist','adapters','workbench','labels','planning','trace','observer-lab','src','desktop','node_modules','config','datasets','environments']){
+  await mkdir(path.join(source,name));await writeFile(path.join(source,name,'version.txt'),'first');
+ }
+ await mkdir(path.join(source,'config/targets'));await writeFile(path.join(source,'config/targets/real-dsh.json'),JSON.stringify({dshHome:'/Users/your-user/.dsh'}));
+ await writeFile(path.join(source,'package.json'),'{"type":"module"}');
+ // Existing fixture data is deliberately retained during first workspace preparation.
+ await prepareWorkspace(source,root);await writeFile(path.join(root,'config/agents.json'),'{"targets":[{"id":"synthetic-user-target"}]}');
+ await mkdir(path.join(root,'var/evaluation-results'),{recursive:true});await writeFile(path.join(root,'var/evaluation-results/receipt.json'),'synthetic result');
+ const config=await readFile(path.join(root,'config/agents.json')),catalog=await readFile(path.join(root,'datasets/catalog.md'));
+ await writeFile(path.join(source,'adapters/version.txt'),'second');await writeFile(path.join(source,'config/version.txt'),'second');
+ await prepareWorkspace(source,root);
+ assert.equal(await readFile(path.join(root,'adapters/version.txt'),'utf8'),'second');assert.equal(await readFile(path.join(root,'config/version.txt'),'utf8'),'first');
+ assert.deepEqual(await readFile(path.join(root,'config/agents.json')),config);assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),catalog);
+ assert.equal(await readFile(path.join(root,'var/evaluation-results/receipt.json'),'utf8'),'synthetic result');
 });

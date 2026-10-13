@@ -1,9 +1,12 @@
 import {startControlServer} from '../workbench/control-server.mjs';
 import {BenchDockLibrary} from '../workbench/lib/benchdock-library.mjs';
+import {OnlineSelection} from '../workbench/lib/online-selection.mjs';
+import {plannerTargetInfo} from '../workbench/lib/planner-target.mjs';
 let runtime;
 const library=new BenchDockLibrary({root:process.cwd(),automatic:process.env.EVALDOCK_AUTO_DATASETS==='1',canInstall:async()=>!runtime.hasPendingMutations()&&![runtime.control,runtime.workbuddy,...Object.values(runtime.agents)].some(c=>c.active||[...c.jobs.jobs.values()].some(j=>['STARTING','RUNNING','CANCELLING'].includes(j.state)))});
 await library.init();
 runtime=await startControlServer({root:process.cwd(),port:0,libraryService:library});
+library.selection=new OnlineSelection({root:process.cwd(),library,inspectTarget:input=>plannerTargetInfo({root:process.cwd(),control:runtime.control,workbuddy:runtime.workbuddy,agents:runtime.agents},input)});
 process.send?.({type:'ready',port:runtime.server.address().port});
 library.loadCatalog();
 let closing=false;

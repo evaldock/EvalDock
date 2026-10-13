@@ -147,38 +147,55 @@ export class BenchDockCatalog {
     })().catch(error=>{this.value={...this.value,state:'FAILED',error:controller.signal.aborted?'题库目录加载已取消。':/^(题|公开|本地|无法)/.test(error.message)?error.message:'无法加载线上题库目录，请检查网络或系统代理后重试。'};}).finally(()=>{this.indexPending=null;this.indexController=null;});
     return this.status();
   }
-  startDownload(id){
+  startDownload(id,{taskIds,allowExisting=false}={}){
     if(this.pending)throw Error('已有题库正在下载，请等待完成或取消后重试。');
     if(this.value.state!=='READY')throw Error('请等待题库目录加载完成后重试。');
-    const group=[...this.groups.values()].find(item=>item.id===id);
+    let group=[...this.groups.values()].find(item=>item.id===id);
     if(!group?.rows.length)throw Error('这个测试集仅提供来源信息，请从原始来源获取并导入完整题库。');
+    if(taskIds!==undefined){
+      if(!Array.isArray(taskIds)||!taskIds.length||new Set(taskIds).size!==taskIds.length||taskIds.some(id=>!group.rows.some(row=>row.task_id===id)))throw Error('所选公开题目不存在或重复');
+      const rows=group.rows.filter(row=>taskIds.includes(row.task_id));
+      const files=new Set(['LICENSE','NOTICE.md']);
+      for(const row of rows){for(const input of row.inputs)files.add(input.path);for(const file of row.license_files)files.add(file);}
+      group={...group,policyRows:group.rows,rows,files};
+    }
     const totalBytes=[...group.files].reduce((sum,file)=>sum+(this.manifest.get(file)?.bytes??2*1024**3),0);
     if(totalBytes>2*1024**3)throw Error('所选测试集超过 2 GB 下载限制');
     const controller=new AbortController();this.controller=controller;
     this.transfer={state:'DOWNLOADING',phase:'PREPARING',datasetId:id,name:group.name,completedFiles:0,totalFiles:group.files.size,downloadedBytes:0,cachedBytes:0,totalBytes,error:null};
-    this.pending=this.install(group,controller.signal).catch(error=>{this.transfer={...this.transfer,state:controller.signal.aborted?'CANCELLED':'FAILED',error:controller.signal.aborted?null:/^(题|公开|本地|所选|请|无法|这个)/.test(error.message)?error.message:'无法下载或安装测试集，请检查网络或系统代理后重试。'};}).finally(()=>{this.pending=null;this.controller=null;});
+    this.pending=this.install(group,controller.signal,{allowExisting}).catch(error=>{this.transfer={...this.transfer,state:controller.signal.aborted?'CANCELLED':'FAILED',error:controller.signal.aborted?null:/^(题|公开|本地|所选|请|无法|这个)/.test(error.message)?error.message:'无法下载或安装测试集，请检查网络或系统代理后重试。'};}).finally(()=>{this.pending=null;this.controller=null;});
     return this.downloadStatus();
   }
   async cancel(){if(this.controller&&!this.installing)this.controller.abort();await this.pending;return this.downloadStatus();}
   async close(){this.indexController?.abort();await Promise.all([this.cancel(),this.indexPending]);}
-  async install(group,signal){
+  async install(group,signal,{allowExisting=false}={}){
     if(!await this.canInstall())throw Error('请等待评测或导入结束后下载题库。');
     const original=await libraryFingerprint(path.join(this.root,'datasets'));
     const {loadDatasetDescriptionCatalog}=await import('../../dist/src/datasets/catalog.js');
+    const {currentQuestionCases}=await import('../../dist/src/datasets/loader.js');
     const descriptions=await loadDatasetDescriptionCatalog(path.join(this.root,'datasets/catalog.md'));
-    if(descriptions.some(item=>item.datasetId===group.id||item.datasetId.replace(/^dataset\.(?:harbor-)?/,'').replace(/\/v[1-9][0-9]*$/,'').toLowerCase()===group.name.toLowerCase()))throw Error('所选测试集已在本地，保留已有题目；请直接选择题目。');
+    const existing=descriptions.find(item=>item.datasetId===group.id||item.datasetId.replace(/^dataset\.(?:harbor-)?/,'').replace(/\/v[1-9][0-9]*$/,'').toLowerCase()===group.name.toLowerCase());
+    if(existing&&(!allowExisting||existing.datasetId!==group.id))throw Error('所选测试集已在本地，保留已有题目；请直接选择题目。');
+    const installedFiles=existing?await currentQuestionCases(path.join(this.root,'datasets'),group.id):[];
+    const installedIds=new Set(await Promise.all(installedFiles.map(async file=>JSON.parse(await readFile(file,'utf8')).id)));
+    const rows=group.rows.filter(row=>!installedIds.has(row.task_id));
+    if(!rows.length)throw Error('所选题目已在本地，保留已有题目；请直接选择题目。');
     const work=path.join(this.root,'var/benchdock-cache','.download-'+randomUUID());
     const reviewed=new Map(this.profile.tasks.map(task=>[task.task_id,task]));
-    const policyBytes=Buffer.from(JSON.stringify({schema:'evaldock.benchdock-delivery/v1',revision:this.profile.revision,subset:group.name,tasks:group.rows.map(row=>({task_id:row.task_id,capabilityLabels:reviewed.get(row.task_id)?.capabilityLabels??deliveryLabels,environment:environment(row,reviewed.get(row.task_id))}))}));
+    const policyBytes=Buffer.from(JSON.stringify({schema:'evaldock.benchdock-delivery/v1',revision:this.profile.revision,subset:group.name,tasks:(group.policyRows??group.rows).map(row=>({task_id:row.task_id,capabilityLabels:reviewed.get(row.task_id)?.capabilityLabels??deliveryLabels,environment:environment(row,reviewed.get(row.task_id))}))}));
+    if(existing){
+      const slug=group.id.slice('dataset.'.length).replace(/\/v1$/,'');
+      if(!(await readFile(path.join(this.root,'datasets',slug,'delivery-profile.json'))).equals(policyBytes))throw Error('本地题库运行配置已变化，保留已有文件；请导入完整题库或重新选择题目。');
+    }
     try{
       const slug=group.id.slice('dataset.'.length).replace(/\/v1$/,'');
-      try{await lstat(path.join(this.root,'datasets',slug));throw Error('本地题库已包含同名目录，未覆盖你的文件。');}catch(error){if(error.code!=='ENOENT')throw error;}
+      if(!existing)try{await lstat(path.join(this.root,'datasets',slug));throw Error('本地题库已包含同名目录，未覆盖你的文件。');}catch(error){if(error.code!=='ENOENT')throw error;}
       await mkdir(work,{recursive:true,mode:0o700});
       await cp(path.join(this.root,'datasets'),work,{recursive:true});
       signal.throwIfAborted();this.transfer.phase='DOWNLOADING';
       const common=new Map();for(const name of ['LICENSE','NOTICE.md'])common.set(name,await this.obtain(name,signal,true));
       const obtained=new Set(common.keys());
-      for(const row of group.rows){
+      for(const row of rows){
         signal.throwIfAborted();
         const directory=path.join(work,slug,sha(Buffer.from(row.task_id)).slice(0,24));await mkdir(directory,{recursive:true,mode:0o700});
         const inputs=[];
@@ -198,8 +215,8 @@ export class BenchDockCatalog {
         await writeFile(path.join(directory,'question.json'),JSON.stringify(question,null,2)+'\n',{mode:0o600});
         await writeFile(path.join(directory,'PROVENANCE.json'),record,{mode:0o600});
       }
-      const dataset={datasetId:group.id,name:group.name,description:'BenchDock 公开任务。按任务要求准备执行环境；保留文件交付和过程证据，私有评分参考另行提供。',labelIds:[...group.labels].sort().map(label=>'label.'+label+'/v1'),availableCaseCount:group.rows.length};
-      const catalog={schema:'evaldock.dataset-planner-catalog/v1',version:this.profile.revision,datasets:[...descriptions,dataset]};
+      const dataset={datasetId:group.id,name:group.name,description:'BenchDock 公开任务。按任务要求准备执行环境；保留文件交付和过程证据，私有评分参考另行提供。',...existing,labelIds:[...new Set([...(existing?.labelIds??[]),...[...group.labels].map(label=>'label.'+label+'/v1')])].sort(),availableCaseCount:installedFiles.length+rows.length};
+      const catalog={schema:'evaldock.dataset-planner-catalog/v1',version:this.profile.revision,datasets:[...descriptions.filter(item=>item.datasetId!==group.id),dataset]};
       await writeFile(path.join(work,'catalog.md'),'# 本地题库\n\n```json evaldock-dataset-catalog\n'+JSON.stringify(catalog,null,2)+'\n```\n',{mode:0o600});
       await writeFile(path.join(work,slug,'delivery-profile.json'),policyBytes,{mode:0o600});
       signal.throwIfAborted();

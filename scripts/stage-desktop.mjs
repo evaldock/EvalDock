@@ -19,7 +19,7 @@ for(const file of ['workbench/design-prototypes/score-radar.js','workbench/desig
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('dist',path.join(out,'dist'),{recursive:true});
-for(const file of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/benchdock-catalog.mjs']){
+for(const file of ['desktop/workspace.mjs','desktop/library-archive.mjs','desktop/updates.mjs','workbench/lib/online-selection.mjs','workbench/lib/planner-target.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/benchdock-catalog.mjs']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
 await cp('src/agent-trace/native-probe/lib',path.join(out,'src/agent-trace/native-probe/lib'),{recursive:true});
@@ -41,6 +41,7 @@ async function copyDependency(name,from=path.resolve('package.json')){
 await copyDependency('typescript');await copyDependency('@deepseek-ai/schemastery');
 
 await copyDependency('undici');
+await copyDependency('yauzl');
 
 const {auditDesktopRuntime}=createRequire(import.meta.url)('./audit-desktop-runtime.cjs');
 console.log('Audited desktop runtime files:',auditDesktopRuntime(out).length);

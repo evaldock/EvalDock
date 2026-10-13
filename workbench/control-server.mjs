@@ -40,7 +40,7 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
       if(u.pathname.startsWith('/api/control/')){
         if(req.method==='GET'&&u.pathname==='/api/control/library'){json(res,200,libraryService?.status()??{automatic:false,state:'LOCAL'});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}
-        if(req.method==='GET'&&u.pathname==='/api/control/app'){json(res,200,{...await appSummary({control,workbuddy,agents}),csrf});return;}
+        if(req.method==='GET'&&u.pathname==='/api/control/app'){json(res,200,{...await appSummary({control,workbuddy,agents}),busy:pendingMutations.size>0||[control,...others()].some(c=>c.active||c.busy)||!!libraryService?.busy,csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/model-settings'){json(res,200,{settings:await modelSettings.get(),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/agent-model-settings'){json(res,200,{settings:await agentModelSettings.get(),csrf});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/evaluation-catalog'){json(res,200,await evaluationCatalog(root));return;}
@@ -74,6 +74,14 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           let input;try{input=JSON.parse(raw);}catch{json(res,400,{error:'无效 JSON'});return;}
           if(!input||typeof input!=='object'||Array.isArray(input)){json(res,400,{error:'无效参数'});return;}
           const route=u.pathname.slice('/api/control/'.length);
+          if(route==='library/select'||route==='library/selection-cancel'){
+            if(!libraryService?.selection)throw Error('线上选题仅支持桌面应用');
+            if(route==='library/selection-cancel'){
+              if(Object.keys(input).length)throw Error('未知参数');
+              json(res,200,await libraryService.selection.cancel());
+            }else json(res,200,libraryService.selection.start(input));
+            return;
+          }
           if(route==='library/catalog'||route==='library/download'||route==='library/download-cancel'){
             if(!libraryService)throw Error('题库目录下载仅支持桌面应用');
             if(route==='library/download'){
@@ -116,8 +124,9 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           if(input.evaluationConfig!==undefined)input.evaluationConfig=await validateEvaluationConfig(root,input.evaluationConfig);
           // Each controller owns one active run. Serialize its mutations without blocking independent Agents.
           const owner=runtimeMatch?runtimeMatch[1]:route.startsWith('workbuddy/')?'workbuddy':'dsh';
+          if(libraryService?.selection?.busy)throw Error('线上选题正在准备题库，请等待完成或取消后重试');
           if(libraryService?.installing)throw Error('题库正在安装，请等待完成后重试');
-          if((route==='run'||route==='workbuddy/run'||runtimeMatch?.[2]==='run')&&input.evaluationConfig?.selection.kind!=='SELECTED'&&libraryService&&!libraryService.ready)throw Error('请等待自动题库准备完成；下载失败时可在测试集页面重试。');
+          if((route==='run'||route==='workbuddy/run'||runtimeMatch?.[2]==='run')&&input.evaluationConfig?.selection.kind!=='SELECTED'&&libraryService&&!(libraryService.canEvaluateLocally??libraryService.ready))throw Error('请等待自动题库准备完成；下载失败时可在测试集页面重试。');
           if(pendingMutations.has('discovery')){json(res,409,{error:'正在接入 Agent，请稍后重试'});return;}
           if(pendingMutations.has(owner)){json(res,409,{error:'该 Agent 有操作正在处理，请稍后重试'});return;}
           pendingMutations.add(owner);

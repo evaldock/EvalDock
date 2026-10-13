@@ -54,12 +54,20 @@ record, pinned revision and catalog digest remain in each task's provenance;
 private grading remains unavailable. Local API/UI responses expose directory
 metadata and installed public task requirements, never evaluator references.
 
-Starting automatic evaluation while the library is still the unchanged bundled
-demo prepares the reviewed three-task pilot on demand. Opening the app by itself
-does not install those tasks. Full remote Planner matching and environment
-preparation remain separate work. Downloads use existing proxy environment
+Automatic evaluation defaults to the installed local library, including the bundled
+demo. The evaluation dialog also offers full online-directory matching: a preparation
+Planner reads metadata and the selected Agent's actual interface information, then
+only the required public Cases are downloaded and added to the local library. Existing
+private references and user imports remain authoritative. Repeated preparation can
+extend a partial subset, and the combined pending download is limited to 2 GB.
+Preparation and formal evaluation are separate planning stages: the normal evaluation
+Planner selects from the resulting local library, so its final queue can differ from
+the preparation recommendation. Both stages may incur model fees. Preparation can be
+cancelled and never runs an evaluation after failure. External environments and
+private grading material still require separate preparation. Opening the app or its
+evaluation dialog does not install tasks. Downloads use existing proxy environment
 variables or the macOS HTTPS proxy without sending Planner/Judge credentials.
-The following instructions remain available for source/CLI users.
+The reviewed pilot preparation route remains available for source/CLI users.
 
 ## Prepare the public release
 

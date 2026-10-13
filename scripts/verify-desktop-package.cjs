@@ -7,7 +7,7 @@ module.exports=async function verifyDesktopPackage(context){
     if(!fs.existsSync(path.join(runtime,relative)))throw Error('Desktop package is missing '+relative);
   }
   const resources=path.dirname(runtime);
-  for(const relative of ['desktop/workspace.mjs','workbench/lib/benchdock-library.mjs'])if(!fs.existsSync(path.join(runtime,relative)))throw Error('Desktop package is missing '+relative);
+  for(const relative of ['desktop/workspace.mjs','desktop/library-archive.mjs','desktop/updates.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/online-selection.mjs','workbench/lib/planner-target.mjs','node_modules/yauzl/index.js'])if(!fs.existsSync(path.join(runtime,relative)))throw Error('Desktop package is missing '+relative);
   const icon=path.join(resources,'icon.icns');
   if(!fs.existsSync(icon)||!fs.readFileSync(icon).equals(fs.readFileSync(path.join(__dirname,'../desktop/assets/icon.icns'))))throw Error('Desktop package must use the EvalDock app icon');
   const {execFileSync}=require('node:child_process');

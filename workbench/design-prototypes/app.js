@@ -72,21 +72,36 @@ async function refresh(){if(loading)return;loading=true;try{const [s,c,m,d,l,a]=
 function syncSelectionMode(){
  const manual=$('#selection-kind').value==='SELECTED';
  $('#manual-selection').hidden=!manual;$('#manual-selection').disabled=!manual;
- $('#automatic-selection-note').hidden=manual;
+ $('#automatic-selection-note').hidden=manual;$('#automatic-source').hidden=manual;
 }
 async function openEvaluation(targetId,datasetId,items){
  await refresh();
  if(!settings?.planner?.keyConfigured||!settings?.judge?.keyConfigured){notice('开始前请配置 Planner 和 Judge 的模型密钥。');location.hash='settings';return;}
  const available=targets().filter(t=>t.evaluationReady&&!t.active);
- if(available.length&&!items&&!datasetId){await ensureAutomaticLibrary();await refresh();}
  if(!catalog.datasets.length){notice('请先导入测试集。');location.hash='datasets';return;}
  $('#agent-select').innerHTML=targets().map(t=>`<option value="${escape(t.kind+':'+t.id)}" ${t.id===targetId&&t.evaluationReady&&!t.active?'selected':''} ${!t.evaluationReady||t.active?'disabled':''}>${escape(t.name||names[t.kind])}${t.active?' · 正在评测':!t.evaluationReady?' · '+escape(t.reasonCode?friendlyMessage(t.reasonCode):'暂不可用'):''}</option>`).join('');
- $('#selection-kind').value=items||datasetId?'SELECTED':'STANDARD';syncSelectionMode();
+ $('#selection-progress').hidden=true;$('#evaluation-error').textContent='';$('#selection-kind').value=items||datasetId?'SELECTED':'STANDARD';$('#selection-source').value='LOCAL';$('#selection-source').querySelector('[value=ONLINE]').disabled=!window.evaldockDesktop;syncSelectionMode();
  $('#dataset-selection').innerHTML=catalog.datasets.map(d=>{const selected=items?items.find(item=>item.datasetId===d.id)?.caseIndices??[]:(datasetId&&d.id===datasetId)?d.cases.map(c=>c.index):[];return `<details class="eval-case-group" ${selected.length?'open':''}><summary>${escape(d.name)} · ${d.cases.length} 题</summary><label><input type="checkbox" data-eval-all="${escape(d.id)}" ${selected.length===d.cases.length?'checked':''}>全选</label>${d.cases.map(c=>`<label><input type="checkbox" data-eval-case="${escape(d.id)}" value="${c.index}" ${selected.includes(c.index)?'checked':''}>${escape(c.title)}</label>`).join('')}</details>`;}).join('');$('#evaluation-error').textContent=available.length?'':'目前没有已就绪且空闲的 Agent，请前往「我的 Agent」查看连接、版本或运行状态。';$('#submit-evaluation').disabled=!available.length;$('#evaluation-agent-setup').hidden=!!available.length;if(available.length&&!available.some(t=>t.id===targetId))$('#agent-select').value=available[0].kind+':'+available[0].id;$('#evaluation').showModal();
 }
 $('#close-dialog').onclick=()=>$('#evaluation').close();
 $('#evaluation-agent-setup').onclick=()=>{$('#evaluation').close();location.hash='agents';};
-$('#evaluation-form').onsubmit=async event=>{event.preventDefault();const button=$('#submit-evaluation');button.disabled=true;try{const chosen=catalog.datasets.flatMap(d=>{const indices=[...document.querySelectorAll('[data-eval-case]:checked')].filter(input=>input.dataset.evalCase===d.id).map(input=>Number(input.value));return indices.length?[{datasetId:d.id,caseIndices:indices}]:[];});const manual=$('#selection-kind').value==='SELECTED';if(manual&&!chosen.length)throw Error('请至少选择一道题目');const [kind,targetId]=$('#agent-select').value.split(':');const identity=kind==='dsh'?{revision:(await api('status')).revision}:kind==='workbuddy'?{}:{targetId};const started=await api(kind==='dsh'?'run':kind+'/run',{...identity,evaluationConfig:{mode:$('#mode-select').value,selection:manual?{kind:'SELECTED',items:chosen}:{kind:'STANDARD'}}});ui.jobId=started.result?.id??null;$('#evaluation').close();location.hash='reports';notice('评测已启动。');await refresh();}catch(e){$('#evaluation-error').textContent=friendlyMessage(e.message);}finally{button.disabled=false;}};
+$('#evaluation-form').onsubmit=async event=>{event.preventDefault();const button=$('#submit-evaluation');button.disabled=true;try{const chosen=catalog.datasets.flatMap(d=>{const indices=[...document.querySelectorAll('[data-eval-case]:checked')].filter(input=>input.dataset.evalCase===d.id).map(input=>Number(input.value));return indices.length?[{datasetId:d.id,caseIndices:indices}]:[];});const manual=$('#selection-kind').value==='SELECTED';if(manual&&!chosen.length)throw Error('请至少选择一道题目');const [kind,targetId]=$('#agent-select').value.split(':');if(!manual&&$('#selection-source').value==='ONLINE')await prepareOnlineSelection(kind,targetId);const identity=kind==='dsh'?{revision:(await api('status')).revision}:kind==='workbuddy'?{}:{targetId};const started=await api(kind==='dsh'?'run':kind+'/run',{...identity,evaluationConfig:{mode:$('#mode-select').value,selection:manual?{kind:'SELECTED',items:chosen}:{kind:'STANDARD'}}});ui.jobId=started.result?.id??null;$('#evaluation').close();location.hash='reports';notice('评测已启动。');await refresh();}catch(e){$('#evaluation-error').textContent=friendlyMessage(e.message);}finally{button.disabled=false;}};
+let preparingOnline=false;
+async function prepareOnlineSelection(agentKind,targetId){
+ preparingOnline=true;$('#selection-progress').hidden=false;$('#cancel-selection').hidden=false;$('#close-dialog').disabled=true;
+ try{
+  let selection=await api('library/select',{agentKind,targetId,evaluationConfig:{mode:$('#mode-select').value,selection:{kind:'STANDARD'}}});
+  while(selection.state==='PREPARING'){
+   $('#selection-progress').textContent=({CATALOG:'正在校验线上目录…',MATCHING:'Planner 正在匹配测试集…',DOWNLOADING:'正在准备所需题目…'})[selection.phase]||'正在准备…';
+   await new Promise(resolve=>setTimeout(resolve,500));library=await api('library');selection=library.selection;
+  }
+  if(selection.state!=='READY')throw Error(selection.error||'线上准备已取消');
+  $('#selection-progress').textContent=`已准备 ${selection.preparedCases} 道新题目，即将从本地题库执行正式选题。`;
+  await refresh();
+ }finally{preparingOnline=false;$('#cancel-selection').hidden=true;$('#close-dialog').disabled=false;}
+}
+$('#cancel-selection').onclick=async()=>{try{await api('library/selection-cancel',{});}catch(e){$('#evaluation-error').textContent=e.message;}};
+$('#evaluation').addEventListener('cancel',event=>{if(preparingOnline)event.preventDefault();});
 async function desktop(method){if(!window.evaldockDesktop)throw Error('此功能需要在 Mac App 中使用');return window.evaldockDesktop[method]();}
 document.addEventListener('click',async event=>{const button=event.target.closest('button');if(!button)return;try{
  if(button.hasAttribute('data-dismiss-notice'))notice('');
@@ -156,23 +171,7 @@ document.addEventListener('change',event=>{
  if(e.hasAttribute('data-select-case')){const id=e.dataset.selectCase,set=ui.selection.get(id)??new Set();if(e.checked)set.add(Number(e.dataset.index));else set.delete(Number(e.dataset.index));ui.selection.set(id,set);render();}
 });
 
-let libraryWait;
-async function ensureAutomaticLibrary(){
- if(libraryWait)return libraryWait;
- libraryWait=(async()=>{
-  library=await api('library');
-  if(!library.automatic||['READY','LOCAL'].includes(library.state))return;
-  if(library.state==='IDLE')library=await api('library/prepare',{});
-  notice('正在自动准备题库，完成后继续选择 Agent。');render();
-  while(['DOWNLOADING','INSTALLING'].includes(library.state)){
-   await new Promise(resolve=>setTimeout(resolve,500));library=await api('library');render();
-  }
-  if(library.state!=='READY')throw Error(library.error||'题库准备未完成，请在测试集页面重试。');
-  notice('题库已准备完成。');
- })().finally(()=>{libraryWait=null;});
- return libraryWait;
-}
 setInterval(async()=>{
- if(libraryWait||!(['DOWNLOADING','INSTALLING'].includes(library.state)||library.catalog?.state==='LOADING'||['DOWNLOADING','INSTALLING'].includes(library.download?.state)))return;
+ if(!(['DOWNLOADING','INSTALLING'].includes(library.state)||library.catalog?.state==='LOADING'||['DOWNLOADING','INSTALLING'].includes(library.download?.state)))return;
  try{library=await api('library');if(library.state==='READY'||library.download?.state==='READY')await refresh();else render();}catch{}
 },1000);
