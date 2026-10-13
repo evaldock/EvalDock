@@ -104,6 +104,14 @@ test('WorkBuddy completion retains owned archive usage and native execution befo
  assert.equal(r.result.usage.inputTokens,123);assert.equal(r.usageEvidence.records,2);
  assert.ok(Number.isFinite(r.execution.durationMs));assert.equal(r.execution.scope,'NATIVE_TASK_REQUEST');
 });
+test('WorkBuddy does not label unverified completion usage as the owned session total when its archive is missing',async()=>{
+ const r=await runSession(fakeDesktop(),{cwd:'/tmp/test',prompt:'test',deadlineMs:1000,usageReader:async()=>({usage:null,reason:'NATIVE_USAGE_ARCHIVE_UNAVAILABLE',records:0,source:'OWNED_NATIVE_SESSION_ARCHIVE'})});
+ assert.equal(r.error,null);assert.equal(r.result.usage,null);
+ assert.equal(r.usageEvidence.source,'NATIVE_COMPLETION_RESPONSE');assert.equal(r.usageEvidence.counterScope,'UNKNOWN');
+ assert.equal(r.usageEvidence.aggregation,'NONE');assert.equal(r.usageEvidence.archiveReason,'NATIVE_USAGE_ARCHIVE_UNAVAILABLE');
+ assert.deepEqual(r.usageEvidence.nativeCompletionUsage,{inputTokens:10,outputTokens:5});
+ assert.ok(Number.isFinite(r.execution.durationMs));
+});
 test('renamed tool notifications remain visible as structure and fail required tool acceptance',async()=>{
  const {validateCapture}=await import('../../adapters/compatibility/contracts.mjs');
  const {workbuddyTrace}=await import('../../adapters/workbuddy/evidence.mjs');

@@ -2,6 +2,7 @@
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readWorkBuddyUsage} from './usage.mjs';
+import {normalizeUsage} from '../shared/capture.mjs';
 export function desktopConnection({appPath='/Applications/WorkBuddy.app',endpoint='http://127.0.0.1:18491'}={}){
  const url=new URL(endpoint);
  if(url.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!path.isAbsolute(appPath)||!appPath.endsWith('.app'))throw Error('WORKBUDDY_INVALID_ENDPOINT');
@@ -162,6 +163,13 @@ export async function runSession(desktop,{cwd,prompt,deadlineMs,signal,onSession
     const native=await usageReader({cwd,sessionId}).catch(()=>({usage:null,reason:'NATIVE_USAGE_ARCHIVE_UNAVAILABLE'}));
     const {usage,...evidence}=native;capture.usageEvidence=evidence;
     if(usage)capture.result={...capture.result,usage};
+    else{
+      // The bridge does not establish whether optional completion counters cover a
+      // response or the whole task. Retain them as evidence, never as a session sum.
+      const nativeCompletionUsage=normalizeUsage(capture.result.usage);
+      capture.result={...capture.result,usage:null};
+      if(nativeCompletionUsage)capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',scope:'NATIVE_COMPLETION_RESPONSE',counterScope:'UNKNOWN',aggregation:'NONE',inputTokenBasis:'UNKNOWN',nativeCompletionUsage,archiveReason:evidence.reason??'NATIVE_USAGE_NOT_EXPOSED'};
+    }
   }
   // Stop only the owned runtime, retaining native conversation history for audit.
   let cleanup='UNKNOWN';try{await desktop.invoke('session:destroy',sessionId);if(await desktop.confirmStopped?.(sessionId))cleanup='STOPPED';}catch{}

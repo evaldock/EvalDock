@@ -8,4 +8,6 @@ Probe：进程结束（含超时/取消）触发一次只读 SQLite 原生 trans
 
 最多读取末尾 256 行，每行限制 512 KiB（压缩数据限制解压大小），逐行处理；Capture 继续限制 192 KiB 事件、128 组工具、64 KiB 最终回答。省略计数与采集盲区写入 Trace；原生记录不可读则标记 Probe 错误，不伪造工具证据。采集前检查 `transcript_events` 的实际列，支持旧版纯 `event_json` 和带 `event_zstd` 的存储；未知存储结构明确拒绝。版本变化仍必须重跑适配契约及真实评测。
 
+`agent exec` 完成响应的原生 `usage` 是本次会话累计量，标记 `counterScope: SESSION_TOTAL`、`aggregation: NONE`；不与 transcript 重复相加，也不使用末次调用或上下文窗口统计。完成响应缺少用量时，对本题归档中的完成响应 ID 去重求和，标记 `PER_RESPONSE`、`SUM`，同时保留字段覆盖与省略记录。
+
 所有 Agent 复用统一 all trace、Planner、Judge、题库、难度抽样与工作台结果格式。MVP 未覆盖原生图片附件和外部聊天渠道。

@@ -82,13 +82,22 @@ also keeps bounded node/checkpoint/interrupt evidence; repeated messages are
 deduplicated. No unobserved thoughts or tools are fabricated.
 
 Cost evidence uses native completed-response counters or a native session total;
-repeated response IDs and mirrored snapshots are counted once. Pi retains completed
+repeated response IDs and mirrored snapshots are counted once. WorkBuddy, Pi,
+LangGraph and OpenClaw's transcript fallback explicitly mark response counters as
+`counterScope: PER_RESPONSE`, `aggregation: SUM`, with coverage per field. Hermes
+and OpenClaw's native completion totals instead mark `counterScope: SESSION_TOTAL`,
+`aggregation: NONE`; repeated cumulative snapshots replace, rather than add to,
+the prior total. Pi retains completed
 message usage, LangGraph retains AI-message usage metadata, Hermes reads counters
 from its owned session database (also enriching streaming cache/reasoning counters), and OpenClaw can use the owned
 transcript when its completion response omits usage. WorkBuddy reads only the newly
 owned session's native JSONL after completion and returns numeric usage, never the
 conversation text. Native context-window `used`/`size` values are not cumulative
 token consumption. Missing fields remain unknown, with source and coverage recorded.
+When WorkBuddy's owned archive is unavailable, optional bridge completion counters
+have unverified scope. Retain their numeric values in `usageEvidence.nativeCompletionUsage`
+with `counterScope: UNKNOWN`, rather than publishing them as cumulative `usage`.
+Time evidence remains available; a bridge snapshot does not establish session cost.
 DSH adds a bounded adapter summary of committed assistant-response counters to the
 same Trace, explicitly marking `counterScope: PER_RESPONSE` and `aggregation: SUM`.
 This prevents a final request's usage from being mistaken for the session total.

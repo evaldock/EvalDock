@@ -6,4 +6,6 @@
 
 保留原生调用 ID 对应的工具调用/结果、最终回答、原生用量与失败状态。丢弃逐 token 文本；无原生 ID 不猜配对。沿用 Capture 的 192 KiB 事件预算、最多 128 组工具、64 KiB 最终回答；Hermes 原生工具结果还有 5000 字符限制，明确记入盲区。超时与取消清理所属进程组。
 
+完成接口与本题数据库的 token 是原生会话累计值，标记 `counterScope: SESSION_TOTAL`、`aggregation: NONE`。重复完成快照只替换；数据库补充缓存、推理等字段，不与完成接口再求和。缺失字段保留未知。
+
 完整评测入口、Planner、题量难度抽样、Judge、报告均复用 adapters/shared；无需改动评分和 all-trace 核心格式。

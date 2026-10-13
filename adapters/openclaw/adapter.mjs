@@ -12,7 +12,7 @@ export function openClawEvent(row,capture){
  if(row.type==='runtime/result'){
   const r=row.data;capture.finalText(r.final??'');capture.nativeSessionId=r.sessionId;
   capture.result={stopReason:r.ok&&r.status==='ok'?'end_turn':'error',usage:r.usage};
-  capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',scope:'SESSION_TOTAL',inputTokenBasis:'EXCLUDES_CACHE'};
+  capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',scope:'SESSION_TOTAL',counterScope:'SESSION_TOTAL',aggregation:'NONE',inputTokenBasis:'EXCLUDES_CACHE'};
   if(!r.ok||r.status!=='ok'){capture.error='OPENCLAW_EXECUTION_FAILED';capture.add('runtime/error',{message:r.error,status:r.status});}
  }else if(row.type==='runtime/error'||row.type==='probe/error'){capture.error='OPENCLAW_EXECUTION_FAILED';capture.add(row.type,row.data,row.at);}
  else capture.add(row.type,row.data,row.at);

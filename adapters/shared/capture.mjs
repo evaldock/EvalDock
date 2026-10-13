@@ -23,7 +23,7 @@ export class UsageLedger {
  summary(){
   const usage={},fieldCoverage={};
   for(const row of this.records.values())for(const [key,value]of Object.entries(row)){usage[key]=(usage[key]??0)+value;fieldCoverage[key]=(fieldCoverage[key]??0)+1;}
-  return {usage:this.records.size?usage:null,records:this.records.size,fieldCoverage,omitted:this.omitted};
+  return {usage:this.records.size?usage:null,records:this.records.size,fieldCoverage,omitted:this.omitted,scope:'OBSERVED_COMPLETED_RESPONSES',counterScope:'PER_RESPONSE',aggregation:'SUM'};
  }
 }
 

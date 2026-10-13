@@ -6,7 +6,9 @@ import {spawnSync} from 'node:child_process';
 import {temporary} from './support.mjs';
 import {Capture,runProcess} from '../../adapters/shared/capture.mjs';
 import {piEvent} from '../../adapters/pi/adapter.mjs';
-import {createHermesAdapter} from '../../adapters/hermes/adapter.mjs';
+import {createHermesAdapter,hermesEvent} from '../../adapters/hermes/adapter.mjs';
+import {createOpenClawAdapter,openClawEvent} from '../../adapters/openclaw/adapter.mjs';
+import {langGraphEvent} from '../../adapters/langgraph/adapter.mjs';
 import {normalizeUsage} from '../../adapters/shared/capture.mjs';
 import {buildTrace} from '../../adapters/shared/evidence.mjs';
 import {normalizedEvent} from '../../adapters/shared/capture.mjs';
@@ -21,6 +23,8 @@ test('Pi preserves each completed response usage once, including tool turns and 
  piEvent({type:'agent_end'},c);
  assert.equal(c.result.usage.inputTokens,210);assert.equal(c.result.usage.outputTokens,12);
  assert.equal(c.result.usage.cacheReadTokens,60);assert.equal(c.result.usage.totalTokens,222);
+ assert.equal(c.usageEvidence.counterScope,'PER_RESPONSE');assert.equal(c.usageEvidence.aggregation,'SUM');
+ assert.equal(c.usageEvidence.records,2);assert.equal(c.usageEvidence.fieldCoverage.cacheReadTokens,1);
 });
 
 test('WorkBuddy reads only the owned native archive, deduplicates usage mirrors and rejects symlinks',async t=>{
@@ -29,13 +33,51 @@ test('WorkBuddy reads only the owned native archive, deduplicates usage mirrors 
  const dir=path.join(historyRoot,cwd.replace(/^\//,'').replaceAll('/','-'));await mkdir(dir,{recursive:true});
  const row={type:'function_call',id:'call-1',sessionId:'owned',cwd,providerData:{messageId:'response-1',usage:{inputTokens:100,outputTokens:5,totalTokens:105,inputTokensDetails:[{cached_tokens:80}]}},content:'private text must not be copied'};
  const other={...row,id:'foreign',sessionId:'other',providerData:{messageId:'other',usage:{inputTokens:9999}}};
- await writeFile(path.join(dir,'owned.jsonl'),[row,{...row,id:'mirror'},other].map(JSON.stringify).join('\n'));
+ const second={...row,id:'call-2',providerData:{messageId:'response-2',rawUsage:{inputTokens:140,outputTokens:9,totalTokens:149}}};
+ await writeFile(path.join(dir,'owned.jsonl'),[row,{...row,id:'mirror'},second,other].map(JSON.stringify).join('\n'));
  const r=await readWorkBuddyUsage({cwd,sessionId:'owned',historyRoot});
- assert.equal(r.usage.inputTokens,100);assert.equal(r.usage.cacheReadTokens,80);assert.equal(r.records,1);
+ assert.equal(r.usage.inputTokens,240);assert.equal(r.usage.cacheReadTokens,80);assert.equal(r.records,2);assert.equal(r.usage.totalTokens,254);
+ assert.equal(r.counterScope,'PER_RESPONSE');assert.equal(r.aggregation,'SUM');assert.equal(r.fieldCoverage.cacheReadTokens,1);
  assert.ok(!JSON.stringify(r).includes('private text'));assert.ok(!JSON.stringify(r).includes('9999'));
  await symlink(path.join(dir,'owned.jsonl'),path.join(dir,'linked.jsonl'));
  assert.equal((await readWorkBuddyUsage({cwd,sessionId:'linked',historyRoot})).usage,null);
  assert.equal((await readWorkBuddyUsage({cwd,sessionId:'../owned',historyRoot})).usage,null);
+});
+
+test('LangGraph sums distinct completed AI messages and replaces changed mirrors, never just the last response',()=>{
+ const c=new Capture('langgraph');
+ for(const [messageId,input] of [['a',100],['b',140],['b',150],['a',100]])langGraphEvent({type:'session/usage',data:{messageId,usage:{input_tokens:input,output_tokens:5,total_tokens:input+5}}},c);
+ langGraphEvent({type:'runtime/completed'},c);
+ assert.deepEqual(c.result.usage,{inputTokens:250,outputTokens:10,totalTokens:260});
+ assert.equal(c.usageEvidence.records,2);assert.equal(c.usageEvidence.counterScope,'PER_RESPONSE');assert.equal(c.usageEvidence.aggregation,'SUM');
+});
+
+test('Hermes and OpenClaw keep the latest native session total without summing cumulative snapshots',()=>{
+ for(const [kind,event,row] of [
+  ['hermes',hermesEvent,n=>({type:'result',exit_code:0,text:'done',tokens:{input:n,output:10,total:n+10}})],
+  ['openclaw',openClawEvent,n=>({type:'runtime/result',data:{ok:true,status:'ok',final:'done',usage:{input:n,output:10,totalTokens:n+10}}})]
+ ]){
+  const c=new Capture(kind);event(row(100),c);event(row(240),c);event(row(240),c);
+  assert.equal(normalizeUsage(c.result.usage).totalTokens,250);
+  assert.equal(c.usageEvidence.counterScope,'SESSION_TOTAL');assert.equal(c.usageEvidence.aggregation,'NONE');
+ }
+});
+
+test('OpenClaw uses a native session total once, or explicitly sums the owned response archive when it is absent',async t=>{
+ const root=await temporary(t),cli=path.join(root,'fake-cli.mjs');
+ await writeFile(cli,`import path from 'node:path';import {mkdirSync} from 'node:fs';import {DatabaseSync} from 'node:sqlite';
+ const state=process.argv[process.argv.indexOf('--state-dir')+1];const file=path.join(state,'agents/main/agent/openclaw-agent.sqlite');mkdirSync(path.dirname(file),{recursive:true});const db=new DatabaseSync(file);db.exec('CREATE TABLE transcript_events(session_id TEXT,seq INTEGER,event_json TEXT)');const put=db.prepare('INSERT INTO transcript_events VALUES(?,?,?)');
+ for(const [seq,id,input] of [[1,'a',100],[2,'b',140],[3,'b',140]])put.run('owned',seq,JSON.stringify({type:'message',id,timestamp:'2026-10-01T00:00:00Z',message:{role:'assistant',stopReason:'stop',content:[{type:'text',text:'done'}],usage:{input,output:5,totalTokens:input+5}}}));
+ put.run('foreign',1,JSON.stringify({type:'message',id:'other',timestamp:'2026-10-01T00:00:00Z',message:{role:'assistant',usage:{input:9999}}}));db.close();console.log(JSON.stringify({ok:true,status:'ok',final:'done',sessionId:'owned',lastCallUsage:{input:140,output:5,totalTokens:145},...state.includes('with-total')?{usage:{input:240,output:10,totalTokens:250}}:{}}));`);
+ const adapter=createOpenClawAdapter({node:process.execPath,executable:cli,model:'synthetic'});
+ for(const name of ['with-total','without-total']){
+  const caseDirectory=path.join(root,name);await mkdir(caseDirectory);
+  const r=await adapter.run({context:{env:{PATH:process.env.PATH}},caseDirectory,cwd:root,prompt:'synthetic',deadlineMs:10000});
+  assert.equal(r.error,null);assert.equal(normalizeUsage(r.result.usage).totalTokens,250);
+  assert.equal(r.usageEvidence.counterScope,name==='with-total'?'SESSION_TOTAL':'PER_RESPONSE');
+  assert.equal(r.usageEvidence.aggregation,name==='with-total'?'NONE':'SUM');
+  if(name==='without-total')assert.equal(r.usageEvidence.records,2);
+ }
 });
 
 test('LangGraph captures native message usage without repeated checkpoint snapshots',()=>{
@@ -81,6 +123,7 @@ test('Hermes streaming completion enriches omitted cache and reasoning counters 
  const r=await adapter.run({context:{env:process.env,protocol:{id:'hermes.stream-json/v1',flags:['--format']}},caseDirectory,cwd:root,prompt:'synthetic',deadlineMs:5000});
  const u=normalizeUsage(r.result.usage);assert.equal(u.cacheReadTokens,80);assert.equal(u.reasoningTokens,2);
  assert.equal(u.totalTokens,185);assert.equal(r.usageEvidence.inputTokenBasis,'EXCLUDES_CACHE');assert.equal(r.error,null);
+ assert.equal(r.usageEvidence.counterScope,'SESSION_TOTAL');assert.equal(r.usageEvidence.aggregation,'NONE');
 });
 
 test('DSH exposes an explicit per-response sum without altering native events or counting mirrors and token deltas',()=>{

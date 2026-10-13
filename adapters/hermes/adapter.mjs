@@ -8,6 +8,7 @@ import {Capture,runProcess,normalizedEvent} from '../shared/capture.mjs';
 import {normalizeUsage} from '../shared/capture.mjs';
 import {loadAgentEnvironment,staticInfo} from '../shared/registry.mjs';
 const exec=promisify(execFile);
+const sessionTotalUsage={scope:'SESSION_TOTAL',counterScope:'SESSION_TOTAL',aggregation:'NONE',inputTokenBasis:'EXCLUDES_CACHE'};
 export function hermesEvent(row,capture){
  const at=Number.isFinite(row.timestamp)?new Date(row.timestamp).toISOString():new Date().toISOString();
  if(row.type==='native-exit'){if(row.exit_code===0)capture.result={stopReason:'archive_pending'};else capture.error='HERMES_EXECUTION_FAILED';return;}
@@ -18,7 +19,7 @@ export function hermesEvent(row,capture){
  }else if(row.type==='result'){
   capture.finalText(row.text??'');capture.nativeSessionId=row.session_id;
   capture.result={stopReason:row.exit_code===0?'end_turn':'error',usage:row.tokens};
-  capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',inputTokenBasis:'EXCLUDES_CACHE',scope:'SESSION_TOTAL'};
+  capture.usageEvidence={source:'NATIVE_COMPLETION_RESPONSE',...sessionTotalUsage};
   if(row.exit_code!==0){capture.error??='HERMES_EXECUTION_FAILED';capture.add('runtime/error',{message:row.error??'Hermes did not complete',exitCode:row.exit_code},at);}
  }else{capture.seen++;capture.noise++;}
 }
@@ -69,7 +70,7 @@ export function createHermesAdapter(target){return {
    try{
     const {stdout}=await exec(path.join(path.dirname(target.executable),'python'),[fileURLToPath(new URL('./session-evidence.py',import.meta.url)),path.join(home,'state.db'),'--session-archive'],{timeout:10000,maxBuffer:1048576,env});
     let safe=stdout;for(const [key,secret] of Object.entries(env))if(/KEY|TOKEN|SECRET|PASSWORD/.test(key)&&secret.length>=8)safe=safe.split(secret).join('[REDACTED]');
-    const evidence=JSON.parse(safe);captured.nativeSessionId=evidence.sessionId;captured.final=evidence.final;captured.result={stopReason:'end_turn',usage:evidence.usage??null};captured.usageEvidence={source:'OWNED_NATIVE_SESSION_DATABASE',scope:'SESSION_TOTAL',inputTokenBasis:'EXCLUDES_CACHE'};
+    const evidence=JSON.parse(safe);captured.nativeSessionId=evidence.sessionId;captured.final=evidence.final;captured.result={stopReason:'end_turn',usage:evidence.usage??null};captured.usageEvidence={source:'OWNED_NATIVE_SESSION_DATABASE',...sessionTotalUsage};
     return restoreHermesEvidence(captured,evidence.rows,{archive:true});
    }catch{captured.error='AGENT_HERMES_EVIDENCE_INCOMPLETE';captured.result=null;}
   }
@@ -77,7 +78,7 @@ export function createHermesAdapter(target){return {
    try{
     const {stdout}=await exec(path.join(path.dirname(target.executable),'python'),[fileURLToPath(new URL('./session-evidence.py',import.meta.url)),path.join(home,'state.db'),'--session-usage',captured.nativeSessionId],{timeout:10000,maxBuffer:65536});
     const native=JSON.parse(stdout);
-    if(native.usage){captured.result.usage={...normalizeUsage(captured.result.usage),...normalizeUsage(native.usage)};captured.usageEvidence={source:'NATIVE_COMPLETION_WITH_SESSION_DATABASE',scope:'SESSION_TOTAL',inputTokenBasis:'EXCLUDES_CACHE'};}
+    if(native.usage){captured.result.usage={...normalizeUsage(captured.result.usage),...normalizeUsage(native.usage)};captured.usageEvidence={source:'NATIVE_COMPLETION_WITH_SESSION_DATABASE',...sessionTotalUsage};}
    }catch{captured.usageEvidence={...captured.usageEvidence,archiveReason:'NATIVE_USAGE_ARCHIVE_UNAVAILABLE'};}
   }
   if(captured.cleanup==='STOPPED'&&!signal?.aborted&&captured.nativeSessionId&&captured.queue.some(r=>String(r.event.data?.callId).startsWith('unpaired-'))){
