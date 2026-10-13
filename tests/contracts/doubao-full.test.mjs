@@ -58,3 +58,20 @@ test('a task card whose child ID changed cannot be accepted as main-chat complet
  await c.wait;const out=await c.extract();assert.equal(out.error,'AGENT_SUBTASK_CONTRACT_BROKEN');assert.equal(out.result,null);assert.equal(f.loads.length,0);
  assert.ok(out.queue.some(r=>r.event.type==='contract/unknown-task'));
 });
+
+test('Doubao optional native completed-message usage deduplicates owned root and child pushes',async()=>{
+ const f=await fixture(),c=await f.start('owned');
+ f.emit('owned',{...end([card('child')]),message_id:'root-result',usage:{prompt_tokens:100,completion_tokens:5,total_tokens:105}});await tick();await tick();
+ f.update('foreign',{...result('foreign','private'),usage:{prompt_tokens:9999}});
+ f.update('child',{...result('child-result','interim'),stage:2,ext:{async_job:JSON.stringify({status:1})},usage:{prompt_tokens:9999}});
+ const final={...result('child-result','actual'),usage:{prompt_tokens:120,completion_tokens:8,total_tokens:128,prompt_tokens_details:{cached_tokens:80},authorization:'private-secret'}};
+ f.update('child',final);f.update('child',{...final});await c.wait;const out=await c.extract();
+ assert.equal(out.usage.inputTokens,220);assert.equal(out.usage.outputTokens,13);assert.equal(out.usage.totalTokens,233);assert.equal(out.usage.cacheReadTokens,80);
+ assert.equal(out.usageEvidence.records,2);assert.equal(out.usageEvidence.scope,'OBSERVED_COMPLETED_MESSAGES');assert.ok(out.execution.durationMs>=0);
+ assert.ok(!JSON.stringify(out).includes('private-secret'));assert.ok(!JSON.stringify(out).includes('9999'));
+});
+
+test('Doubao absent native counters are unknown rather than inferred from task duration or answer text',async()=>{
+ const f=await fixture(),c=await f.start('owned');f.emit('owned',end([text('actual answer')]));await c.wait;const out=await c.extract();
+ assert.equal(out.usage,null);assert.equal(out.usageEvidence.records,0);assert.equal(out.result.usage,undefined);assert.ok(out.execution.durationMs>=0);
+});

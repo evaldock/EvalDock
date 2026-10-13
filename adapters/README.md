@@ -98,7 +98,16 @@ existing all-trace format. Process timing ends at process exit, before cleanup a
 transcript collection. Desktop timing spans task submission to native completion;
 parallel child-task durations are not added. The collection window remains separate.
 FULL sends this evidence to Judge; EFFECT continues to expose delivery evidence only.
-Qwen/Doubao streams that do not expose native token counters support time evidence
+Qwen retains the owned `context-usage.usage.apiUsage` numeric result counters as one
+replaced native result snapshot (`NATIVE_RESULT_SNAPSHOT`), not a sum of repeated
+context updates. Its native input counter excludes cache. Context `totalTokens`,
+capacity and percentages are excluded; client-defaulted API zeroes remain unknown.
+This snapshot's scope is recorded and does not establish usage for unreported calls.
+Doubao retains optional `usage` on completed owned message IDs, including discovered
+child threads; intermediate messages and other threads are excluded. `prompt_tokens`
+includes cache, while an unspecified native input basis remains unknown. Current
+office versions were not run for this change, so the optional Doubao field's actual
+availability is unverified. Streams without these counters support time evidence
 only; character counts, context estimates and billing credits are not substitutes.
 Report previews use session totals before response mirrors to avoid double counting.
 

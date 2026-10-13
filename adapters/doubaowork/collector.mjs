@@ -46,6 +46,14 @@ export async function startDoubao({sessionId,prompt,cwd},createCapture,prepareLo
  };
  const observe=(m,thread)=>{
   if(disposed||c.done)return;
+  // Optional native message counters only. The selected client may omit them;
+  // absence remains explicit and is never replaced by task/text/context estimates.
+  if(m.user_type!==1&&(m.stage===4||m.final_status?.session==='Success')&&(typeof m.message_id==='string'||typeof m.message_id==='number'&&Number.isSafeInteger(m.message_id))){
+   const u=m.usage;
+   if(u&&typeof u==='object'){
+    c.recordUsage(String(m.message_id),{inputTokens:u.prompt_tokens??u.input_tokens,outputTokens:u.completion_tokens??u.output_tokens,totalTokens:u.total_tokens,cacheReadTokens:u.prompt_tokens_details?.cached_tokens??u.cache_read_input_tokens,cacheWriteTokens:u.cache_creation_input_tokens,reasoningTokens:u.completion_tokens_details?.reasoning_tokens},{source:'NATIVE_MESSAGE_USAGE',scope:'OBSERVED_COMPLETED_MESSAGES',inputTokenBasis:u.prompt_tokens!==undefined?'INCLUDES_CACHE':'UNKNOWN'});
+   }
+  }
   if(m.error_details?.has_error){c.finish('AGENT_TASK_FAILED');return;}
   const blocks=m.content_blocks_v2??m.content_block??m.content_blocks??[];let final='';
   for(const block of blocks){

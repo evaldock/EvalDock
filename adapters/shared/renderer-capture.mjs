@@ -1,7 +1,8 @@
 /** Serializable renderer collector. No timer reads: adapters feed owned push events only. */
 export function createRendererCapture(sessionId){
-  const encoder=new TextEncoder(),tools=new Map(),events=new Map();let bytes=0,order=0,resolve;
-  const c={sessionId,seen:0,noise:0,duplicates:0,mergedUpdates:0,omitted:0,clipped:0,final:'',finalTruncated:false,error:null,result:null,done:false};
+  const encoder=new TextEncoder(),tools=new Map(),events=new Map(),usageRecords=new Map();let bytes=0,order=0,resolve;
+  const usageFields=['inputTokens','outputTokens','totalTokens','cacheReadTokens','cacheWriteTokens','reasoningTokens'];
+  const c={sessionId,seen:0,noise:0,duplicates:0,mergedUpdates:0,omitted:0,clipped:0,final:'',finalTruncated:false,error:null,result:null,done:false,usage:null,usageEvidence:{source:'NATIVE_USAGE_NOT_EXPOSED',records:0,fieldCoverage:{},omitted:0}};
   c.wait=new Promise(r=>{resolve=r;});
   const size=v=>encoder.encode(JSON.stringify(v)).length;
   const trim=(s,max)=>{if(encoder.encode(s).length<=max)return s;let lo=0,hi=Math.min(s.length,max);while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(encoder.encode(s.slice(0,mid)).length<=max)lo=mid;else hi=mid-1;}if(lo&&/[\uD800-\uDBFF]/.test(s[lo-1]))lo--;return s.slice(0,lo);};
@@ -14,6 +15,20 @@ export function createRendererCapture(sessionId){
     return Object.fromEntries(rows.slice(0,32).map(([k,x])=>[k,/^(?:api.?key|authorization|access.?token|refresh.?token|token|password|secret)$/i.test(k)?'[REDACTED]':bound(x,depth+1)]));
   };
   c.text=(text,append=false)=>{if(typeof text!=='string')return;const s=append?c.final+text:text,clipped=trim(s,65536);c.finalTruncated=(append&&c.finalTruncated)||s!==clipped;c.final=clipped;};
+  // Callers supply canonical counters from a completed native response. No context
+  // snapshots, billing credits, numeric strings or inferred totals enter this ledger.
+  c.recordUsage=(id,value,metadata={})=>{
+    if(c.done||!value||typeof value!=='object')return;
+    const row=Object.fromEntries(usageFields.filter(k=>typeof value[k]==='number'&&Number.isFinite(value[k])&&value[k]>=0).map(k=>[k,value[k]]));
+    if(!Object.keys(row).length)return;
+    if(typeof id!=='string'||!id||id.length>512||!usageRecords.has(id)&&usageRecords.size>=4096){c.usageEvidence.omitted++;return;}
+    const totals=c.usage??={},coverage=c.usageEvidence.fieldCoverage,old=usageRecords.get(id),previousBasis=c.usageEvidence.inputTokenBasis;
+    if(old)for(const [k,v]of Object.entries(old)){totals[k]-=v;if(--coverage[k]===0){delete coverage[k];delete totals[k];}}
+    usageRecords.set(id,row);
+    for(const [k,v]of Object.entries(row)){totals[k]=(totals[k]??0)+v;coverage[k]=(coverage[k]??0)+1;}
+    c.usage=totals;c.usageEvidence={...c.usageEvidence,source:'NATIVE_COMPLETED_RESPONSES',...Object.fromEntries(['source','scope','inputTokenBasis'].filter(k=>typeof metadata[k]==='string').map(k=>[k,metadata[k]])),records:usageRecords.size};
+    if(previousBasis&&metadata.inputTokenBasis&&previousBasis!==metadata.inputTokenBasis)c.usageEvidence.inputTokenBasis='UNKNOWN';
+  };
   c.add=(type,data)=>{
     if(c.done)return;c.seen++;let safe=bound(data);if(size(safe)>32768){safe={callId:data.callId,name:data.name,contentOmitted:true};c.clipped++;}
     const item={at:new Date().toISOString(),event:{type,data:safe},order:++order};
@@ -25,6 +40,6 @@ export function createRendererCapture(sessionId){
     while(bytes>192*1024||tools.size>128){if(tools.size){const key=tools.keys().next().value;for(const row of Object.values(tools.get(key))){bytes-=size(row);c.omitted++;}tools.delete(key);}else{const key=events.keys().next().value;if(key===undefined)break;bytes-=size(events.get(key));events.delete(key);c.omitted++;}}
   };
   c.start=()=>{c.execution??={startedAt:new Date().toISOString(),scope:'NATIVE_TASK_REQUEST'};};
-  c.finish=(error=null)=>{if(c.done)return;c.error=error;c.done=true;c.result=error?null:{stopReason:'end_turn'};if(c.execution){const endedAt=new Date().toISOString();c.execution={...c.execution,endedAt,durationMs:Date.parse(endedAt)-Date.parse(c.execution.startedAt)};}resolve({error});};
-  c.extract=()=>{const {wait,text,add,start,finish,extract,...plain}=c;return {...plain,queue:[...events.values(),...[...tools.values()].flatMap(x=>[x.call,x.result].filter(Boolean))].sort((a,b)=>a.order-b.order).map(({order,...r})=>r)};};return c;
+  c.finish=(error=null)=>{if(c.done)return;c.error=error;c.done=true;c.result=error?null:{stopReason:'end_turn',...c.usage?{usage:c.usage}:{}};if(c.execution){const endedAt=new Date().toISOString();c.execution={...c.execution,endedAt,durationMs:Date.parse(endedAt)-Date.parse(c.execution.startedAt)};}resolve({error});};
+  c.extract=()=>{const {wait,text,add,recordUsage,start,finish,extract,...plain}=c;return {...plain,queue:[...events.values(),...[...tools.values()].flatMap(x=>[x.call,x.result].filter(Boolean))].sort((a,b)=>a.order-b.order).map(({order,...r})=>r)};};return c;
 }

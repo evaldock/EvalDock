@@ -36,7 +36,17 @@ export function subscribeQwen(sessionId,createCapture){
   const dispose=[
     window.desktopApi.onChatStreamChunk(owned(({chunk:e})=>{
       if(!e)return;
-      if(e.type==='message-parts-patch'){
+      if(e.type==='context-usage'){
+        // Qwen's native result snapshot carries API counters separately from its
+        // context estimate. Repeated snapshots replace one owned result, never sum.
+        // The client defaults absent API fields to zero; those zeroes stay unknown.
+        const api=e.usage?.apiUsage;
+        if(api&&typeof api==='object'){
+          const fields={inputTokens:'input_tokens',outputTokens:'output_tokens',totalTokens:'total_tokens',cacheReadTokens:'cache_read_input_tokens',cacheWriteTokens:'cache_creation_input_tokens'};
+          const counters=Object.fromEntries(Object.entries(fields).filter(([,k])=>typeof api[k]==='number'&&Number.isFinite(api[k])&&api[k]>0).map(([k,field])=>[k,api[field]]));
+          c.recordUsage('result:'+sessionId,counters,{source:'NATIVE_RESULT_API_USAGE',scope:'NATIVE_RESULT_SNAPSHOT',inputTokenBasis:'EXCLUDES_CACHE'});
+        }
+      }else if(e.type==='message-parts-patch'){
         for(const op of e.patch?.operations??[]){if(['append-parts','replace-parts'].includes(op.type))for(const p of op.parts??[])part(p);else if(op.type==='upsert-part')part(op.part);else if(op.type==='set-current-text'&&op.currentTextAcc)c.text(op.currentTextAcc);}
       }else if(e.type==='message-parts-snapshot'){for(const p of e.parts??[])part(p);if(e.currentTextAcc)c.text(e.currentTextAcc);}
       else if(e.type==='text-start'){if(currentText!==e.id){currentText=e.id;c.text('');}}
