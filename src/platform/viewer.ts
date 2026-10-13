@@ -393,7 +393,7 @@ async function serveRequest(
   }
   const target = request.url ?? "";
   // Fixed Case evidence paths only. No arbitrary filesystem or parent traversal route.
-  if (/^\/(report-data\.js|all-trace\/(manifest\.json|events\.jsonl|blobs\/[a-f0-9]{64})|output\/[^?#]+)$/.test(target)) {
+  if (/^\/(report\.json|report-data\.js|all-trace\/(manifest\.json|events\.jsonl|blobs\/[a-f0-9]{64})|output\/[^?#]+)$/.test(target)) {
     try {
       const relative = decodeURIComponent(target.slice(1));
       if (relative.split("/").some(part => part === ".." || part === "." || part === "") || relative.includes("\\")) throw new Error("Invalid evidence route");
