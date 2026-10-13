@@ -49,6 +49,26 @@ test('discovery alone does not establish evaluation readiness and keeps connect 
   const html=cards([],[{...installed,target:{appPath:installed.path}}]);
   assert.match(html,/data-connect="install-a"/);assert.doesNotMatch(html,/可评测|data-start/);
 });
+test('Claude cards bind each CLI or desktop label to its own version regardless of scan order',()=>{
+  const claude={kind:'claude',name:'Claude Code',format:'png',planned:true};
+  const cli={id:'cli',kind:'claude',type:'cli',version:'2.1.3'},desktop={id:'desktop',kind:'claude',type:'app',version:'0.9.7'};
+  const render=agents=>renderAgentCards({brands:[claude],targets:[{kind:'claude',evaluationReady:true,version:'wrong'}],discovery:{agents}});
+  for(const items of [[cli],[desktop],[cli,desktop],[desktop,cli]]){
+    const html=render(items);
+    for(const item of items)assert.match(html,new RegExp(`<strong>${item.type==='cli'?'Claude Code（CLI）':'Claude（桌面）'}</strong> · ${item.version.replaceAll('.','\\.')}`));
+    assert.match(html,/已发现 · 待适配/);assert.match(html,/data-scan/);assert.doesNotMatch(html,/wrong|可评测|data-start|data-connect|data-open-agent/);
+  }
+  assert.equal(render([cli,desktop]),render([desktop,cli]));
+  assert.match(render([]),/待安装/);assert.doesNotMatch(render([]),/2\.1\.3|0\.9\.7/);
+});
+test('Claude metadata failures stay discovered with an escaped reason and a rescan action',()=>{
+  const html=renderAgentCards({brands:[{kind:'claude',name:'Claude Code',format:'png',planned:true}],targets:[],discovery:{agents:[
+    {id:'desktop',kind:'claude',type:'app',version:null,metadataError:'无法读取应用元数据 <script>'},
+    {id:'cli',kind:'claude',type:'cli',version:'<version>',metadataError:null}
+  ]}});
+  assert.match(html,/Claude（桌面）<\/strong> · 版本未读取/);assert.match(html,/无法读取应用元数据 &lt;script&gt;/);assert.match(html,/&lt;version&gt;/);
+  assert.match(html,/已发现 · 待适配/);assert.match(html,/data-scan/);assert.doesNotMatch(html,/待安装|<script>|<version>|data-connect|data-start/);
+});
 test('small automatic evaluation accepts 1 to 3 cases and rejects invalid counts',()=>{
   for(const caseCount of [1,2,3,'1','2','3'])assert.deepEqual(appEvaluationConfig({mode:'FULL',selectionKind:'COUNT',caseCount}),{mode:'FULL',selection:{kind:'COUNT',caseCount:Number(caseCount)}});
   for(const caseCount of [0,4,-1,1.5,NaN,Infinity,'',undefined,null,true,[],{}])assert.throws(()=>appEvaluationConfig({mode:'FULL',selectionKind:'COUNT',caseCount}),/1–3/);

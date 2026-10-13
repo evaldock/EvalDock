@@ -39,7 +39,8 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
     let canonical;try{canonical=await realpath(location);}catch{return;}
     const key=def.kind+':'+canonical;if(found.has(key))return;
     const id=createHash('sha256').update(key).digest('hex').slice(0,20);
-    const item={id,kind:def.kind,name:def.name,path:location,resolvedPath:canonical,type,version:metadata.version??null,supported:!def.unsupported,evaluationReady:false,target:null};
+    const name=def.kind==='claude'?(type==='cli'?'Claude Code（CLI）':'Claude（桌面）'):def.name;
+    const item={id,kind:def.kind,name,path:location,resolvedPath:canonical,type,version:metadata.version??null,supported:!def.unsupported,evaluationReady:false,target:null};
     if(type==='app'&&def.bundle&&metadata.bundle===def.bundle)item.target={id:'local-'+def.kind,kind:def.kind,name:def.name,appPath:location};
     if(type==='cli'){
       const pkg=await packageAt(canonical);
@@ -50,6 +51,10 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
       }
       if(def.kind==='hermes')item.target={id:'local-hermes',kind:def.kind,name:def.name,sourceRoot:path.dirname(path.dirname(canonical)),executable:canonical,model:'deepseek-v4-flash'};
     }
+    if(def.kind==='claude'){
+      item.version=typeof item.version==='string'&&item.version.trim()?item.version.trim():null;
+      item.metadataError=metadata.metadataError??(item.version?null:type==='cli'?'无法从安装元数据读取 CLI 版本':'应用元数据未提供版本');
+    }
     // Installation discovery is distinct from transport, login and execution readiness.
     item.nextStep=def.unsupported?'已识别安装；评测适配器尚未接入':item.target?'可接入评测，接入后检查登录和运行条件':def.kind==='workbuddy'?'已发现应用，正在通过现有适配器检查连接':def.kind==='dsh'?'已识别 DSH，请在高级工作台检查 Web Profile':'已识别安装，仍需补充执行入口或安装路径配置';
     found.set(key,item);
@@ -57,8 +62,18 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
   for(const def of definitions){
     for(const root of appRoots)for(const name of def.apps??[]){
       const location=path.join(root,name);if(!await exists(location))continue;
-      try{const info=await readInfo(location);if(!info.CFBundleIdentifier)continue;await add(def,location,'app',{version:info.CFBundleShortVersionString,bundle:info.CFBundleIdentifier});}
-      catch{errors.push('无法读取 '+def.name+' 的应用信息');}
+      try{
+        if(def.kind==='claude'&&!(await stat(location)).isDirectory())continue;
+        const info=await readInfo(location);
+        if(!info.CFBundleIdentifier){
+          if(def.kind==='claude')await add(def,location,'app',{metadataError:'应用元数据缺少身份信息'});
+          continue;
+        }
+        await add(def,location,'app',{version:info.CFBundleShortVersionString,bundle:info.CFBundleIdentifier});
+      }catch{
+        errors.push('无法读取 '+def.name+' 的应用信息');
+        if(def.kind==='claude')await add(def,location,'app',{metadataError:'无法读取应用元数据'});
+      }
     }
     for(const bin of bins)for(const command of def.commands??[]){
       const location=path.join(bin,command);

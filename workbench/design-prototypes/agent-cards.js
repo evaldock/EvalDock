@@ -7,9 +7,20 @@ function matchesInstallation(target,installation) {
   return !!target.installRoot&&roots.includes(target.installRoot);
 }
 
+function claudeCard(brand,installed) {
+  const found=installed.length>0;
+  const names={cli:'Claude Code（CLI）',app:'Claude（桌面）'};
+  const types=new Set(installed.map(item=>item.type));
+  const title=types.size===1?(names[installed[0].type]??'Claude Code / Claude'):'Claude Code / Claude';
+  const entries=[...installed].sort((a,b)=>String(a.type).localeCompare(String(b.type))||String(a.id).localeCompare(String(b.id)));
+  const versions=entries.map(item=>`<p class="agent-installation"><strong>${esc(names[item.type]??item.name)}</strong> · ${esc(item.version??'版本未读取')}${item.metadataError?`<br><span>${esc(item.metadataError)}</span>`:''}</p>`).join('');
+  return `<article class="agent-card agent-card-claude ${found?'is-discovered':''}"><div class="agent-card-heading"><img src="assets/agents/${brand.kind}.${brand.format}" width="28" height="28" alt=""><h3>${esc(title)}</h3><span class="pill ${found?'discovered':''}">${found?'已发现 · 待适配':'待安装'}</span></div><p class="agent-description">评测适配器待接入</p>${versions}<div class="agent-card-footer"><span>${found?installed.length+' 个安装':'计划接入'}</span><div class="agent-card-actions"><button data-scan>重新扫描</button></div></div></article>`;
+}
+
 export function renderAgentCards({brands,targets,discovery,pendingConnections=new Set()}) {
   return brands.map(brand=>{
     const installed=discovery.agents.filter(d=>d.kind===brand.kind);
+    if(brand.kind==='claude')return claudeCard(brand,installed);
     const configured=targets.filter(t=>t.kind===brand.kind);
     const target=configured.find(t=>t.evaluationReady===true)??configured[0];
     const installation=target?installed.find(d=>matchesInstallation(target,d)):installed[0];
