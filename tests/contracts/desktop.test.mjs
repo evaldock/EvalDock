@@ -6,6 +6,10 @@ import path from 'node:path';
 import {importLibrary,prepareWorkspace,isBundledLibrary} from '../../desktop/workspace.mjs';
 import {appSummary} from '../../workbench/lib/app-summary.mjs';
 import {evaluationCatalog} from '../../workbench/lib/evaluation-config.mjs';
+import {ControlResults} from '../../workbench/lib/control-results.mjs';
+import {buildResult,serializeReportDocument,parseVerifiedReportDocument} from '../../dist/src/reporting/record.js';
+import {renderReportHtml} from '../../dist/src/reporting/html.js';
+import {createHash} from 'node:crypto';
 const repo=process.cwd();
 async function fixture(t){const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-desktop-'));t.after(()=>rm(root,{recursive:true,force:true}));await cp(path.join(repo,'dist'),path.join(root,'dist'),{recursive:true});await writeFile(path.join(root,'package.json'),'{"type":"module"}');await cp(path.join(repo,'datasets'),path.join(root,'datasets'),{recursive:true});return root;}
 test('desktop summary isolates offline Agent and retains other Agent records',async()=>{
@@ -45,6 +49,50 @@ test('first workspace setup and later code upgrades preserve user config, librar
  assert.equal(await readFile(path.join(root,'adapters/version.txt'),'utf8'),'second');assert.equal(await readFile(path.join(root,'config/version.txt'),'utf8'),'first');
  assert.deepEqual(await readFile(path.join(root,'config/agents.json')),config);assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),catalog);
  assert.equal(await readFile(path.join(root,'var/evaluation-results/receipt.json'),'utf8'),'synthetic result');
+});
+test('workspace upgrade preserves complete user files and readable historical scales, zero, unassessable and errors',async t=>{
+ const root=await fixture(t),source=path.join(root,'runtime');await mkdir(source);
+ for(const name of ['dist','adapters','workbench','labels','planning','trace','observer-lab','src','desktop','node_modules','config','datasets','environments'])await mkdir(path.join(source,name));
+ await mkdir(path.join(root,'config/targets'),{recursive:true});
+ await writeFile(path.join(root,'config/targets/real-dsh.json'),JSON.stringify({dshHome:path.join(root,'synthetic-home')}));
+ await writeFile(path.join(root,'config/agents.json'),'{"targets":[{"id":"synthetic-user-target"}]}');
+ await cp(path.join(repo,'desktop/empty-library'),path.join(source,'datasets'),{recursive:true});
+ await writeFile(path.join(source,'package.json'),'{"type":"module"}');
+ await writeFile(path.join(source,'adapters/version.txt'),'new-code');
+ const labelId='label.contract/v1',scale={min:0,max:10},targetId='synthetic-upgrade',runId='legacy-run';
+ const oldLabel={labelId,scoringStandard:{label:'Frozen legacy label',scoring_scale:scale}};
+ await writeFile(path.join(source,'labels/contract.json'),JSON.stringify({labelId,scoringStandard:{label:'New label',scoring_scale:{min:0,max:100}}}));
+ const runDirectory=path.join(root,'var/evaluation-results/agents',targetId,'runs',runId),caseResults=[];
+ for(const status of ['SCORED','UNASSESSABLE','ERROR']){
+  const caseId='synthetic-'+status.toLowerCase(),directory=path.join(runDirectory,'cases',caseId);await mkdir(directory,{recursive:true});
+  const scores=[{labelId,status,score:status==='SCORED'?0:null,reason:'Synthetic historical '+status,scale,evidenceIds:[],model:'synthetic',createdAt:'2026-01-01T00:00:00Z'}];
+  const record=buildResult({runId,scope:{runId,targetId,caseId},target:{agentKind:'pi'},case:{caseId,question:{title:caseId},task:'Synthetic old task',labelIds:[labelId]},labels:[oldLabel],scores,dimensions:[],timeline:[],artifacts:[],execution:{exitCode:0,durationMs:1,stdout:'Synthetic old result'},currentPhase:'REPORTED',runState:'COMPLETED',fixture:true,failures:[]},'synthetic-legacy');
+  await writeFile(path.join(directory,'report.json'),serializeReportDocument(record));
+  await writeFile(path.join(directory,'report.html'),renderReportHtml(record));
+  await mkdir(path.join(directory,'output'));await writeFile(path.join(directory,'output/result.txt'),'synthetic deliverable');
+  caseResults.push({caseId,datasetId:'synthetic-history',status:'COMPLETED',scores});
+ }
+ await writeFile(path.join(runDirectory,'run.json'),JSON.stringify({runId,targetId,status:'COMPLETED',caseResults}));
+ async function snapshot(){
+  const files={};
+  async function visit(relative){for(const entry of await readdir(path.join(root,relative),{withFileTypes:true})){
+   const file=path.join(relative,entry.name);if(entry.isDirectory())await visit(file);
+   else files[file]=createHash('sha256').update(await readFile(path.join(root,file))).digest('hex');
+  }}
+  for(const name of ['config','datasets','var'])await visit(name);return files;
+ }
+ const before=await snapshot();await prepareWorkspace(source,root);
+ assert.equal(await readFile(path.join(root,'adapters/version.txt'),'utf8'),'new-code');
+ assert.deepEqual(await snapshot(),before);
+ const view=await new ControlResults(root).get({targetId,runId,state:'SUCCEEDED',events:[]});
+ assert.deepEqual(view.run.scoreScale,scale);assert.equal(view.run.labelNames[labelId],'Frozen legacy label');
+ assert.deepEqual(view.run.cases.map(c=>c.scores[labelId].state),['scored','null','error']);
+ assert.deepEqual(view.run.cases.map(c=>c.scores[labelId].value),[0,null,null]);
+ for(const {caseId} of caseResults){
+  const record=parseVerifiedReportDocument(await readFile(path.join(runDirectory,'cases',caseId,'report.json'),'utf8'));
+  assert.deepEqual(record.scores[0].scale,scale);assert.ok(renderReportHtml(record).includes(caseId));
+ }
+ assert.deepEqual(await snapshot(),before,'reading old reports must not rewrite them');
 });
 test('a new workspace starts with zero tasks, empty Agent targets and no evaluation history',async t=>{
  const root=await fixture(t),source=path.join(root,'runtime'),fresh=path.join(root,'fresh');await mkdir(source);

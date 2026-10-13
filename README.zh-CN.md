@@ -79,7 +79,7 @@ EvalDock 用来测试不同 Agent，以及同一 Agent 在不同插件配置下�
 
 ### 选题与难度
 
-支持手动选题，或由 Planner 选择 3–10 个测试集、每集 3–7 题（不足 3 题取全部）。自动抽题以简单 20%、中等 40%、困难 40% 为目标比例。[抽题规则](planning/case-sampling.md)。
+支持手动或自动选题。Mac App 默认 `COUNT` 1，可选 1–3 题；已有 `STANDARD` 标准模式由 Planner 选择 3–10 个测试集、每集 3–7 题（不足 3 题取全部），最多 70 题。标准抽题以简单 20%、中等 40%、困难 40% 为目标比例。[抽题规则](planning/case-sampling.md) · [Mac App 选题](docs/MAC_APP.md#首次运行)。
 
 ### Trace 采集
 
@@ -102,7 +102,7 @@ Probe 在事件发生或任务结束时采集证据，合并重复消息并限�
 
 ## 已接入的 Agent
 
-目前已有 8 类 Agent 适配器，Codex 和 Claude Code 列入后续接入计划。
+目前已有 8 类 Agent 适配器。Mac App 可发现 Codex、Claude 的安装，它们的评测适配器仍在后续接入计划中。发现安装、接口就绪和实际评测完成是不同状态。
 
 Agent 需要单独安装和配置。应用身份、代码允许版本、公开验收状态与限制统一见[Agent 支持情况](adapters/SUPPORT.md)。适配器已实现、版本检查通过和真实任务验收通过是不同状态；升级后需重新验证。
 
@@ -129,11 +129,12 @@ LangGraph 的示例目标包括 DeepAgents 和 Agent Service Toolkit。插件选
 
 ## 部署与数据集
 
-现在可通过源码安装运行 EvalDock，Docker 打包仍在准备中。
+现在可运行源码工作台或在本机构建 Mac App。当前 App 构建使用临时签名，Developer ID、公证和干净安装验收仍待完成；Docker 打包仍在准备中。
 
 | 方式 | 状态 | 指南 |
 | --- | --- | --- |
 | macOS 源码 | 可用 | [安装与首次评测](docs/NATIVE_SETUP.md) |
+| Mac App 本机构建 | 已有构建及合成检查，正式发行待完成 | [构建与验收边界](docs/MAC_APP.md) |
 | Docker / Compose | 尚未发布 | [打包进度](docs/RELEASE.md) |
 
 安装后：
@@ -148,9 +149,9 @@ Docker 方案将工作台和评分服务放在容器内，由 Agent 所在机器
 
 [基础模板](examples/datasets/minimal/)只有一道题：读取 JSON 中的数字，计算总和，将结果写入文件。它用来检查安装和评测流程，也可以作为自制题目的起点。
 
-默认 `datasets/` 使用该模板的演示题；未导入外部题库时只有这一题可供选择。仍需按[安装指南](docs/NATIVE_SETUP.md)配置 Agent、运行依赖及所需模型服务。
+源码默认 `datasets/` 使用该模板的演示题；未导入外部题库时源码环境只有这一题可供选择。Mac App 首次题库为 0 题，升级保留已有题库。仍需按[安装指南](docs/NATIVE_SETUP.md)配置 Agent、运行依赖及所需模型服务。
 
-公开任务包已在 [BenchDock](https://huggingface.co/datasets/EvalDock/BenchDock) 提供。按[接入指南](docs/BENCHDOCK.md)导入明确选择的三题试点。尚不提供工作台自动下载或全题库运行保证；历史运行结果留在本地，可能包含私有评分材料。
+公开任务包已在 [BenchDock](https://huggingface.co/datasets/EvalDock/BenchDock) 提供。源码试点按[接入指南](docs/BENCHDOCK.md)导入明确选择的三题。Mac App 已支持校验后导入文件夹/ZIP，以及从固定版本目录下载所选公开子集；单独的源码工作台不提供这些桌面下载服务。目录可获取不代表全题库已经通过运行验收；历史运行结果留在本地，可能包含私有评分材料。
 
 ```text
 datasets/

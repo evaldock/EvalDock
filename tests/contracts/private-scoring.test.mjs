@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {cp,readFile,writeFile,access,open,symlink} from 'node:fs/promises';
+import {cp,readFile,writeFile,access,open,symlink,readdir} from 'node:fs/promises';
 import {temporary,question,json,judgeInput,trace} from './support.mjs';
 import {fixtureCompatibilityService} from './compatibility-fixture.mjs';
 import {loadDatasetCase} from '../../dist/src/datasets/loader.js';
@@ -17,6 +17,14 @@ import {importLibrary} from '../../desktop/workspace.mjs';
 import {renderDatasets} from '../../workbench/design-prototypes/product-pages.js';
 
 const secret='SYNTHETIC_PRIVATE_ASSESSMENT_SENTINEL';
+async function assertPublicWorkspace(directory){
+  for(const entry of await readdir(directory,{withFileTypes:true})){
+    assert.ok(!entry.isSymbolicLink(),'Agent task files must not link to the private library');
+    const file=path.join(directory,entry.name);
+    if(entry.isDirectory())await assertPublicWorkspace(file);
+    else assert.ok(!(await readFile(file)).includes(Buffer.from(secret)),entry.name+' contains private reference material');
+  }
+}
 async function library(t){
   const root=await temporary(t),{dir,q}=await question(path.join(root,'datasets'));
   q.grading={reference:'private/final.json',criteria:[{prompt:secret}],weight:2};q.evidence={privateGuidance:secret};
@@ -61,12 +69,16 @@ test('private library execution gives the adapter public task data and the Judge
   const adapter={kind:'pi',targetId:'private-fixture',name:'Synthetic adapter',inspect:async()=>({evaluationReady:true,version:'fixture',installRoot:root,limitations:[]}),prepare:async()=>({}),dispose:async()=>{},trace:{kind:'pi',sourceType:'PI_PROBE',externalSchema:'fixture/v1',blindSpots:[],normalizeEvent:(r,sessionId,seq)=>({at:r.at,kind:'agent/events',data:{sessionId,event:{...r.event,seq}},provenance:{channel:'fixture'}})},run:async({cwd,caseData,prompt})=>{
     assert.ok(!JSON.stringify(caseData).includes(secret));assert.ok(!prompt.includes(secret));await assert.rejects(access(path.join(cwd,'private/final.json')));
     assert.equal(await readFile(path.join(cwd,'input/data.txt'),'utf8'),'public input 1');
+    await assertPublicWorkspace(cwd);
     return {sessionId:'fixture.session',queue:[],seen:0,final:'Synthetic result',error:null,cleanup:'CONFIRMED',result:{stopReason:'end_turn'}};
   }};
   const result=await runEvaluation({root,runId:'private-score',adapter,compatibilityService:fixtureCompatibilityService,onProgress:()=>{},evaluationConfig:{mode:'FULL',selection:{kind:'SELECTED',items:[{datasetId:'dataset.example/v1',caseIndices:[0]}]}},judgeFactory:()=>({evaluate:async input=>{calls++;assert.equal(input.case.grading.reference.answer,secret);assert.equal(input.evaluationMode,'FULL');return parseLabelScore('{"status":"SCORED","score":0,"reason":"Synthetic zero result","evidence_ids":[]}',input,'fixture');}})});
   assert.equal(result.status,'COMPLETED');assert.equal(calls,1);assert.equal(result.dimensions[0].score,0);
   const file=path.join(root,'var/evaluation-results/agents/private-fixture/runs/private-score/cases/example.case-1/report.json');
   assert.ok(!(await readFile(file,'utf8')).includes(secret));assert.equal(JSON.parse(await readFile(file,'utf8')).scores[0].labelId,label.labelId);
+  assert.ok(!(await readFile(path.join(path.dirname(file),'report.html'),'utf8')).includes(secret));
+  const view=await new ControlResults(root).get({targetId:'private-fixture',runId:'private-score',state:'SUCCEEDED',events:[]});
+  assert.ok(!JSON.stringify(view).includes(secret));assert.equal(view.run.cases[0].scores[label.labelId].value,0);
 });
 
 test('old private records remain immutable while JSON, HTML and workbench views omit assessment material',async t=>{
@@ -78,8 +90,11 @@ test('old private records remain immutable while JSON, HTML and workbench views 
   const before=await readFile(file,'utf8');const projected=publicReportDocument(legacy);assert.ok(!JSON.stringify(projected).includes(secret));assert.deepEqual(projected.sourceReportDigest,legacy.contentDigest);
   const results=new ControlResults(root);assert.ok(!JSON.stringify(await results.get({targetId:'agent',runId:'run',state:'SUCCEEDED',events:[]})).includes(secret));
   const inert={active:false,jobs:{jobs:new Map()},status:async()=>({jobs:[],runs:[],targets:[]})};
-  const {server}=await startControlServer({root,port:0,controller:inert,workbuddyController:inert,agentControllers:{},modelSettingsFile:path.join(root,'models.env')});t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const {server}=await startControlServer({root,port:0,controller:inert,workbuddyController:inert,agentControllers:{},modelSettingsFile:path.join(root,'models.env'),agentModelSettings:{init:async()=>{},get:async()=>({keyConfigured:false})}});t.after(()=>new Promise(resolve=>server.close(resolve)));
   const url='http://127.0.0.1:'+server.address().port+'/reports/agent/run/cases/case/report.';
+  const catalogResponse=await fetch('http://127.0.0.1:'+server.address().port+'/api/control/evaluation-catalog');
+  assert.equal(catalogResponse.status,200);const catalog=await catalogResponse.json();
+  assert.equal(catalog.scoring.readyCases,1);assert.ok(!JSON.stringify(catalog).includes(secret));
   for(const extension of ['json','html']){const response=await fetch(url+extension);assert.equal(response.status,200);assert.ok(!(await response.text()).includes(secret));}
   assert.equal(await readFile(file,'utf8'),before);assert.equal(await readFile(htmlFile,'utf8'),secret);
 });

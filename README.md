@@ -78,7 +78,7 @@ The diagram uses DSH as an example. The current code supports the eight agent ty
 
 ### Task selection
 
-Select cases manually or let the Planner choose 3–10 datasets, with 3–7 cases each (all cases if fewer than three). Automatic sampling targets 20% easy, 40% medium, and 40% hard cases. [Selection rules](planning/case-sampling.md).
+Select cases manually or use automatic selection. The Mac App defaults to `COUNT` 1 and allows 1–3 cases. The existing `STANDARD` mode lets the Planner choose 3–10 datasets, with 3–7 cases each (all cases if fewer than three), up to 70 cases. Standard sampling targets 20% easy, 40% medium, and 40% hard cases. [Selection rules](planning/case-sampling.md) · [Mac App selection](docs/MAC_APP.md#首次运行).
 
 ### Trace collection
 
@@ -101,7 +101,7 @@ A dimension with insufficient evidence is marked `UNASSESSABLE`. Judge request o
 
 ## Supported agents
 
-Eight agents currently have adapters. Codex and Claude Code are planned additions.
+Eight agents currently have adapters. Codex and Claude have installation discovery in the Mac App; their evaluation adapters remain planned additions. Discovery, interface readiness and completed evaluation are separate states.
 
 Agents must be installed and configured separately. See the shared [support and validation record](adapters/SUPPORT.md) for application identities, allowed versions, public validation status and limitations. An implemented adapter, a passing version check and a validated real task are distinct states. Revalidation is required after upgrades.
 
@@ -128,11 +128,12 @@ Adapter notes: [shared interface](adapters/README.md) · [OpenClaw](adapters/ope
 
 ## Setup and datasets
 
-Choose the source setup to run EvalDock today. Docker packaging is still in preparation.
+Use the source workbench or build the Mac App locally. The current App build uses an ad-hoc signature; Developer ID, notarization and clean installation validation remain pending. Docker packaging is still in preparation.
 
 | Option | Status | Guide |
 | --- | --- | --- |
 | macOS source | Available | [Installation and first run](docs/NATIVE_SETUP.md) |
+| Mac App local build | Build and synthetic checks available; formal distribution pending | [Build and validation boundaries](docs/MAC_APP.md) |
 | Docker / Compose | Not released | [Packaging progress](docs/RELEASE.md) |
 
 After installation:
@@ -147,9 +148,9 @@ The Docker plan keeps the workbench and scoring services in a container, with a 
 
 The [basic template](examples/datasets/minimal/) contains one task: read numbers from JSON, calculate their sum, and write the result to a file. Use it to check the setup and evaluation flow, or as a starting point for your own cases.
 
-The default `datasets/` uses this demo; without external imports, it is the only task available for selection. Follow the [setup guide](docs/NATIVE_SETUP.md) to configure the Agent, runtime dependencies and required model services.
+The source checkout's default `datasets/` uses this demo; without external imports, it is the only task available for selection there. The Mac App starts with zero tasks and retains existing libraries on upgrade. Follow the [setup guide](docs/NATIVE_SETUP.md) to configure the Agent, runtime dependencies and required model services.
 
-Public task packages are available from [BenchDock](https://huggingface.co/datasets/EvalDock/BenchDock). Use the [integration guide](docs/BENCHDOCK.md) for an explicit three-task pilot. Workbench import automation and full-collection runtime coverage are not provided. Existing result artifacts remain local and may include sensitive evaluator material.
+Public task packages are available from [BenchDock](https://huggingface.co/datasets/EvalDock/BenchDock). Use the [integration guide](docs/BENCHDOCK.md) for an explicit three-task source pilot. The Mac App supports validated folder/ZIP import and downloads of selected public subsets from a pinned catalog; the source workbench alone does not provide those desktop download services. Catalog availability does not establish full-collection runtime coverage. Existing result artifacts remain local and may include sensitive evaluator material.
 
 ```text
 datasets/
