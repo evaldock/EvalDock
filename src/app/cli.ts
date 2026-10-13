@@ -516,7 +516,9 @@ export async function runCli(
 
 /** 进程入口：stderr 接收诊断，stdout 恰好写一条 JSON，并返回约定退出码。 */
 export async function main(argv = process.argv.slice(2)): Promise<number> {
-  if(argv.length===1 && ["help","--help","-h"].includes(argv[0]!)){
+  // 帮助入口单独处理一个分隔符；普通命令仍由 runCli 解析原始参数。
+  const helpArgs = argv[0] === "--" ? argv.slice(1) : argv;
+  if(helpArgs.length===1 && ["help","--help","-h"].includes(helpArgs[0]!)){
     process.stdout.write(JSON.stringify({command:"help",commands:["inspect","plan","run","report"],
       usage:"pnpm cli -- run --target config/targets/real-dsh.json --config config/macos-vm.json --dataset-count 4 --case-count 10",
       workbench:"pnpm workbench",documentation:"README.md"})+"\n");
