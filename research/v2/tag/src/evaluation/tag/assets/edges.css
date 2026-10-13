@@ -1,0 +1,9 @@
+/* Relation patterns are presentation only; evidenceStatus remains in the graph. */
+.edge.sequence{stroke:#98a7af;stroke-width:2.5;stroke-dasharray:2 12;stroke-linecap:round;opacity:.52}
+.edge.cross-group:not(.hypothesis){stroke-dasharray:17 11;stroke-width:3;opacity:.66}
+.edge.hypothesis{stroke:#b18a4f;stroke-dasharray:6 8;stroke-width:2.8;opacity:.78}
+.edge.selected{opacity:1;stroke-width:4.5}
+.edge.dim{opacity:.09}
+.legend .line.sequence{height:2px;border:0;background:repeating-linear-gradient(to right,#98a7af 0 2px,transparent 2px 6px)}
+.legend .line.cross-group-key{height:2px;border:0;background:repeating-linear-gradient(to right,#4c896a 0 9px,transparent 9px 14px)}
+.legend .line.candidate{border-top-style:dashed;border-color:#b18a4f}

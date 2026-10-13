@@ -1,0 +1,4 @@
+# Local outputs from explicitly invoked reference experiments.
+**/var/
+**/dist/
+**/node_modules/

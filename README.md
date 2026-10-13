@@ -194,6 +194,8 @@ Back up the complete result directory. If you use VM snapshots, copy results out
 
 </details>
 
+V2 reference source for the [small-sample estimator and TAG graph](research/v2/README.md) is available separately. These unadapted snapshots are not called by the application or included in its normal build.
+
 ## Development
 
 These commands are for building and testing the source. They are not Docker installation steps.

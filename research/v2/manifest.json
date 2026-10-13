@@ -1,0 +1,137 @@
+{
+  "schema": "evaldock.v2-reference-snapshot/v1",
+  "capturedOn": "2026-10-13",
+  "status": "REFERENCE_ONLY_NOT_INTEGRATED",
+  "preservation": "Source files are copied byte-for-byte; internal import paths and original tests are not adapted. No runtime entry points are registered.",
+  "modules": [
+    {
+      "name": "tag",
+      "sourceCommit": "07016effcd00e03b7b2f823c337768fa7b0f44c5",
+      "sourceFilesMatchCommit": true,
+      "files": [
+        {
+          "path": "tag/src/evaluation/tag/assets/app.js",
+          "sourcePath": "src/evaluation/tag/assets/app.js",
+          "sha256": "e3c0905a40439bac8c11b29e551b5a348956235aa0130e0e8aaac73bdee3aaea"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/context.css",
+          "sourcePath": "src/evaluation/tag/assets/context.css",
+          "sha256": "80c8c04df30ca5b5db87adb223e2f8eb92b2cb1f9f72d57e7d07f7022767b0ab"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/context.js",
+          "sourcePath": "src/evaluation/tag/assets/context.js",
+          "sha256": "8b2bab01281ddc58f1f07b0bab4b8fbf2c7dd950fc4879000d97bf9c46c9da41"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/edges.css",
+          "sourcePath": "src/evaluation/tag/assets/edges.css",
+          "sha256": "7f6af8b0be7a2ceb13a2b8c7362575660409e1d0762a3a98792ccab86db0139d"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/layout.js",
+          "sourcePath": "src/evaluation/tag/assets/layout.js",
+          "sha256": "4a9c0d188422ad5f9a56d18e9ab2d9e77e0adcc813c61ac4f8309811e8828e25"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/simple-ui.js",
+          "sourcePath": "src/evaluation/tag/assets/simple-ui.js",
+          "sha256": "c1796fa5c18af37e085e091a062b13cf55c5e2a1d884a32d56491f6cc3482222"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/style.css",
+          "sourcePath": "src/evaluation/tag/assets/style.css",
+          "sha256": "417a577987f9866d4cc6da8cc81925687c32a4aa597dee64c190c828ecb41267"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/template.html",
+          "sourcePath": "src/evaluation/tag/assets/template.html",
+          "sha256": "5bc5edcc926469589cf5e9f04708ce89b03d8b11c9c566098eb16996a07a8ce5"
+        },
+        {
+          "path": "tag/src/evaluation/tag/assets/workbench-theme.css",
+          "sourcePath": "src/evaluation/tag/assets/workbench-theme.css",
+          "sha256": "81df92074db3eabccf3efaca62eb7222b702fe1e0b5e12d34d5e42bcbede9124"
+        },
+        {
+          "path": "tag/src/evaluation/tag/graph.ts",
+          "sourcePath": "src/evaluation/tag/graph.ts",
+          "sha256": "cddf27f6d7a2f64b0ca7cd1b561f07548959cf81df6441d05496a73204913e2c"
+        },
+        {
+          "path": "tag/src/evaluation/tag/grouping.ts",
+          "sourcePath": "src/evaluation/tag/grouping.ts",
+          "sha256": "46c61e49e0919a71bd23ae53bba426bbe00d0d49e4c6d7aa799a310d3d5f5352"
+        },
+        {
+          "path": "tag/src/evaluation/tag/judge.ts",
+          "sourcePath": "src/evaluation/tag/judge.ts",
+          "sha256": "02f2b2b86115d260b8be45ae20c13d9807b419fb94d4f7fcdc24caea58d6382d"
+        },
+        {
+          "path": "tag/src/evaluation/tag/pipeline.ts",
+          "sourcePath": "src/evaluation/tag/pipeline.ts",
+          "sha256": "0264c18e27396100e1604c1545a1b3516ec5a2681ddff3557eeb7e0dd82c18be"
+        },
+        {
+          "path": "tag/scripts/copy-tag-assets.mjs",
+          "sourcePath": "scripts/copy-tag-assets.mjs",
+          "sha256": "26bcec77cba88f12a2971e96e5cecd0607e772ca866adca076f561266e770e9a"
+        },
+        {
+          "path": "tag/tests/contracts/tag-evaluation.test.mjs",
+          "sourcePath": "tests/contracts/tag-evaluation.test.mjs",
+          "sha256": "af60de92087ba37d1334fbe14914e838414907d6dfec64406919eaea272fb052"
+        }
+      ]
+    },
+    {
+      "name": "score-estimator",
+      "sourceCommit": "acae5a8411385b7bd3bf081ba781aa3f4cfa56b4",
+      "sourceFilesMatchCommit": true,
+      "files": [
+        {
+          "path": "score-estimator/tools/score-estimator/calibration.mjs",
+          "sourcePath": "tools/score-estimator/calibration.mjs",
+          "sha256": "c300af0b52bfff29f173374eb486ffe6c8093a644d0e3aec3b7ce0d08a3ae12b"
+        },
+        {
+          "path": "score-estimator/tools/score-estimator/cli.mjs",
+          "sourcePath": "tools/score-estimator/cli.mjs",
+          "sha256": "295d376a9f020907b4a269a5d58ce47bde6f1050ab7e2c6b506f0353efc0b78b"
+        },
+        {
+          "path": "score-estimator/tools/score-estimator/data.mjs",
+          "sourcePath": "tools/score-estimator/data.mjs",
+          "sha256": "a39091073e36f7c8d26f5e81af3294890b499432d754673926451f958497b5b6"
+        },
+        {
+          "path": "score-estimator/tools/score-estimator/model.mjs",
+          "sourcePath": "tools/score-estimator/model.mjs",
+          "sha256": "6ec37bae5fccc2f384659c3b146fd363579e928e5f9dd9572caa8cf2f379e47d"
+        },
+        {
+          "path": "score-estimator/tools/score-estimator/policy.mjs",
+          "sourcePath": "tools/score-estimator/policy.mjs",
+          "sha256": "ee5bc64f76ebb89a171a67964ef15aef28c58d3e0c9d22ce74c18a9cf162fc45"
+        },
+        {
+          "path": "score-estimator/tools/score-estimator/synthetic.mjs",
+          "sourcePath": "tools/score-estimator/synthetic.mjs",
+          "sha256": "ade6485064e30f46e37fcec3c4f9ffb9c887941e95bbf940bae441e7b070184a"
+        },
+        {
+          "path": "score-estimator/docs/SCORE_ESTIMATOR.md",
+          "sourcePath": "docs/SCORE_ESTIMATOR.md",
+          "sha256": "89b6887b32791c6a6025737dae130a42a498155e7a32a430b56c29a28a573b6a"
+        },
+        {
+          "path": "score-estimator/tests/contracts/score-estimator.test.mjs",
+          "sourcePath": "tests/contracts/score-estimator.test.mjs",
+          "sha256": "aa3f425cc0f512cdf6b3ce624ba1f12c9e528b44f14a6c53ca6a49ee286156cd"
+        }
+      ]
+    }
+  ]
+}

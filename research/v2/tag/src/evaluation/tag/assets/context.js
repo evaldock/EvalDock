@@ -1,0 +1,47 @@
+// Separate read-only evidence overlay. Does not change TAG facts or assessments.
+const CX=JSON.parse(document.getElementById('context-data').textContent);
+const ctxItems=new Map(CX.items.map(x=>[x.id,x]));
+const ctxCats={system:['系统消息','#8b91aa'],definitions:['工具定义','#7fa9cf'],user:['用户角色消息','#b8abd1'],assistant:['Agent 历史消息','#d5b081'],tool:['工具返回','#79b1aa']};
+let ctxChartMode='composition';
+let ctxAt=0,ctxCategory='all',ctxOnlyNew=false,ctxTimer=null;
+const ctxRoot=document.createElement('section');ctxRoot.className='context-replay';ctxRoot.id='contextReplay';
+ctxRoot.innerHTML=`<div class="ctx-head"><h2>上下文回放 <span style="font-size:14px;color:#718277">${CX.frames.length} 个模型步骤</span></h2><button id="ctxToggle">收起</button></div><div id="ctxBody"><div class="ctx-controls"><button id="ctxPrev" aria-label="上一个上下文步骤">←</button><button id="ctxPlay">播放</button><button id="ctxNext" aria-label="下一个上下文步骤">→</button><input id="ctxRange" aria-label="上下文步骤" type="range" min="1" max="${CX.frames.length}" value="1"><strong id="ctxCurrent"></strong><button id="ctxLocate">定位 TAG 动作 ↗</button><div class="ctx-mode" role="group" aria-label="柱状图口径"><button data-ctx-mode="composition" class="active">归档内容 · 字符</button><button data-ctx-mode="tokens">输入用量 · Token</button></div></div><div class="ctx-chart-toolbar"><span id="ctxAxis"></span></div><div class="ctx-chart" id="ctxChart" role="group" aria-label="逐步历史内容分类柱状图"></div><div class="ctx-selection-summary"><strong id="ctxBrief"></strong><span id="ctxScope"></span></div><div id="ctxBreakdown" class="ctx-breakdown"></div><details id="ctxDetails" class="ctx-details"><summary id="ctxDetailTitle">原始记录</summary><div id="ctxHistory"><div class="ctx-record-filter"><span id="ctxFilterLabel"></span><button id="ctxClearFilter">清除分类筛选</button><label><input id="ctxOnlyNew" type="checkbox"> 仅本步新增</label></div><p id="ctxDiff" class="ctx-note"></p><div class="ctx-evidence" id="ctxEvidence"></div></div><div id="ctxTokenEvidence" hidden><p class="ctx-note">来自本步 assistant/message 的 usage。输入合计 = inputTokens + cacheReadTokens；缓存与非缓存是用量分类，不是消息分类。</p><pre id="ctxUsage"></pre><button id="ctxUsageSource">查看 TAG 用量原记录 ↗</button></div></details></div>`;
+document.querySelector('.workspace').before(ctxRoot);
+function ctxMark(){document.querySelectorAll('#nodeLayer [data-node]').forEach(el=>el.classList.toggle('context-linked',CX.frames[ctxAt].actionIds.includes(el.dataset.node)));}
+function ctxHistoryRender(){const f=CX.frames[ctxAt],all=f.historyIds.map(id=>ctxItems.get(id));
+ const list=all.filter(x=>(ctxCategory==='all'||x.category===ctxCategory)&&(!ctxOnlyNew||f.newHistoryIds.includes(x.id)));
+ $('ctxFilterLabel').textContent=`${ctxCategory==='all'?'全部分类':ctxCats[ctxCategory][0]} · ${list.length} 条记录`;
+ $('ctxClearFilter').hidden=ctxCategory==='all';
+ $('ctxDiff').textContent=ctxOnlyNew?'仅展示相对上一步新增的归档记录。':'展示本步之前已归档的记录；不能据此确认实际请求保留、删除或压缩了哪些内容。';
+ $('ctxEvidence').innerHTML=list.map(x=>`<details class="ctx-item"><summary>#${x.recordIndex} · ${esc(ctxCats[x.category][0])} · ${x.chars.toLocaleString()} 字符 ${f.newHistoryIds.includes(x.id)?' · 新增':''}</summary><pre>${esc(x.content)}</pre><button data-ctx-source="${x.id}">查看 TAG 原记录 ↗</button><p class="ctx-note">trace.json ${esc(x.sourcePointer)}</p></details>`).join('')||'<p>此范围没有对应记录。</p>';
+}
+function ctxCounts(f){const totals=Object.fromEntries(Object.keys(ctxCats).map(k=>[k,0]));for(const id of f.historyIds){const item=ctxItems.get(id);totals[item.category]+=item.chars;}return totals;}
+function ctxChartRender(){const composition=ctxChartMode==='composition',totals=CX.frames.map(ctxCounts),sizes=CX.frames.map((f,i)=>composition?Object.values(totals[i]).reduce((a,b)=>a+b,0):f.inputTotal),max=Math.max(1,...sizes.map(x=>x??0));
+ $('ctxAxis').textContent=composition?`已归档历史 · 字符量 · 统一刻度 0–${max.toLocaleString()}`:`输入用量 · Token · 统一刻度 0–${max.toLocaleString()}`;
+ document.querySelectorAll('[data-ctx-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.ctxMode===ctxChartMode);b.setAttribute('aria-pressed',String(b.dataset.ctxMode===ctxChartMode));});
+
+ $('ctxChart').setAttribute('aria-label',composition?'逐步已归档历史内容分类柱状图':'逐步输入 Token 柱状图');
+ $('ctxChart').innerHTML=CX.frames.map((f,j)=>{const total=sizes[j],unit=composition?'字符':'Token';const segments=composition?Object.entries(ctxCats).filter(([k])=>totals[j][k]>0).map(([k,[label,color]])=>`<i data-ctx-segment="${k}" style="height:${totals[j][k]/total*100}%;background:${color}" title="步骤 ${f.step} · ${esc(label)} · ${totals[j][k].toLocaleString()} 字符 · ${(totals[j][k]/total*100).toFixed(1)}%"></i>`).join(''):!f.usage?'':`<i class="ctx-input" style="height:${f.usage.inputTokens/total*100}%" title="非缓存输入 · ${f.usage.inputTokens.toLocaleString()} Token · ${(f.usage.inputTokens/total*100).toFixed(1)}%"></i><i class="ctx-cache" style="height:${f.usage.cacheReadTokens/total*100}%" title="缓存读取 · ${f.usage.cacheReadTokens.toLocaleString()} Token · ${(f.usage.cacheReadTokens/total*100).toFixed(1)}%"></i>`;
+ return `<button class="ctx-col ${j===ctxAt?'active':''}" data-ctx-frame="${j}" aria-label="步骤 ${f.step}，${composition?'已归档历史':'输入合计'} ${total} ${unit}" aria-pressed="${j===ctxAt}" title="步骤 ${f.step} · ${(total==null?'未采集':total.toLocaleString())} ${unit}"><div class="ctx-stack-space"><div class="ctx-stack" style="height:${total/max*100}%">${segments}</div></div><span>${f.step}</span></button>`;}).join('');
+ const f=CX.frames[ctxAt],selectedTotals=totals[ctxAt],sum=sizes[ctxAt];
+ $('ctxBrief').textContent=`步骤 ${f.step} · ${(sum==null?'未采集':sum.toLocaleString())} ${composition?'归档字符':'输入 Token'}`;
+ $('ctxScope').textContent=composition?'按归档历史统计，不等于实际发送上下文。':'真实 usage；未采集按消息分类的 Token 明细。';
+ $('ctxHistory').hidden=!composition;$('ctxTokenEvidence').hidden=composition;
+ $('ctxDetailTitle').textContent=composition?'原始记录':'用量原始记录';
+ $('ctxBreakdown').classList.toggle('token-breakdown',!composition);
+ $('ctxBreakdown').innerHTML=composition?Object.entries(ctxCats).map(([k,[label,color]])=>`<button data-ctx-category="${k}" aria-pressed="${ctxCategory===k}" class="${ctxCategory===k?'active':''}" style="--category-color:${color}" title="查看本步${label}原始记录"><span><i style="background:${color}"></i>${esc(label)}</span><b>${selectedTotals[k].toLocaleString()} <small>字符</small></b></button>`).join(''):!f.usage?'<span>本步未采集用量</span>':[['缓存读取',f.usage.cacheReadTokens,'#7fa9cf'],['非缓存输入',f.usage.inputTokens,'#d5b081']].map(([label,value,color])=>`<div class="ctx-token-card" style="--category-color:${color}"><span><i style="background:${color}"></i>${label}</span><b>${value.toLocaleString()} <small>Token</small></b></div>`).join('');
+}
+function ctxSelect(i,locate=false){ctxAt=Math.max(0,Math.min(CX.frames.length-1,i));const f=CX.frames[ctxAt];$('ctxRange').value=ctxAt+1;$('ctxCurrent').textContent=`步骤 ${f.step} / ${CX.frames.length}`;ctxChartRender();
+ $('ctxUsage').textContent=JSON.stringify({record:'#'+f.recordIndex,pointer:f.sourcePointer,usage:f.usage},null,2);ctxHistoryRender();ctxMark();if(locate)ctxLocate();}
+function ctxLocate(){const f=CX.frames[ctxAt],id=f.actionIds[0]||f.nodeId;if(!positions.has(id))document.querySelector('[data-view="records"]').click();selectNode(id);focusNode(id);ctxMark();document.querySelector('.canvas-shell').scrollIntoView({behavior:'smooth',block:'start'});}
+function contextSelectNode(id){const f=CX.frames.find(x=>x.nodeId===id||x.actionIds.includes(id)||x.actionIds.some(a=>pairs.get(a)===id));if(f){ctxSelect(CX.frames.indexOf(f));const button=document.createElement('button');button.textContent='查看此步上下文 ↗';button.className='context-open-step';button.onclick=()=>{$('ctxBody').hidden=false;$('ctxToggle').textContent='收起';ctxRoot.scrollIntoView({behavior:'smooth',block:'start'});};$('detail').prepend(button);}}
+$('ctxPrev').onclick=()=>ctxSelect(ctxAt-1);$('ctxNext').onclick=()=>ctxSelect(ctxAt+1);$('ctxRange').oninput=e=>ctxSelect(+e.target.value-1);$('ctxLocate').onclick=ctxLocate;
+$('ctxToggle').onclick=()=>{$('ctxBody').hidden=!$('ctxBody').hidden;$('ctxToggle').textContent=$('ctxBody').hidden?'展开':'收起';};
+$('ctxClearFilter').onclick=()=>{ctxCategory='all';ctxHistoryRender();ctxChartRender()};
+$('ctxUsageSource').onclick=()=>ctxJump(CX.frames[ctxAt].nodeId);
+$('ctxOnlyNew').onchange=e=>{ctxOnlyNew=e.target.checked;ctxHistoryRender()};
+$('ctxPlay').onclick=()=>{if(ctxTimer){clearInterval(ctxTimer);ctxTimer=null;$('ctxPlay').textContent='播放';return;}if(ctxAt===CX.frames.length-1)ctxSelect(0);$('ctxPlay').textContent='暂停';ctxTimer=setInterval(()=>{if(ctxAt===CX.frames.length-1){$('ctxPlay').click();return;}ctxSelect(ctxAt+1);},1300)};
+function ctxJump(id){if(!positions.has(id))document.querySelector('[data-view="records"]').click();selectNode(id,'raw');focusNode(id);document.querySelector('.canvas-shell').scrollIntoView({behavior:'smooth',block:'start'});}
+ctxRoot.addEventListener('click',e=>{const m=e.target.closest('[data-ctx-mode]');if(m){ctxChartMode=m.dataset.ctxMode;ctxChartRender();return;}const f=e.target.closest('[data-ctx-frame]');if(f){ctxSelect(+f.dataset.ctxFrame);return;}const c=e.target.closest('[data-ctx-category]');if(c){ctxCategory=ctxCategory===c.dataset.ctxCategory?'all':c.dataset.ctxCategory;$('ctxDetails').open=true;ctxHistoryRender();ctxChartRender();return;}const source=e.target.closest('[data-ctx-source]');if(source)ctxJump(source.dataset.ctxSource);});
+new MutationObserver(ctxMark).observe($('nodeLayer'),{childList:true});
+window.contextDebug={data:CX,select:ctxSelect,get current(){return ctxAt}};ctxSelect(0);
