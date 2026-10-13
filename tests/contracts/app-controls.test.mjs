@@ -49,6 +49,44 @@ test('discovery alone does not establish evaluation readiness and keeps connect 
   const html=cards([],[{...installed,target:{appPath:installed.path}}]);
   assert.match(html,/data-connect="install-a"/);assert.doesNotMatch(html,/可评测|data-start/);
 });
+test('a retained discovery ID cannot override a conflicting installation path for version fallback',()=>{
+  const pi={kind:'pi',name:'Pi',format:'svg'};
+  const old={id:'old',kind:'pi',path:'/synthetic/old/cli.js',resolvedPath:'/synthetic/old/cli.js',version:'1.0.0',target:{sourceRoot:'/synthetic/old'}};
+  const current={id:'current',kind:'pi',path:'/synthetic/current/cli.js',version:'2.0.0',target:{sourceRoot:'/synthetic/current'}};
+  const configured={id:'local-pi-old',kind:'pi',installRoot:'/synthetic/current',version:null,evaluationReady:false};
+  const render=agents=>renderAgentCards({brands:[pi],targets:[configured],discovery:{agents}});
+  const missing=render([old]);
+  assert.match(missing,/版本未读取/);assert.doesNotMatch(missing,/1\.0\.0|data-connect/);
+  for(const agents of [[old,current],[current,old]]){
+    const html=render(agents);assert.match(html,/2\.0\.0（扫描）/);assert.doesNotMatch(html,/1\.0\.0|data-connect/);
+  }
+});
+test('an unavailable old target retains diagnostics and offers the newly discovered installation',()=>{
+  const pi={kind:'pi',name:'Pi',format:'svg'};
+  const old={id:'old',kind:'pi',path:'/synthetic/old/cli.js',target:{sourceRoot:'/synthetic/old'}};
+  const fresh={id:'new',kind:'pi',path:'/synthetic/new/cli.js',version:'2.0.0',target:{sourceRoot:'/synthetic/new'}};
+  const configured={id:'local-pi-old',kind:'pi',installRoot:'/synthetic/old',version:null,evaluationReady:false,reasonCode:'PI_CONFIGURATION_UNAVAILABLE'};
+  for(const agents of [[old,fresh],[fresh,old]]){
+    const html=renderAgentCards({brands:[pi],targets:[configured],discovery:{agents}});
+    assert.match(html,/data-connect="new"/);assert.match(html,/接入新安装/);
+    assert.match(html,/data-refresh-agent/);assert.match(html,/PI_CONFIGURATION_UNAVAILABLE/);
+    assert.match(html,/版本未读取/);assert.doesNotMatch(html,/2\.0\.0（扫描）|data-start|可评测|data-connect="old"/);
+  }
+});
+test('installation connection excludes every configured target, not just the displayed target',()=>{
+  const second={...installed,id:'second',path:'/Applications/Second.app',target:{appPath:'/Applications/Second.app'}};
+  const html=cards([{...target,reasonCode:'WORKBUDDY_FUTURE_FAILURE'},{...target,id:'second-target',installRoot:second.path}],[second]);
+  assert.doesNotMatch(html,/data-connect/);assert.match(html,/data-refresh-agent/);
+});
+test('a new installation does not replace readiness, launch, model or cleanup actions',()=>{
+  const fresh={...installed,id:'new',path:'/Applications/New.app',target:{appPath:'/Applications/New.app'}};
+  for(const item of [
+    {...target,evaluationReady:true},
+    {...target,reasonCode:'WORKBUDDY_NOT_CONNECTED'},
+    {...target,reasonCode:'AGENT_MODEL_KEY_MISSING'},
+    {...target,reasonCode:'WORKBUDDY_CLEANUP_REQUIRED'}
+  ])assert.doesNotMatch(cards([item],[fresh]),/data-connect/);
+});
 test('Claude cards bind each CLI or desktop label to its own version regardless of scan order',()=>{
   const claude={kind:'claude',name:'Claude Code',format:'png',planned:true};
   const cli={id:'cli',kind:'claude',type:'cli',version:'2.1.3'},desktop={id:'desktop',kind:'claude',type:'app',version:'0.9.7'};
