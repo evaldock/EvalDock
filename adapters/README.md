@@ -89,6 +89,13 @@ transcript when its completion response omits usage. WorkBuddy reads only the ne
 owned session's native JSONL after completion and returns numeric usage, never the
 conversation text. Native context-window `used`/`size` values are not cumulative
 token consumption. Missing fields remain unknown, with source and coverage recorded.
+DSH adds a bounded adapter summary of committed assistant-response counters to the
+same Trace, explicitly marking `counterScope: PER_RESPONSE` and `aggregation: SUM`.
+This prevents a final request's usage from being mistaken for the session total.
+Native events and their sequence numbers remain intact; the summary has no native
+sequence number. It records field coverage and clipping, excludes token deltas and
+unreported utility calls, and uses native turn timestamps when available (otherwise
+the explicitly marked execution receipt). It does not infer missing totals.
 Native input accounting is explicit: WorkBuddy/LangGraph input includes cache reads;
 Pi/Hermes/OpenClaw report uncached input separately from cache reads/writes. Do not
 add cache to an input figure that already includes it.

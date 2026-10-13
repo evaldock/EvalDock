@@ -6,7 +6,7 @@ import { createSessionEvidenceCompactor } from "../agent-trace/native-probe/src/
 import { lstat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { eventFingerprint, reduceSessionEvents, mergeRemainingStreams, sequenceSpan, type SessionRecord } from "../agent-trace/native-probe/src/session-events.js";
+import { eventFingerprint, objectRecord, reduceSessionEvents, mergeRemainingStreams, sequenceSpan, type SessionRecord } from "../agent-trace/native-probe/src/session-events.js";
 
 interface DshSessionRecord {
   readonly type?: unknown;
@@ -45,6 +45,41 @@ function eventTime(value: unknown, fallback: string): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toISOString() : fallback;
+}
+
+/** Sum committed native response counters; leave original events and missing fields intact. */
+function sessionCostEvidence(events: readonly SessionRecord[], input: DshSessionTraceInput, archiveTruncated: boolean) {
+  const fields = ["inputTokens", "outputTokens", "totalTokens", "cacheReadTokens", "cacheWriteTokens", "reasoningTokens"];
+  const responses = new Map<string, Record<string, number>>();
+  let omitted = 0;
+  for (const event of events) {
+    if (event.type !== "assistant/message") continue;
+    const data = objectRecord(event.data), message = objectRecord(data?.message), native = objectRecord(data?.usage);
+    if (!native || message?.role !== undefined && message.role !== "assistant") continue;
+    const row: Record<string, number> = {};
+    for (const field of fields) {
+      const value = native[field];
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0) row[field] = value;
+    }
+    if (!Object.keys(row).length) continue;
+    const id = typeof message?.id === "string" && message.id.length > 0 && message.id.length <= 512
+      ? "message:" + message.id : "sequence:" + String(event.seq);
+    if (!responses.has(id) && responses.size >= 4096) { omitted++; continue; }
+    responses.set(id, row);
+  }
+  if (!responses.size) return undefined;
+  const usage: Record<string, number> = {}, fieldCoverage: Record<string, number> = {};
+  for (const row of responses.values()) for (const [field, value] of Object.entries(row)) {
+    usage[field] = (usage[field] ?? 0) + value;
+    fieldCoverage[field] = (fieldCoverage[field] ?? 0) + 1;
+  }
+  const start = events.find(e => e.type === "turn/start"), end = [...events].reverse().find(e => e.type === "turn/end");
+  const validTime = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && Number.isFinite(new Date(value).getTime());
+  const nativeTime = validTime(start?.time) && validTime(end?.time) && end.time >= start.time;
+  const startedAt = nativeTime ? eventTime(start.time, input.startedAt) : input.startedAt;
+  const endedAt = nativeTime ? eventTime(end.time, input.endedAt) : input.endedAt;
+  return { usage, usageEvidence: { source: "NATIVE_COMPLETED_RESPONSES", counterScope: "PER_RESPONSE", aggregation: "SUM", records: responses.size, fieldCoverage, omitted, archiveTruncated, inputTokenBasis: "UNKNOWN" },
+    execution: { startedAt, endedAt, durationMs: Date.parse(endedAt) - Date.parse(startedAt), scope: nativeTime ? "NATIVE_TURN" : "TARGET_EXECUTION_RECEIPT" } };
 }
 
 /** 保留语义事件原文；验证归档序列后，删除有完整提交逐字覆盖的流式片段。 */
@@ -129,6 +164,10 @@ export function dshSessionsToProbeJsonl(input: DshSessionTraceInput): Buffer {
       if (!event) continue;
       emit("session/event", { sessionId: session.sessionId, event }, eventTime(event.time ?? event.time0, input.startedAt));
     }
+    const cost = sessionCostEvidence(reduced.records, input, session.truncated === true);
+    // Adapter-derived evidence uses the existing common event envelope. It does
+    // not claim a native sequence number or modify the archived Session events.
+    if (cost) emit("agent/events", { sessionId: session.sessionId, event: { type: "session/completion", data: cost } }, cost.execution.endedAt);
     Object.assign(filtering[filtering.length-1]!, compactor.stats);
     if (!headerSeen) issue("SESSION_HEADER_MISSING", "Session archive does not contain its header");
   }

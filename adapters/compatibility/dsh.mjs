@@ -41,6 +41,8 @@ export function captureDshArchive({sessionId,jsonl,truncated=false,result,cleanu
  if(rows[0].captureDiagnostics?.issues?.length)capture.error='AGENT_DSH_SESSION_CONTRACT_BROKEN';
  if(truncated)capture.omitted++;
  const events=rows.filter(r=>r.kind==='session/event').map(r=>r.data.event);
+ const cost=rows.find(r=>r.kind==='agent/events'&&r.data?.event?.type==='session/completion')?.data.event.data;
+ if(cost){capture.usage=cost.usage;capture.usageEvidence=cost.usageEvidence;capture.execution=cost.execution;}
  if(events.length&&events[0].seq>1)capture.error='AGENT_DSH_SEQUENCE_CONTRACT_BROKEN';
  const bySeq=new Map(events.map(e=>[e.seq,e]));
  function expand(value,depth=0){
@@ -79,7 +81,7 @@ export function captureDshArchive({sessionId,jsonl,truncated=false,result,cleanu
  if(typeof permission==='string'&&typeof sandbox==='string')capture.runtimeFacts={permissionPreset:permission,sandboxMode:sandbox};
  const end=[...events].reverse().find(e=>e.type==='turn/end');
  if(result.terminationKind==='CANCELLED')capture.error??='AGENT_CANCELLED';
- else if(result.terminationKind==='EXITED'&&end?.data?.reason?.kind==='completed')capture.result={stopReason:'end_turn'};
+ else if(result.terminationKind==='EXITED'&&end?.data?.reason?.kind==='completed')capture.result={stopReason:'end_turn',...capture.usage?{usage:capture.usage}:{}};
  else capture.error??='AGENT_COMPLETION_UNCONFIRMED';
  return capture.finish();
 }

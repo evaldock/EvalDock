@@ -11,6 +11,7 @@ import {normalizeUsage} from '../../adapters/shared/capture.mjs';
 import {buildTrace} from '../../adapters/shared/evidence.mjs';
 import {normalizedEvent} from '../../adapters/shared/capture.mjs';
 import {projectTraceOverview} from '../../dist/src/reporting/trace-overview.js';
+import {dshSessionsToProbeJsonl} from '../../dist/src/runtime/dsh-session-trace.js';
 
 test('Pi preserves each completed response usage once, including tool turns and cache',()=>{
  const c=new Capture('pi');
@@ -80,4 +81,26 @@ test('Hermes streaming completion enriches omitted cache and reasoning counters 
  const r=await adapter.run({context:{env:process.env,protocol:{id:'hermes.stream-json/v1',flags:['--format']}},caseDirectory,cwd:root,prompt:'synthetic',deadlineMs:5000});
  const u=normalizeUsage(r.result.usage);assert.equal(u.cacheReadTokens,80);assert.equal(u.reasoningTokens,2);
  assert.equal(u.totalTokens,185);assert.equal(r.usageEvidence.inputTokenBasis,'EXCLUDES_CACHE');assert.equal(r.error,null);
+});
+
+test('DSH exposes an explicit per-response sum without altering native events or counting mirrors and token deltas',()=>{
+ const header={type:'session',id:'owned',cwd:'/case'};
+ const message=(seq,id,usage)=>({type:'assistant/message',seq,time:1000+seq*100,data:{turn:1,step:seq,message:{role:'assistant',id,content:[]},usage}});
+ const first={inputTokens:120,outputTokens:8,cacheReadTokens:80,totalTokens:208};
+ const events=[{type:'turn/start',seq:1,time:1000,data:{turn:1}},message(2,'response-1',first),message(3,'response-1',first),{type:'assistant/chunk',seq:4,time:1400,data:{turn:1,step:4,chunk:{type:'usage',usage:{inputTokens:9999}}}},message(5,'response-2',{inputTokens:110,outputTokens:10,cacheReadTokens:40,totalTokens:160}),{type:'turn/end',seq:6,time:2000,data:{turn:1,reason:{kind:'completed'}}}];
+ const rows=dshSessionsToProbeJsonl({sessions:[{sessionId:'owned',jsonl:[header,...events].map(JSON.stringify).join('\n')}],sourceRunId:'run',pid:1,startedAt:'1970-01-01T00:00:00.000Z',endedAt:'1970-01-01T00:00:10.000Z'}).toString().trim().split('\n').map(JSON.parse);
+ const derived=rows.find(r=>r.kind==='agent/events'&&r.data.event?.type==='session/completion');
+ assert.ok(derived,'DSH needs an explicitly scoped sum, rather than leaving Judge to infer whether counters are cumulative');
+ const summary=derived.data.event.data;assert.deepEqual(summary.usage,{inputTokens:230,outputTokens:18,cacheReadTokens:120,totalTokens:368});
+ assert.equal(summary.usageEvidence.records,2);assert.equal(summary.usageEvidence.counterScope,'PER_RESPONSE');assert.equal(summary.usageEvidence.aggregation,'SUM');
+ assert.equal(summary.execution.durationMs,1000);assert.equal(summary.execution.scope,'NATIVE_TURN');assert.equal(derived.data.event.seq,undefined);
+ assert.deepEqual(rows.filter(r=>r.kind==='session/event').map(r=>r.data.event),events);
+ const trace={entries:rows.map((r,i)=>({id:String(i),layer:'AGENT',content:r}))};
+ assert.deepEqual(projectTraceOverview(trace).usage,{input:230,output:18,cacheRead:120,reasoning:null});
+});
+
+test('DSH does not fabricate counters for missing or invalid native usage',()=>{
+ const events=[{type:'session',id:'owned',cwd:'/case'},{type:'assistant/message',seq:1,time:1000,data:{message:{role:'assistant',id:'invalid',content:[]},usage:{inputTokens:'100',outputTokens:-1,totalTokens:null}}},{type:'turn/end',seq:2,time:2000,data:{reason:{kind:'completed'}}}];
+ const rows=dshSessionsToProbeJsonl({sessions:[{sessionId:'owned',jsonl:events.map(JSON.stringify).join('\n')}],sourceRunId:'run',pid:1,startedAt:'1970-01-01T00:00:00.000Z',endedAt:'1970-01-01T00:00:10.000Z'}).toString().trim().split('\n').map(JSON.parse);
+ assert.ok(!rows.some(r=>r.kind==='agent/events'&&r.data.event?.data?.usage));
 });
