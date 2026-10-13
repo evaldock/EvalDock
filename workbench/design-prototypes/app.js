@@ -5,6 +5,7 @@ const names={dsh:'DSH',workbuddy:'WorkBuddy',pi:'Pi',langgraph:'LangGraph',qwenw
 const pages={home:'概览',agents:'我的 Agent',datasets:'测试集',reports:'评测记录',settings:'设置'};
 let summary={agents:[],jobs:[],runs:[]},catalog={datasets:[]},settings,library={automatic:false,state:'LOCAL'},csrf='',loading=false,discovery={agents:[],errors:[]},scanning=false;
 let agentModelSettings={keyConfigured:false};
+const pendingConnections=new Set();
 const ui={datasetQuery:'',datasetFilter:'all',reportQuery:'',reportFilter:'all',datasetId:null,jobId:null,selection:new Map()};
 const active=job=>['STARTING','RUNNING','CANCELLING'].includes(job.state);
 const targets=()=>summary.agents.flatMap(a=>a.targets.map(t=>({...t,kind:a.kind,advanced:a.advanced,active:a.active})));
@@ -39,7 +40,8 @@ function agentCards(){
    const available=installed.find(d=>d.target&&!connected.some(t=>t.id==='local-'+d.kind+'-'+d.id||t.installRoot===d.path||d.target?.sourceRoot&&t.installRoot===d.target.sourceRoot));
    const launchable=['qwenwork','doubaowork'].includes(brand.kind)&&waiting?.reasonCode==='AGENT_NOT_CONNECTED'||brand.kind==='workbuddy'&&waiting?.reasonCode==='WORKBUDDY_NOT_CONNECTED';
    const needsModel=waiting?.reasonCode==='AGENT_MODEL_KEY_MISSING';
-   const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}">启动连接</button>`:needsModel?`<button data-agent-model>配置模型</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
+   const connecting=pendingConnections.has(`${brand.kind}:${waiting?.id}`);
+   const action=ready.length?`<button data-start data-target="${escape(ready[0].id)}">开始评测</button>`:launchable?`<button data-open-agent="${escape(waiting.id)}" data-kind="${brand.kind}" ${connecting?'disabled':''}>${connecting?'正在连接…':'启动连接'}</button>`:needsModel?`<button data-agent-model>配置模型</button>`:available?`<button data-connect="${escape(available.id)}">接入评测</button>`:'';
 
    return `<article class="agent-card ${ready.length?'is-ready':installed.length?'is-discovered':''}"><div class="agent-card-heading"><img src="assets/agents/${brand.kind}.${brand.format}" width="28" height="28" alt=""><h3>${brand.name}</h3><span class="pill ${ready.length?'ready':installed.length?'discovered':''}">${state}</span></div><p class="agent-description">${escape(description)}</p><div class="agent-card-footer"><span>${escape(version|| (installed.length?'版本未读取':brand.planned?'计划接入':'已支持'))}${installed.length>1?' · '+installed.length+' 个安装':''}</span>${action}</div></article>`;
  }).join('');
@@ -98,7 +100,16 @@ document.addEventListener('click',async event=>{const button=event.target.closes
  if(button.hasAttribute('data-clear-selection')){ui.selection.clear();render();}
  if(button.hasAttribute('data-start-selection'))await openEvaluation(undefined,undefined,selectedItems(catalog,ui.selection));
  if(button.hasAttribute('data-scan')){scanning=true;render();try{discovery=await api('discovery/scan',{});notice(`扫描完成，发现 ${discovery.agents.length} 个安装入口。`);}finally{scanning=false;render();}}
- if(button.hasAttribute('data-open-agent')){button.disabled=true;await api(button.dataset.kind+'/open',button.dataset.kind==='workbuddy'?{}:{targetId:button.dataset.openAgent});notice('已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');await refresh();}
+ if(button.hasAttribute('data-open-agent')){
+  const key=`${button.dataset.kind}:${button.dataset.openAgent}`;if(pendingConnections.has(key))return;pendingConnections.add(key);
+  const label=button.textContent;button.disabled=true;button.textContent='正在连接…';
+  if(button.dataset.kind==='qwenwork')notice('正在连接千问；若千问询问是否退出，请确认，随后会重新打开。');
+  try{
+   const response=await api(button.dataset.kind+'/open',button.dataset.kind==='workbuddy'?{}:{targetId:button.dataset.openAgent});
+   notice(response.result?.status==='LOGIN_REQUIRED'?'已连接助手，请在助手应用中完成登录后继续。':response.result?.probeReady?'助手已连接，状态已更新。':'已请求启动 Agent，连接状态会自动更新；如需登录，请在 Agent 应用中完成。');
+   await refresh();
+  }finally{pendingConnections.delete(key);button.disabled=false;button.textContent=label;if(page()==='agents')render();}
+ }
  if(button.hasAttribute('data-agent-model')){location.hash='settings';render();$('#agent-api-key')?.focus();}
  if(button.hasAttribute('data-connect')){button.disabled=true;await api('discovery/connect',{id:button.dataset.connect});notice('已接入，正在检查运行条件。');await refresh();}
  if(button.hasAttribute('data-start'))await openEvaluation(button.dataset.target,button.dataset.dataset);

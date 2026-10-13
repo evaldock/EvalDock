@@ -43,3 +43,23 @@ test('authenticated missing DSH RPC is an interface change, not a login failure'
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>{server.closeAllConnections();server.close();});
  await assert.rejects(rpc('http://127.0.0.1:'+server.address().port,'host.describe',{}),e=>e.message==='DSH_WEB_INTERFACE_CHANGED'&&classify(e.message)==='INCOMPATIBLE');
 });
+
+test('DSH accepts relative root login redirects but rejects other origins and paths',async t=>{
+ const root=await temporary(t),file=path.join(root,'service.log');let location='./',cookie='dsh-auth-relative=valid',cookieVersion=0;
+ const server=createServer((req,res)=>{
+  if(req.url==='/?token=launch'){res.writeHead(303,{'set-cookie':cookie+'; HttpOnly; Path=/','location':location});res.end();return;}
+  if(req.headers.cookie!==cookie){res.writeHead(401);res.end();return;}
+  res.end('authenticated');
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.closeAllConnections();server.close();});
+ const base='http://127.0.0.1:'+server.address().port;await writeFile(file,base+'/?token=launch\n');
+ for(location of ['./',base+'/']){
+  cookie='dsh-auth-relative=valid'+(++cookieVersion);
+  await authenticateDshWeb(base,file);assert.equal((await webFetch(base,'/api/check')).status,200);
+ }
+ for(location of ['http://localhost:1/','//localhost:1/','/other','/?token=still-present','/#fragment']){
+  cookie='dsh-auth-relative=valid'+(++cookieVersion);
+  await assert.rejects(authenticateDshWeb(base,file),{message:'DSH_WEB_AUTH_EXCHANGE_FAILED'});
+  assert.deepEqual(webAuthHeaders(base),{});
+ }
+});

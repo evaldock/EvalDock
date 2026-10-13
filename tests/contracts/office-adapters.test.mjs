@@ -93,9 +93,9 @@ for(const [kind,port] of [['qwenwork',18492],['doubaowork',18493]])test(`${kind}
   }},limitations:[]},{execCommand:async()=>({stdout:JSON.stringify({CFBundleIdentifier:'test',CFBundleShortVersionString:'1',CFBundleExecutable:'Electron'})}),spawnProcess:(file,args,options)=>{
     launch={file,args,options};connected=(options.env??process.env).ELECTRON_RUN_AS_NODE!=='1';
     const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;
-  }});
+  },acquireLease:async()=>async()=>{}});
   assert.equal((await adapter.inspect()).reasonCode,'AGENT_NOT_CONNECTED');
-  assert.equal((await adapter.launch()).status,'LAUNCH_REQUESTED');
+  assert.equal((await adapter.launch()).status,'READY');
   assert.equal((await adapter.inspect()).evaluationReady,true,'Start connection must expose the desktop interface');
   assert.equal(launch.file,'/Applications/Test.app/Contents/MacOS/Electron');
   assert.deepEqual(launch.args,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+port]);

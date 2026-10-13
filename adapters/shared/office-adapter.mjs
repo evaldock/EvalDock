@@ -3,8 +3,10 @@ import {promisify} from 'node:util';
 import {normalizedEvent} from './capture.mjs';
 import {staticInfo} from './registry.mjs';
 import {inspectionEnvironment} from './cli-interface.mjs';
+import {acquire} from '../compatibility/store.mjs';
+import {stopDesktopInstallation,waitForDesktopConnection} from './desktop-launch.mjs';
 const exec=promisify(execFile);
-export function createOfficeAdapter(target,{app,bundle,port,Desktop,run,limitations,workspaceDescription},{execCommand=exec,spawnProcess=spawn}={}){
+export function createOfficeAdapter(target,{app,bundle,port,Desktop,run,limitations,workspaceDescription,restartDisconnected=false},{execCommand=exec,spawnProcess=spawn,acquireLease=acquire,...launchOptions}={}){
   app=target.appPath??app;const endpoint=target.endpoint??`http://127.0.0.1:${port}`;
   const inspect=async()=>{
     const status={agentKind:target.kind,name:target.name,environment:'macOS',installRoot:app,version:null,status:'NOT_INSTALLED',evaluationReady:false,executionReady:false,probeReady:false,driver:'DESKTOP_EVENT_PUSH',permissionPreset:'APPLICATION_DEFAULT',components:[],toolSchemas:[],limitations,checkedAt:new Date().toISOString()};let desktop;
@@ -26,14 +28,21 @@ export function createOfficeAdapter(target,{app,bundle,port,Desktop,run,limitati
     async prepare(){const desktop=await Desktop.connect({appPath:app,endpoint});try{if(!await desktop.authenticated())throw Error('AGENT_LOGIN_REQUIRED');if(desktop.readiness){const runtime=await desktop.readiness();if(!runtime.ready)throw Error(runtime.reasonCode??'AGENT_LOCAL_RUNTIME_UNAVAILABLE');}return desktop;}catch(e){desktop.close();throw e;}},
     run:({context,...input})=>run(context,input),dispose:context=>context?.close(),
     async launch(){
-      const s=await inspect();if(s.probeReady)return s;if(s.status==='INCOMPATIBLE'||s.status==='NOT_INSTALLED')throw Error(s.reasonCode);
+      const s=await inspect();if(s.probeReady||s.status==='LOGIN_REQUIRED')return s;
+      if(!['AGENT_NOT_CONNECTED','AGENT_WINDOW_NOT_READY'].includes(s.reasonCode))throw Error(s.reasonCode??'AGENT_LAUNCH_FAILED');
+      if(s.reasonCode==='AGENT_WINDOW_NOT_READY')return waitForDesktopConnection(inspect,launchOptions);
       const info=JSON.parse((await execCommand('/usr/bin/plutil',['-convert','json','-o','-',app+'/Contents/Info.plist'],{timeout:3000,env:inspectionEnvironment()})).stdout);
       if(info.CFBundleIdentifier!==bundle||typeof info.CFBundleExecutable!=='string'||!info.CFBundleExecutable||/[\/\\\0]/.test(info.CFBundleExecutable)||['.','..'].includes(info.CFBundleExecutable))throw Error('AGENT_APP_ID_MISMATCH');
       const executable=app+'/Contents/MacOS/'+info.CFBundleExecutable;
       const env=inspectionEnvironment();delete env.ELECTRON_RUN_AS_NODE;
       const origin=new URL(endpoint);if(origin.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(origin.hostname)||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)throw Error('AGENT_INVALID_ENDPOINT');
-      const child=spawnProcess(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+(origin.port||80)],{detached:true,stdio:'ignore',env});
-      await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',()=>reject(Error('AGENT_LAUNCH_FAILED')));});child.unref();return {status:'LAUNCH_REQUESTED'};
+      const release=await acquireLease({kind:target.kind,targetId:target.id,configuration:target});
+      try{
+        if(restartDisconnected)await stopDesktopInstallation(app,executable,{execCommand,...launchOptions});
+        const child=spawnProcess(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port='+(origin.port||80)],{detached:true,stdio:'ignore',env});
+        await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',()=>reject(Error('AGENT_LAUNCH_FAILED')));});child.unref();
+        return await waitForDesktopConnection(inspect,launchOptions);
+      }finally{await release();}
     },
   };
 }

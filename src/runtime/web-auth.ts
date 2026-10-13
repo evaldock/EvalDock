@@ -32,7 +32,9 @@ export async function authenticateDshWeb(base:string,launchLog:string):Promise<v
  try{response=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(5000)});}catch{throw Error("DSH_WEB_AUTH_EXCHANGE_FAILED");}
  await response.body?.cancel();
  const cookie=response.headers.getSetCookie().map(v=>v.split(";",1)[0]!).find(v=>/^dsh-auth-[A-Za-z0-9_-]+=[A-Za-z0-9_.-]+$/.test(v));
- if(response.status!==303||response.headers.get("location")!=="/"||!cookie)throw Error("DSH_WEB_AUTH_EXCHANGE_FAILED");
+ let redirect:URL|undefined;
+ try{const location=response.headers.get("location");if(location)redirect=new URL(location,url);}catch{/* Reject an invalid redirect without exposing the launch credential. */}
+ if(response.status!==303||!redirect||redirect.origin!==origin||redirect.pathname!=="/"||redirect.search||redirect.hash||redirect.username||redirect.password||!cookie)throw Error("DSH_WEB_AUTH_EXCHANGE_FAILED");
  cookies.set(origin,cookie);
  const verified=await webFetch(origin,"/",{signal:AbortSignal.timeout(5000)});await verified.body?.cancel();
  if(!verified.ok){cookies.delete(origin);throw Error("DSH_WEB_AUTH_EXCHANGE_FAILED");}
