@@ -37,7 +37,7 @@ export class OnlineSelection {
     if(catalog.status().state!=='READY')throw Error(catalog.status().error??'无法读取线上目录');
     const datasetsRoot=path.join(this.root,'datasets');
     const local=[];
-    for(const item of await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'))){
+    for(const item of await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'),{allowEmpty:true})){
       const files=await currentQuestionCases(datasetsRoot,item.datasetId);
       if(files.length)local.push({...item,availableCaseCount:files.length});
     }

@@ -27,7 +27,7 @@ async function scoringState(file,question){
 const integer=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
 export async function evaluationCatalog(root){
   const datasetsRoot=path.resolve(root,process.env.EVALDOCK_DATASETS_ROOT??'datasets');
-  const descriptions=await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'));
+  const descriptions=await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'),{allowEmpty:true});
   const datasets=[];
   for(const item of descriptions){
     const files=await currentQuestionCases(datasetsRoot,item.datasetId);

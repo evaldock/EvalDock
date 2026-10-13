@@ -44,7 +44,10 @@ function positiveInteger(value: unknown, field: string): number {
 }
 
 /** 读取一个无符号链接的标准目录文件，返回稳定排序的候选。 */
-export async function loadDatasetDescriptionCatalog(catalogPath: string): Promise<readonly DatasetCandidate[]> {
+export async function loadDatasetDescriptionCatalog(
+  catalogPath: string,
+  options: { readonly allowEmpty?: boolean } = {},
+): Promise<readonly DatasetCandidate[]> {
   const absolute = path.resolve(catalogPath);
   const info = await lstat(absolute);
   if (info.isSymbolicLink() || !info.isFile()) {
@@ -61,7 +64,7 @@ export async function loadDatasetDescriptionCatalog(catalogPath: string): Promis
   if (root.schema !== "evaldock.dataset-planner-catalog/v1" || typeof root.version !== "string") {
     throw new Error("Dataset catalog schema or version is invalid");
   }
-  if (!Array.isArray(root.datasets) || root.datasets.length === 0) {
+  if (!Array.isArray(root.datasets) || (root.datasets.length === 0 && !options.allowEmpty)) {
     throw new Error("Dataset catalog must contain at least one Dataset");
   }
   const ids = new Set<string>();

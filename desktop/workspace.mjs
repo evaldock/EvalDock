@@ -16,7 +16,7 @@ export async function libraryFingerprint(directory){
   }
   await visit();return digest.digest('hex');
 }
-/** Only the unchanged bundled demo may be replaced automatically. */
+/** Only the unchanged initial library may be replaced automatically. */
 export async function isBundledLibrary(source,root){
   async function files(directory,relative=''){
     const result=[];

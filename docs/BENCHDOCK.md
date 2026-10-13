@@ -54,8 +54,10 @@ record, pinned revision and catalog digest remain in each task's provenance;
 private grading remains unavailable. Local API/UI responses expose directory
 metadata and installed public task requirements, never evaluator references.
 
-Automatic evaluation defaults to the installed local library, including the bundled
-demo. The evaluation dialog also offers full online-directory matching: a preparation
+Automatic evaluation defaults to the installed local library. The Mac App bundle
+starts with zero installed tasks; download or import a library before evaluation.
+The synthetic demo remains in the source checkout only. The evaluation dialog also
+offers full online-directory matching: a preparation
 Planner reads metadata and the selected Agent's actual interface information, then
 only the required public Cases are downloaded and added to the local library. Existing
 private references and user imports remain authoritative. Repeated preparation can

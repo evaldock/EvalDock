@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {mkdtemp,cp,readFile,writeFile,rm,symlink,mkdir,readdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {importLibrary,prepareWorkspace} from '../../desktop/workspace.mjs';
+import {importLibrary,prepareWorkspace,isBundledLibrary} from '../../desktop/workspace.mjs';
 import {appSummary} from '../../workbench/lib/app-summary.mjs';
+import {evaluationCatalog} from '../../workbench/lib/evaluation-config.mjs';
 const repo=process.cwd();
 async function fixture(t){const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-desktop-'));t.after(()=>rm(root,{recursive:true,force:true}));await cp(path.join(repo,'dist'),path.join(root,'dist'),{recursive:true});await writeFile(path.join(root,'package.json'),'{"type":"module"}');await cp(path.join(repo,'datasets'),path.join(root,'datasets'),{recursive:true});return root;}
 test('desktop summary isolates offline Agent and retains other Agent records',async()=>{
@@ -45,15 +46,23 @@ test('first workspace setup and later code upgrades preserve user config, librar
  assert.deepEqual(await readFile(path.join(root,'config/agents.json')),config);assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),catalog);
  assert.equal(await readFile(path.join(root,'var/evaluation-results/receipt.json'),'utf8'),'synthetic result');
 });
-test('a new workspace starts with empty Agent targets and no bundled evaluation history',async t=>{
+test('a new workspace starts with zero tasks, empty Agent targets and no evaluation history',async t=>{
  const root=await fixture(t),source=path.join(root,'runtime'),fresh=path.join(root,'fresh');await mkdir(source);
  for(const name of ['dist','adapters','workbench','labels','planning','trace','observer-lab','src','desktop','node_modules','config','environments'])await mkdir(path.join(source,name));
- await cp(path.join(repo,'examples/datasets/minimal'),path.join(source,'datasets'),{recursive:true});
+ await cp(path.join(repo,'dist'),path.join(source,'dist'),{recursive:true});
+ await cp(path.join(repo,'desktop/empty-library'),path.join(source,'datasets'),{recursive:true});
  await mkdir(path.join(source,'config/targets'));await writeFile(path.join(source,'config/targets/real-dsh.json'),JSON.stringify({dshHome:'/Users/your-user/.dsh'}));
  await writeFile(path.join(source,'package.json'),'{"type":"module"}');
  await prepareWorkspace(source,fresh);
  assert.deepEqual(JSON.parse(await readFile(path.join(fresh,'config/agents.json'),'utf8')),{schema:'evaldock.agent-targets/v1',targets:[]});
  assert.equal((await readdir(fresh)).includes('var'),false);
  assert.equal((await readdir(fresh)).includes('dataset-history'),false);
- assert.deepEqual(await readFile(path.join(fresh,'datasets/catalog.md')),await readFile(path.join(repo,'examples/datasets/minimal/catalog.md')));
+ assert.deepEqual(await readFile(path.join(fresh,'datasets/catalog.md')),await readFile(path.join(repo,'desktop/empty-library/catalog.md')));
+ assert.deepEqual(await evaluationCatalog(fresh),{schema:'evaldock.workbench.evaluation-catalog/v1',datasets:[],scoring:{readyCases:0,totalCases:0,unavailableCases:0,labelIds:[]}});
+ assert.equal(await isBundledLibrary(source,fresh),true);
+ // Upgrading an existing user must retain the previous library, including old demos.
+ const previous=await readFile(path.join(root,'datasets/catalog.md'));
+ await prepareWorkspace(source,root);assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),previous);
+ await assert.rejects(importLibrary(path.join(repo,'desktop/empty-library'),root),/at least one Dataset/);
+ assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),previous);
 });

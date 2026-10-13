@@ -42,26 +42,28 @@ function auditDesktopRuntime(root) {
   const failures = [], inventory = [];
   const allowedRoots = new Set(['adapters','workbench','labels','planning','trace','observer-lab','src','config','datasets','environments','desktop','dist','node_modules','package.json']);
   const configs = new Set(['config/agents.example.json','config/benchdock-pilot.json','config/macos-vm.json','config/targets/fixture-dsh.json','config/targets/real-dsh.json']);
-  const demo = new Set(['catalog.md','README.md','basic-file-delivery/case-001/question.json','basic-file-delivery/case-001/input/numbers.json','basic-file-delivery/case-001/private/final.json']);
   function visit(relative) {
     const absolute = path.join(root, relative), stat = fs.lstatSync(absolute);
     const parts = relative.split('/');
     if (!allowedRoots.has(parts[0]) || relative==='dist/tests' || relative==='workbench/tests') failures.push(relative);
+    if (parts[0]==='datasets'&&relative!=='datasets'&&relative!=='datasets/catalog.md') failures.push(relative+' is not the empty desktop library');
     if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) { failures.push(relative + ' is not a regular file/directory'); return; }
     if (stat.isDirectory()) { for (const child of fs.readdirSync(absolute).sort()) visit(relative + '/' + child); return; }
     if (parts[0] === 'config' && !configs.has(relative)) failures.push(relative + ' is not a public config template');
-    if (parts[0] === 'datasets' && !demo.has(parts.slice(1).join('/'))) failures.push(relative + ' is not the synthetic demo');
     if (parts[0] === 'environments' && relative !== 'environments/macos.json') failures.push(relative + ' is not the public environment schema');
     const bytes = fs.readFileSync(absolute);
     inspectFile(relative,bytes,failures);
     inventory.push(digest(relative,bytes));
   }
   for (const name of fs.readdirSync(root).sort()) visit(name);
-  // A tracked demo can also be edited locally; verify its actual bytes.
-  for (const relative of demo) {
-    if (relative === 'README.md') continue;
-    const actual = path.join(root,'datasets',relative), expected = path.join(__dirname,'../examples/datasets/minimal',relative);
-    if (!fs.existsSync(actual) || !fs.readFileSync(actual).equals(fs.readFileSync(expected))) failures.push('datasets/' + relative + ' differs from the synthetic demo');
+  const actual=path.join(root,'datasets/catalog.md'),expected=path.join(__dirname,'../desktop/empty-library/catalog.md');
+  if (!fs.existsSync(actual)||!fs.readFileSync(actual).equals(fs.readFileSync(expected))) failures.push('datasets/catalog.md differs from the empty desktop library');
+  else {
+    try {
+      const source=fs.readFileSync(actual,'utf8'),match=source.match(/```json evaldock-dataset-catalog\s*\n([\s\S]*?)\n```/);
+      const value=JSON.parse(match[1]);
+      if (!Array.isArray(value.datasets)||value.datasets.length) throw Error();
+    } catch {failures.push('Desktop library must contain zero datasets');}
   }
   assertClean(failures);
   return inventory;

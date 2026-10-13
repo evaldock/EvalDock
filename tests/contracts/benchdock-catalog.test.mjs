@@ -11,9 +11,9 @@ import {datasetDirectory,renderDatasets,selectedItems} from '../../workbench/des
 import {startControlServer} from '../../workbench/control-server.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-async function fixture(t){
+async function fixture(t,{empty=false}={}){
  const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-directory-'));t.after(()=>rm(root,{recursive:true,force:true}));
- await cp('dist',path.join(root,'dist'),{recursive:true});await cp('datasets',path.join(root,'datasets'),{recursive:true});
+ await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'desktop/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});
  await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
  const input=Buffer.from('synthetic public input');
  const rows=[
@@ -53,6 +53,17 @@ test('directory loads without installing tasks and exposes metadata only; a pinn
  assert.deepEqual(f.requests,['FILES.jsonl','catalog.jsonl']);
  const offline=await f.service({fetchImpl:()=>{throw Error('Offline cache must not access the network');}});
  assert.deepEqual(offline.status().catalog,directory);assert.equal((await evaluationCatalog(f.root)).datasets.length,1);
+});
+test('a fresh empty desktop can browse the directory and explicitly install its first subset',async t=>{
+ const f=await fixture(t,{empty:true}),library=await f.service();
+ assert.equal((await evaluationCatalog(f.root)).datasets.length,0);
+ await f.load(library);assert.equal((await evaluationCatalog(f.root)).scoring.totalCases,0);
+ const dataset=library.status().catalog.datasets.find(item=>item.name==='Synthetic mixed set');
+ library.downloadDataset(dataset.id);await library.catalog.pending;
+ assert.equal(library.status().download.state,'READY');
+ const local=await evaluationCatalog(f.root);assert.equal(local.datasets.length,1);assert.equal(local.scoring.totalCases,1);
+ assert.equal(local.datasets[0].id,dataset.id);assert.equal(local.scoring.readyCases,0);
+ assert.ok(!f.requests.some(name=>name.includes('private/')));
 });
 
 test('explicit subset download adds selectable public cases and retains existing private references and datasets',async t=>{

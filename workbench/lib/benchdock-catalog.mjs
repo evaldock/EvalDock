@@ -173,7 +173,7 @@ export class BenchDockCatalog {
     const original=await libraryFingerprint(path.join(this.root,'datasets'));
     const {loadDatasetDescriptionCatalog}=await import('../../dist/src/datasets/catalog.js');
     const {currentQuestionCases}=await import('../../dist/src/datasets/loader.js');
-    const descriptions=await loadDatasetDescriptionCatalog(path.join(this.root,'datasets/catalog.md'));
+    const descriptions=await loadDatasetDescriptionCatalog(path.join(this.root,'datasets/catalog.md'),{allowEmpty:true});
     const existing=descriptions.find(item=>item.datasetId===group.id||item.datasetId.replace(/^dataset\.(?:harbor-)?/,'').replace(/\/v[1-9][0-9]*$/,'').toLowerCase()===group.name.toLowerCase());
     if(existing&&(!allowExisting||existing.datasetId!==group.id))throw Error('所选测试集已在本地，保留已有题目；请直接选择题目。');
     const installedFiles=existing?await currentQuestionCases(path.join(this.root,'datasets'),group.id):[];

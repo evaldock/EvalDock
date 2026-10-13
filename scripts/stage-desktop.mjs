@@ -10,9 +10,11 @@ await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
 const tracked=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);
 for(const file of tracked){
   if(!/^(adapters|workbench|labels|planning|trace|observer-lab|src|config|datasets|environments)\//.test(file))continue;
-  if(file==='config/agents.json'||file.startsWith('workbench/tests/'))continue;
+  if(file==='config/agents.json'||file.startsWith('workbench/tests/')||file.startsWith('datasets/'))continue;
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
+// Desktop installs start without tasks; the source checkout retains its demo.
+await cp('desktop/empty-library',path.join(out,'datasets'),{recursive:true});
 // New product files are explicit, so staging also works before the first commit.
 for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility/dsh.mjs','adapters/shared/factory.mjs','adapters/compatibility/contracts.mjs','adapters/compatibility/identity.mjs','adapters/compatibility/store.mjs','adapters/compatibility/check.mjs','adapters/compatibility/cli.mjs','adapters/langgraph/preflight.py','adapters/shared/cli-interface.mjs','workbench/design-prototypes/product-pages.js','workbench/design-prototypes/assets/agents/codex.png','workbench/design-prototypes/assets/agents/claude.png','workbench/lib/agent-discovery.mjs','workbench/lib/app-summary.mjs','workbench/control-server.mjs','desktop/server.mjs','workbench/design-prototypes/app.html','workbench/design-prototypes/app.css','workbench/design-prototypes/app.js']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));

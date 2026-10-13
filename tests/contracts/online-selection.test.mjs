@@ -11,9 +11,9 @@ import {libraryFingerprint} from '../../desktop/workspace.mjs';
 import {loadDatasetCase} from '../../dist/src/datasets/loader.js';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-async function fixture(t){
+async function fixture(t,{empty=false}={}){
   const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-online-'));t.after(()=>rm(root,{recursive:true,force:true}));
-  await cp('dist',path.join(root,'dist'),{recursive:true});await cp('datasets',path.join(root,'datasets'),{recursive:true});await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
+  await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'desktop/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
   const rows=Array.from({length:10},(_,i)=>({schema:'benchdock.catalog/v1',task_id:'synthetic-'+i,subset:'Synthetic large set',title:'Synthetic task '+i,prompt:'Copy input/data.txt to output/answer.txt.',distribution:'bundled',environment_status:'inputs_bundled_python_required',inputs:[{path:'datasets/fixture-'+i+'/data.txt',destination:'input/data.txt',bytes:1,sha256:sha(Buffer.from('x'))}],license_files:[]}));
   rows.push({schema:'benchdock.catalog/v1',task_id:'source-only',subset:'Synthetic source set',distribution:'source_reference'});
   const files=new Map(rows.slice(0,10).map((row,i)=>['datasets/fixture-'+i+'/data.txt',Buffer.from('x')]));
@@ -28,6 +28,12 @@ async function fixture(t){
   const start=()=>selection.start({agentKind:'pi',targetId:'fixture-pi',evaluationConfig:{mode:'FULL',selection:{kind:'COUNT',caseCount:count}}});
   return {root,library,selection,requests,start,setCount:n=>{count=n;},input:()=>seenInput};
 }
+test('online matching can prepare only requested Cases when the local library is empty',async t=>{
+  const f=await fixture(t,{empty:true});assert.equal((await evaluationCatalog(f.root)).scoring.totalCases,0);
+  f.start();await f.selection.pending;assert.equal(f.selection.status().state,'READY');
+  const local=await evaluationCatalog(f.root);assert.equal(local.datasets.length,1);assert.equal(local.scoring.totalCases,2);
+  assert.equal(f.requests.filter(name=>name.endsWith('/data.txt')).length,2);assert.ok(!f.requests.some(name=>name.includes('private')));
+});
 test('full directory matching installs only needed Cases, preserves references, and extends partial subsets',async t=>{
   const f=await fixture(t),reference=await readFile(path.join(f.root,'datasets/basic-file-delivery/case-001/private/final.json'));
   assert.equal(f.start().state,'PREPARING');await f.selection.pending;
