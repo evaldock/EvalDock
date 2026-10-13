@@ -5,18 +5,18 @@
 ## 1. 接班时先确认的事实
 
 - 开发源是独立的 **`app` 分支**，远端为 `evaldock/EvalDock`；本轮没有合并到 `main`，也没有合入起点核对时主线另有的四个提交。
-- 夜间起点：`da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1`。已上传的交接基线：**`736f9e9b09303af787e07d868bdcfe0442e2d541`**，共 14 个提交、25 个仓库文件发生变化。
-- 本轮正常快进推送 `80c4827 → 736f9e9`，未强推。远端 `app` 和本地推送基线一致；清单中的 CI #15 记录、六项分段条件和暂停状态均已同步。
-- **[CI #16 已通过](https://github.com/evaldock/EvalDock/actions/runs/38417995694)**，对应上述完整 SHA；22:58:26 启动，22:59:30 更新为 `completed / success`。代码树为 `fcd4a8e0f10f56eb4d558baf2a3b9cfcf8cf5571`，远端清单 blob 为 `c9ef7c3b0d2474a45178d9677881c20c9f50c966`，与本地该版本一致。
+- 夜间起点：`da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1`。当前已上传的交接基线：**`dff85f909775522d99c052dd0929d6b8e2d5077e`**，起点之后共 16 个提交、26 个仓库文件发生变化。
+- 最新正常快进推送为 `736f9e9 → dff85f9`，未强推；包括原交接提交 `2758d1a` 和两个卡片修复 `dff85f9`。远端 `app` 和代码树与本地推送基线一致；卡片模块、回归测试、todolist 三个文件 blob 已逐一核对一致。
+- **[CI #17 已通过](https://github.com/evaldock/EvalDock/actions/runs/38424535648)**，对应上述完整 SHA；北京时间 23:43:43 启动，23:44:49 更新为 `completed / success`，所有步骤成功。代码树为 `a00fc0187e21b3e7debebc3511836a49ca7776a3`，该版本清单 blob 为 `b11f8dfdbf6aca0e681b1bc5e98e2d83dc10b797`。旧 CI #16 仍只对应 `736f9e9`。
 - “上传成功”在本文中指 **GitHub `app` 上的源码、测试及文档提交**。本地 App 安装包、截图、控件树和原始测试日志位于忽略目录，未上传为 Release 或 Git 文件，开发 VM 也未同步。
-- 全部 36 个父项中，按原限定标准整项关闭 12 项，未整项关闭 24 项。12 项为 P0 的 01、03、04、05、07、08、10、11，以及 P1 的 09、22、26、34；其中 22 仅完成本地临时签名打包与资源审计。另有六个 A 部分已完成，父项仍未关闭。
+- 全部 36 个父项中，按原限定标准整项关闭 12 项，未整项关闭 24 项。12 项为 P0 的 01、03、04、05、07、08、10、11，以及 P1 的 09、22、26、34；其中 22 仅完成本地临时签名打包与资源审计。另有六个 A 部分已完成，父项仍未关闭。后续审核发现的 07/08 两处卡片缺陷已在 `dff85f9` 补修并完成限定合成验收；没有因此新增关闭业务、安装或发行项。
 - 当前可立即独立开发剩余 **0 项**。14、18B、17、21B、24、27B 已按用户要求暂停开发及验收准备，等明天沟通后明确恢复范围；02、06 保持阻塞。真实评测、其他 P1 和全部 P2 均不推进。
 
-**交接文档自身的交付边界：** 本文是在 `736f9e9` 推送、CI #16 成功后新整理的文档，另作本地文档提交。上述远端和 CI 结论不包含本文的新提交；本文未随指定的 `736f9e9` 推送。不能把历史 CI 成功标在未推送的新文档提交上。
+**交接文档自身的交付边界：** 本文初版为 `2758d1a`，已随 `dff85f9` 推送进入远端。当前这次仅同步修复和验收状态的文档修改另作本地提交，尚未推送；CI #17 不覆盖这次新增文档提交。源码同步、合成验证、真实验收与正式发行分别记录。
 
 ## 2. 已提交并进入远端 app 的内容
 
-以下 14 个提交均在已核对的远端基线历史内。三个中间提交随 `d911965` 一起推送，由 CI #12 验证该轮组合，不能说它们各自都有独立 CI 运行。
+以下 16 个提交均在已核对的远端基线历史内。三个中间提交随 `d911965` 一起推送，由 CI #12 验证该轮组合，不能说它们各自都有独立 CI 运行。
 
 | 提交 | 实际内容 | 对应云端检查 |
 | --- | --- | --- |
@@ -34,23 +34,26 @@
 | [dac98fa](https://github.com/evaldock/EvalDock/commit/dac98fae54da09e11c0994e20146f0317be03c20) | CI #13、剩余待办及材料/授权清单 | [#14](https://github.com/evaldock/EvalDock/actions/runs/38413152644)，成功 |
 | [80c4827](https://github.com/evaldock/EvalDock/commit/80c4827829dd5258edec8fce46546c1cacd43d0a) | CI #14、“立即独立开发剩余 0 项”和六项条件事项 | [#15](https://github.com/evaldock/EvalDock/actions/runs/38415712219)，成功 |
 | [736f9e9](https://github.com/evaldock/EvalDock/commit/736f9e9b09303af787e07d868bdcfe0442e2d541) | CI #15、六项最低条件/分工/验收/停止点，以及用户最新暂停指令 | [#16](https://github.com/evaldock/EvalDock/actions/runs/38417995694)，成功 |
+| [2758d1a](https://github.com/evaldock/EvalDock/commit/2758d1a56a7ae8b2bfb6240f251da4844b03a578) | 初版夜间交接文档，未新增产品实现 | 随 `dff85f9`，CI #17；没有独立 CI |
+| [dff85f9](https://github.com/evaldock/EvalDock/commit/dff85f909775522d99c052dd0929d6b8e2d5077e) | 07/08：路径冲突不借用旧版本，恢复新安装接入入口；新增 4 项回归并更新 todolist | [#17](https://github.com/evaldock/EvalDock/actions/runs/38424535648)，成功 |
 
-本次重新读取上述已列 CI 的运行身份与结论，逐项对应提交；CI #16 另重新读取任务步骤及日志。没有为编号空缺补造 CI 记录。
+旧 CI 身份和日志按原交接时的核对记录保留；本次重新读取 CI #17 的准确提交、步骤与日志。没有为编号空缺或中间提交补造独立 CI。
 
 ## 3. 具体修改了哪些文件和行为
 
-以下路径覆盖起点至 `736f9e9` 的 25 个变化文件；打包产物不计入 Git 文件数量。
+以下路径覆盖起点至 `dff85f9` 的 26 个变化文件；打包产物不计入 Git 文件数量。`dff85f9` 只修改卡片模块、对应回归和 todolist 三个既有文件。
 
 | 变化范围 | 文件 | 实际变化 |
 | --- | --- | --- |
 | 自动选题和请求 | [app-evaluation.js](../workbench/design-prototypes/app-evaluation.js)、[app.js](../workbench/design-prototypes/app.js)、[app.html](../workbench/design-prototypes/app.html)、[online-selection.mjs](../workbench/lib/online-selection.mjs) | 默认 COUNT 1，可选 1–3；冻结准备和提交配置，准备中禁用相关控件；线上准备拒绝超限计划，保留标准和手选入口 |
-| Agent 卡片 | [agent-cards.js](../workbench/design-prototypes/agent-cards.js)、[product-pages.js](../workbench/design-prototypes/product-pages.js) | 展开原始原因、目标和版本，恢复入口按状态展示；动作和版本绑定同一目标，不借用同品牌其他安装版本 |
+| Agent 卡片 | [agent-cards.js](../workbench/design-prototypes/agent-cards.js)、[product-pages.js](../workbench/design-prototypes/product-pages.js) | 展开原始原因、目标和版本，恢复入口按状态展示；按当前目标投影；审核后补修明确路径冲突时的版本回退，并恢复失效旧配置下新安装的接入入口 |
 | 显示与 Claude 发现 | [app.css](../workbench/design-prototypes/app.css)、[agent-discovery.mjs](../workbench/lib/agent-discovery.mjs) | 修复隐藏标签；区分 Claude Code CLI 与 Claude 桌面版，分别读取对应元数据，保留版本未知/读取失败的安装身份；没有新增评测适配器 |
-| 回归测试 | [app-controls.test.mjs](../tests/contracts/app-controls.test.mjs)、[online-selection.test.mjs](../tests/contracts/online-selection.test.mjs)、[agent-discovery.test.mjs](../tests/contracts/agent-discovery.test.mjs)、[library-archive.test.mjs](../tests/contracts/library-archive.test.mjs) | 配置边界、卡片行为、发现身份、ZIP 失败回滚/取消/备份恢复；使用受控输入，不执行真实 Agent |
+| 回归测试 | [app-controls.test.mjs](../tests/contracts/app-controls.test.mjs)、[online-selection.test.mjs](../tests/contracts/online-selection.test.mjs)、[agent-discovery.test.mjs](../tests/contracts/agent-discovery.test.mjs)、[library-archive.test.mjs](../tests/contracts/library-archive.test.mjs) | 配置边界、卡片行为、发现身份、ZIP 失败回滚/取消/备份恢复；使用受控输入，不执行真实 Agent；`dff85f9` 新增保留 ID 改路径、新安装接入、全部配置去重及操作优先级 4 项回归 |
 | 六项 A 的测试 | [private-scoring.test.mjs](../tests/contracts/private-scoring.test.mjs)、[desktop.test.mjs](../tests/contracts/desktop.test.mjs) | 加强私有参考隔离断言；补合成配置/题库/历史结果的完整摘要及旧报告量表保留回归 |
 | CI 与资源暂存 | [ci.yml](../.github/workflows/ci.yml)、[stage-desktop.mjs](../scripts/stage-desktop.mjs) | `app` 推送触发原有 CI；新增前端运行模块纳入桌面暂存 |
 | 计划和证据模板 | [APP_TODO_20261013.md](APP_TODO_20261013.md)、[AGENT_VERSION_VALIDATION.md](AGENT_VERSION_VALIDATION.md) | 36 项实施/验收/依据、实际结果及阻塞；真实业务证据索引字段、模板和只读关联检查 |
 | 接班与事实说明 | [MAC_APP.md](MAC_APP.md)、[NATIVE_SETUP.md](NATIVE_SETUP.md)、[BENCHDOCK.md](BENCHDOCK.md)、[RELEASE.md](RELEASE.md)、[SUPPORT.md](../adapters/SUPPORT.md)、[README.md](../README.md)、[README.zh-CN.md](../README.zh-CN.md) | 对齐分支、工具链、COUNT/标准选题、源码示例与桌面空库、发现与适配、私有参考以及本地打包/正式发行边界 |
+| 本交接 | [APP_HANDOFF_20261014.md](APP_HANDOFF_20261014.md) | `2758d1a` 新增夜间交接，已进入远端；本次状态同步另作未推送文档提交 |
 
 未修改 Judge 评分规则、适配器协议、用户真实配置或历史业务报告；ZIP 产品运行逻辑本轮没有重写，相关新增内容是回归测试。没有恢复原交接丢失的 14 个改动和图片，也没有将同名新改动冒充原成果。
 
@@ -58,7 +61,7 @@
 
 | 事项 | 真正操作、核验过的内容 | 验收范围和剩余限制 |
 | --- | --- | --- |
-| P0 05、07、08、10、11 | 契约、浏览器及隔离 Electron 原生交互；题数 1–3、模式隐藏、未知原因详情、恢复入口、两阶段目标/配置一致；取消/失败正式提交为 0，成功场景合成提交 1 次 | 后端为合成服务；P0 原生后半程使用 `--disable-gpu`，只证明软件渲染下该段交互；没有真实 Agent、模型、下载或任务报告。原始请求另保留排障期间一次 COUNT 3 合成提交，没有删记录凑数 |
+| P0 05、07、08、10、11（原验收） | 契约、浏览器及隔离 Electron 原生交互；题数 1–3、模式隐藏、未知原因详情、恢复入口、两阶段目标/配置一致；取消/失败正式提交为 0，成功场景合成提交 1 次 | 后端为合成服务；P0 原生后半程使用 `--disable-gpu`，只证明软件渲染下该段交互；没有真实 Agent、模型、下载或任务报告。原始请求另保留排障期间一次 COUNT 3 合成提交，没有删记录凑数 |
 | 34 | 接班入口、命令定义、工具链、文档链接和发布边界核对 | 没有因编写步骤就声称真实服务、VM 已运行 |
 | 09 | 合成 CLI/package 与桌面 plist 被实际发现器读取；原生双安装、版本异常/恢复、重新扫描通过，未执行候选 Claude 命令 | 默认渲染；只完成身份和显示，Claude 仍待适配，未执行真实 Claude |
 | 26 | 隔离工作空间真实读写合成 ZIP；合法导入、损坏拒绝、忙碌/记录错误/下载/准备门禁、取消与重试；摘要核对旧库/配置保留及备份 | 默认渲染；没有业务题导入或真实评测。定向 10/10 包含在全量中，不重复累计 |
@@ -69,6 +72,17 @@
 | 25A | 原生缺模型→设置、空库→测试集、坏 ZIP 拒绝、好 ZIP 导入 1 道合成题、配置/备份保留、缺就绪 Agent 门禁 | 默认渲染；只有一次受控 `pi/run` 回执，记录页仍为 0、无结果目录；25B 首轮真实评测未完成 |
 | 27A | 临时工作空间升级逻辑；合成配置/题库/结果摘要保留，旧报告原量表、零分、UNASSESSABLE、ERROR 可读且不改原文件；定向 6/6 | 没有实际旧/新 App 替换，27B 未完成 |
 | 35A | README、支持说明、Mac 及发布文档当前事实对齐 | 没有新增真实支持结论；35B 新发行说明未做 |
+
+### 审核后两个卡片问题的修复状态
+
+两处缺陷均已在 `dff85f9` 实现并推送。验收结论仅覆盖已复现条件、合成回归及受控原生交互：
+
+| 问题 | 实际修复与验证 | 状态及限制 |
+| --- | --- | --- |
+| 08：目标 ID 保留但路径改变时借用旧版本 | 有明确安装路径时优先按路径匹配，旧 ID 不覆盖冲突；缺匹配显示“版本未读取”。回归覆盖当前安装存在/缺失及扫描顺序变化；默认渲染原生窗口确认旧版本不再出现 | 代码已实现、合成验证通过、源码已推送、CI #17 通过；不是实际 Agent 版本兼容性通过 |
+| 07：无效旧配置挡住新安装入口 | 保留旧目标诊断/重新检查，同时为未接入安装提供绑定新 ID 的按钮；排除所有已配置目标，保留就绪、启动、模型及清理操作优先级。默认渲染原生点击仅产生 1 次合成 `discovery/connect`，载荷为新安装 ID；刷新后新目标及版本对应，模型门禁保留 | 代码已实现、合成验证通过、源码已推送、CI #17 通过；接入回执来自替换后端，不证明真实安装可连接或可评测 |
+
+新增 4 项回归中，两个缺陷用例先在旧实现失败、修复后通过。修复轮本地 macOS 契约 322/322、Python 5/5、模型设置 4/4；Linux CI 为 321 通过、1 平台跳过，不能混写。原生验证保留实际 main/preload 和页面，7 个文件摘要对应修复源码，真实 Agent/模型调用及评测提交均为 0，无结果目录；测试窗口和服务已关闭。这一小范围默认渲染验证不覆盖其他 P0 场景，不消除原 P0 软件渲染限制。没有重新打包安装包、干净安装或正式发行。
 
 原生测试保留 Electron main/preload、页面及相关工作空间/导入实现，只在隔离副本替换后端为受控响应。23A/25A 使用实际包提取的资源和代码；原包与正式仓库后端不因该测试修改。桌面窗口确实操作过，但其模型/Agent 状态为合成条件；“评测已启动”的受控回执不代表真实执行。
 
@@ -82,12 +96,13 @@
 | `d911965` | 317 项：316 通过、1 跳过、0 失败 | 5/5、4/4 | [CI #12](https://github.com/evaldock/EvalDock/actions/runs/38406581974) |
 | `a5aa904` | 318 项：317 通过、1 跳过、0 失败 | 5/5、4/4 | [CI #13](https://github.com/evaldock/EvalDock/actions/runs/38410931110) |
 | `736f9e9` | 318 项：317 通过、1 跳过、0 失败 | 5/5、4/4 | [CI #16 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38417995694/job/115367466415) |
+| `dff85f9` | 322 项：321 通过、1 跳过、0 失败；新增 4 项卡片回归均通过 | 5/5、4/4 | [CI #17 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38424535648/job/115390335282) |
 
-这些 CI 的发布边界、类型检查和构建通过。唯一跳过项是 [macOS 签名检查的平台条件](../tests/contracts/desktop-signature.test.mjs)：`desktop signature check rejects missing sealed resources`。不能写成 Linux 上 318 项全部通过。CI 不包含原生窗口操作、真实 Agent/业务验收或正式发行验收。
+这些 CI 的发布边界、类型检查和构建通过。唯一跳过项是 [macOS 签名检查的平台条件](../tests/contracts/desktop-signature.test.mjs)：`desktop signature check rejects missing sealed resources`。不能写成 Linux 上 318 或 322 项全部通过。CI 不包含原生窗口操作、真实 Agent/业务验收或正式发行验收。
 
 ### 本地证据：已发生的合成测试和受限原生操作
 
-以下是仓库根目录下的**本地忽略路径**，不是 GitHub 附件；新克隆不会自带。今晚开发机器留存记录，具体保管/转交人待用户确认。需要原始截图或日志时由保管者通过受控方式交接，公共文档仅保留摘要和定位信息。本次重读了所列汇总 JSON 及验证日志，没有重跑这些验收。
+以下是仓库根目录下的**本地忽略路径**，不是 GitHub 附件；新克隆不会自带。今晚开发机器留存记录，具体保管/转交人待用户确认。需要原始截图或日志时由保管者通过受控方式交接，公共文档仅保留摘要和定位信息。初版整理时核对过原有汇总与日志；本次只重读卡片修复的汇总、相关日志和 CI，不重跑产品验收。
 
 | 本地路径 | 可核对内容 |
 | --- | --- |
@@ -95,12 +110,15 @@
 | `artifacts/native-p1-20261013/09-request-validation.json`、`09-verify.log`、`26-targeted.log`、`26-native-final.json`、`26-verify.log`、`26-model-tests.log` | 09 只有三次合成重新扫描；26 库/配置/备份核对；最终本地契约 317/317、Python 5/5、模型 4/4 |
 | `artifacts/native-p1-20261013/22-package-validation.json`、`22-bundle-files.json`、`22-pack.log` | 原打包基线、资源清单、空库、签名和构建记录；不是本轮重新验包 |
 | `artifacts/p1-partial-20261013/18-private-scoring.log`、`21-index-validation.json`、`23-resource-map.json`、`23-25-native-validation.json`、`27-workspace-upgrade.log` | 六项 A 的对应局部证据；原生资源 18 个、错误 0、合成提交 1、真实 Agent/模型/下载 0、无结果目录 |
-| `artifacts/p1-partial-20261013/verify.log`、`model-settings.log` | 最新产品测试基线的本地契约 318/318、Python 5/5、模型 4/4，0 失败和跳过；不与历次/定向数量相加 |
-| `artifacts/p1-partial-20261013/ci-736f9e9.json` | 本次推送对应 CI #16、完整提交、远端树/清单摘要、任务步骤与测试数量 |
+| `artifacts/p1-partial-20261013/verify.log`、`model-settings.log` | 六项 A 阶段的本地契约 318/318、Python 5/5、模型 4/4，0 失败和跳过；不与历次/定向数量相加 |
+| `artifacts/p1-partial-20261013/ci-736f9e9.json` | 历史推送对应 CI #16、完整提交、远端树/清单摘要、任务步骤与测试数量 |
+| `artifacts/card-fixes-20261013/verify-pinned.log`、`model-settings.log`、`stage.log` | 卡片修复的 pnpm 11.24.0 全量检查：契约 322/322、Python 5/5、模型 4/4；1014 文件资源暂存审计，不是新安装包审计 |
+| `artifacts/card-fixes-20261013/01-version.txt`、`02-new-install.txt`、`03-connected.txt/png`、`native-requests.jsonl`、`native-validation.json` | 默认渲染原生合成卡片操作、1 次新安装接入载荷、0 真实执行、7 个源码摘要及服务关闭记录 |
+| `artifacts/card-fixes-20261013/ci-dff85f9.json` | CI #17、完整提交、远端树和三个同步文件 blob、任务步骤及测试数量 |
 
 本地验证环境记录为 Node 24.19.0、pnpm 11.24.0、Electron 44.7.0；CI 使用 Ubuntu、Node 24、pnpm 11.24.0。P0 的软件渲染限制不消失；后来 P1 的默认渲染验收只覆盖其列出的场景，不能倒推所有 P0 场景都已在默认 GPU 重验。
 
-便于核验留存证据的 SHA-256（本次只读重新计算）：
+便于核验原交接留存证据的 SHA-256（初版整理时计算，本次未重算）：
 
 | 文件 | SHA-256 |
 | --- | --- |
@@ -152,17 +170,17 @@
    git remote -v
    git fetch origin app
    git rev-parse origin/app
-   git merge-base --is-ancestor 736f9e9b09303af787e07d868bdcfe0442e2d541 origin/app
-   git log --reverse --oneline da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1..736f9e9b09303af787e07d868bdcfe0442e2d541
-   git show --stat 736f9e9b09303af787e07d868bdcfe0442e2d541
+   git merge-base --is-ancestor dff85f909775522d99c052dd0929d6b8e2d5077e origin/app
+   git log --reverse --oneline da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1..dff85f909775522d99c052dd0929d6b8e2d5077e
+   git show --stat dff85f909775522d99c052dd0929d6b8e2d5077e
    ```
 
-   远端后续可能有新提交，不能把新 HEAD 自动当作已通过 CI #16 的对象。完整验证对象固定为 `736f9e9`；使用上方 CI 链接核对 `app`、完整 head SHA 和 `success`。
+   远端后续可能有新提交，不能把新 HEAD 自动当作已通过 CI #17 的对象。完整验证对象固定为 `dff85f9`；使用上方 CI 链接核对 `app`、完整 head SHA 和 `success`。
 
 2. **需要复跑离线检查时，在独立源码目录复核该基线。** 下列新目录名必须尚不存在；安装依赖可能访问包仓库，但这些检查不启动真实 Agent 或模型。本轮没有重跑这些命令。工作树隔离只隔离源码，不等于干净操作系统，不能用来关闭 24。
 
    ```sh
-   git worktree add --detach ../EvalDock-app-review-20261014 736f9e9b09303af787e07d868bdcfe0442e2d541
+   git worktree add --detach ../EvalDock-app-review-20261014 dff85f909775522d99c052dd0929d6b8e2d5077e
    cd ../EvalDock-app-review-20261014
    node --version
    pnpm --version
@@ -172,7 +190,7 @@
    git diff --check
    ```
 
-   按 [现有工具链说明](MAC_APP.md) 使用 Node 24.x、pnpm 11.24.0；声明最低 Node >=22 不是所有 Node 22 已实测。`verify` 已包含发布边界、Python、类型检查、构建和契约，不要只运行依赖旧构建产物的定向测试后声称全量通过。Linux 预期有上述平台跳过，macOS 历史记录为 318/318；若实际不同，以新日志为准，不改写旧结果。
+   按 [现有工具链说明](MAC_APP.md) 使用 Node 24.x、pnpm 11.24.0；声明最低 Node >=22 不是所有 Node 22 已实测。`verify` 已包含发布边界、Python、类型检查、构建和契约，不要只运行依赖旧构建产物的定向测试后声称全量通过。Linux 预期有上述平台跳过，该修复基线的 macOS 留存记录为 322/322；若实际不同，以新日志为准，不改写旧结果。
 
 3. **核对原生证据，而不是把 CI 当作原生验收。** 先取得第 5 节的本地忽略目录，通过摘要及请求/资源记录检查相应场景。新克隆缺这些文件时记录“原始证据未转交”；现有 Git 文档和 CI 链接仍可复核，但不能声称已重新检查原截图。不要直接用正式后端启动 App 来重演合成验收；原受控服务、隔离条件和 P0 软件渲染限制必须保留。
 
@@ -180,8 +198,14 @@
 
 5. **沟通后再指定恢复条目和分段。** 六项目前全部暂停；满足某一段最低条件可只恢复那一段，未满足的继续停止。02/06 无新来源继续阻塞；不因此追加其他 P1/P2，不调用真实 Agent、Planner/Judge、不下载真实题目、不执行自动更新或正式发布。只记录实际材料支持的结果，整项标准不足时保留“局部/未验收”。
 
-## 8. 本次交接整理做了什么
+## 8. 初版交接整理记录（2758d1a，历史）
 
-本次正常推送 `736f9e9`、核对远端分支/树/清单摘要、检查 CI #16 全部步骤及日志；只读核对 14 个提交、25 个变化文件、todolist 36 项状态和已有本地证据，然后生成本文。六项开发及准备仍暂停，没有重新验包、安装、启动 App、连接 VM 或运行真实评测。本文只做链接/命令、事实一致性、差异格式及发布边界检查，不能被解释为又完成一轮产品验收。
+初版整理时正常推送 `736f9e9`、核对远端分支/树/清单摘要、检查 CI #16 全部步骤及日志；只读核对 14 个提交、25 个变化文件、todolist 36 项状态和已有本地证据，然后生成本文。六项开发及准备仍暂停，没有重新验包、安装、启动 App、连接 VM 或运行真实评测。本文只做链接/命令、事实一致性、差异格式及发布边界检查，不能被解释为又完成一轮产品验收。
 
-文档检查通过：29 个相对链接/锚点、14 个提交与远端历史对应、25 个变化文件覆盖、所列本地证据存在性及四个摘要、两段 shell 命令语法、工具链与脚本、差异格式及发布边界。todolist 保持 `736f9e9` 原样；本次仅新增本文，检查记录保存在本地忽略目录 `artifacts/p1-partial-20261013/handoff-doc-validation.json`。本文自身的新提交尚未推送，未新增云端 CI 或产品验收结论。
+文档检查通过：29 个相对链接/锚点、14 个提交与远端历史对应、25 个变化文件覆盖、所列本地证据存在性及四个摘要、两段 shell 命令语法、工具链与脚本、差异格式及发布边界。当时 todolist 保持 `736f9e9` 原样；该轮仅新增本文，检查记录保存在本地忽略目录 `artifacts/p1-partial-20261013/handoff-doc-validation.json`。初版当时尚未推送；后来已随 `dff85f9` 进入远端并由 CI #17 检查组合提交。此处的 14 提交/25 文件及文档检查数量仅指初版整理时的范围。
+
+## 9. 本次文档同步范围
+
+本次只更新 todolist 和本交接：记录 `dff85f9` 正常推送及 CI #17，通过现有代码、日志和原生合成记录说明 07/08 两项修复及验收边界，更新接班复核基线。没有修改代码、重跑产品测试、启动 App、连接 VM、运行真实评测或推进其他 P1/P2。02、06 保持阻塞，六项分段工作继续暂停；材料、责任方和恢复授权仍按第 6 节处理。本次新增文档提交未推送，不能借用 CI #17 标成已通过云端检查。
+
+本次文档检查通过：两份文档共 173 个相对链接/锚点、2 段 shell 命令语法、16 个已上传提交及 26 个变化文件覆盖；36 个编号条目正文、六项暂停段落与第 6 节阻塞清单保持不变。发布边界和差异格式检查通过。检查记录在本地忽略文件 `artifacts/card-fixes-20261013/docs-ci17-validation.json`；没有重跑产品测试，也没有新增真实验收结论。
