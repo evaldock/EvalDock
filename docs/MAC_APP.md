@@ -19,6 +19,25 @@ pnpm run desktop:dmg
 
 打包脚本只选取 Git 跟踪的运行资源、明确列出的桌面文件和编译产物；不会携带源码目录中的运行结果、下载题库、用户 Agent 配置或密钥。内置 Node 运行时用于 EvalDock，自行安装的 Agent 及 Python、浏览器等题目依赖仍需另行准备。
 
+### 干净安装包
+
+资源暂存前检查当前源码的发布边界，暂存后检查实际资源字节，打包后再次检查 `.app` 内的运行资源与 `app.asar`。嵌入的评测历史、任务目录快照、个人路径、凭据、缓存和未声明的资源会让构建失败；编译后的契约测试不进入安装包。首次创建工作空间只加载一题明确的合成演示题，Agent 配置为空，不附评测记录、Trace、报告或真实题库。
+
+可单独检查最终应用并生成文件摘要清单：
+
+```sh
+node scripts/audit-desktop-runtime.cjs artifacts/mac/mac-arm64/EvalDock.app artifacts/mac/release-files.json
+```
+
+同一台 Mac 打开新安装包仍会保留已有用户数据。检查独立工作空间时，可用新的 Chromium 用户目录启动应用：
+
+```sh
+preview_dir="$(mktemp -d -t evaldock-clean-preview)"
+open -n artifacts/mac/mac-arm64/EvalDock.app --args "--user-data-dir=$preview_dir"
+```
+
+此检查保留原工作空间，模型凭据和已安装 Agent 仍属于当前系统用户。完全首次使用须在新 macOS 用户或干净 Mac 中验收；签名、公证和跨版本更新验证仍按下文要求完成。不要为制作干净安装包删除用户工作空间，后续升级继续保留配置、题库和结果。
+
 ## 首次运行
 
 1. 打开 App，在「设置」填写 Planner / Judge 接口及密钥。使用 Pi、Hermes、OpenClaw 或 LangGraph 时，还需在「被测 Agent 模型」单独填写 DeepSeek API Key；这些适配器当前使用 DeepSeek。办公 Agent 的账号在原应用中登录，DSH 继续使用自己的服务配置。

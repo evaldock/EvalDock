@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,cp,mkdir,writeFile,rm,symlink} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import audit from '../../scripts/audit-desktop-runtime.cjs';
@@ -18,4 +19,38 @@ test('release audit rejects nested history, secrets, home paths and external lin
 test('release audit rejects modified demo answers and additional user configuration',async t=>{
  const root=await fixture(t);await writeFile(path.join(root,'datasets/basic-file-delivery/case-001/private/final.json'),'{}');assert.throws(()=>audit.auditDesktopRuntime(root),/differs from the synthetic demo/);
  const second=await fixture(t);await mkdir(path.join(second,'config'));await writeFile(path.join(second,'config/agents.json'),'{}');assert.throws(()=>audit.auditDesktopRuntime(second),/not a public config template/);
+});
+test('release audit rejects embedded history, downloaded catalogs and credential files',async t=>{
+ const dirty=[
+  ['workbench/design-prototypes/historical-snapshot.js','const historicalAgents = [{"id":"fixture-run"}];'],
+  ['workbench/design-prototypes/catalog-snapshot.js','const resourceSnapshot = {"capturedAt":null,"datasets":[{"id":"fixture-business"}],"agents":[]};'],
+  ['workbench/design-prototypes/observation-plan-snapshot.js','const observationPlanSnapshot = {"capturedAt":"2026-01-01","web":{},"plans":{}};'],
+  ['workbench/design-prototypes/question-inventory/index.json','{"capturedAt":null,"datasets":[{"id":"fixture-business"}]}'],
+  ['planning/case-difficulty.json','{"assessedAt":null,"cases":[{"id":"fixture-business"}]}'],
+  ['workbench/design-prototypes/Local Storage/cache.json','{}'],
+  ['dist/models.env','EVALDOCK_PLANNER_API_KEY=fixture'],
+  ['dist/key.json',JSON.stringify({apiKey:'sk-'+'a'.repeat(32)})],
+  ['dist/tests/fixture.js','export const fixture = {};'],
+ ];
+ for(const [relative,content] of dirty){
+  const root=await fixture(t),file=path.join(root,relative);await mkdir(path.dirname(file),{recursive:true});await writeFile(file,content);
+  assert.throws(()=>audit.auditDesktopRuntime(root),/publication boundary failed/,relative);
+ }
+});
+test('release audit also checks application ASAR and undeclared unpacked resources',async t=>{
+ const archiveTools=createRequire(createRequire(import.meta.url).resolve('electron-builder'))('@electron/asar');
+ for(const [relative,content] of [
+  ['desktop/main.mjs','export const ready = true;'],
+  ['desktop/config/agents.json','{"targets":[{"id":"fixture-user"}]}'],
+  ['desktop/main.mjs','const key="sk-'+'a'.repeat(32)+'";'],
+ ]){
+  const root=await fixture(t),source=path.join(root,'application'),archive=path.join(root,'app.asar');
+  const file=path.join(source,relative);await mkdir(path.dirname(file),{recursive:true});await writeFile(file,content);
+  await archiveTools.createPackage(source,archive);
+  if(content.includes('ready')){
+   assert.equal(audit.auditDesktopArchive(archive).length,1);
+   await mkdir(archive+'.unpacked');await writeFile(path.join(archive+'.unpacked','history.json'),'{}');
+   assert.throws(()=>audit.auditDesktopArchive(archive),/undeclared unpacked resource/);
+  }else assert.throws(()=>audit.auditDesktopArchive(archive),/publication boundary failed/);
+ }
 });

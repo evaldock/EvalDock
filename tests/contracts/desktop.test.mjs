@@ -45,3 +45,15 @@ test('first workspace setup and later code upgrades preserve user config, librar
  assert.deepEqual(await readFile(path.join(root,'config/agents.json')),config);assert.deepEqual(await readFile(path.join(root,'datasets/catalog.md')),catalog);
  assert.equal(await readFile(path.join(root,'var/evaluation-results/receipt.json'),'utf8'),'synthetic result');
 });
+test('a new workspace starts with empty Agent targets and no bundled evaluation history',async t=>{
+ const root=await fixture(t),source=path.join(root,'runtime'),fresh=path.join(root,'fresh');await mkdir(source);
+ for(const name of ['dist','adapters','workbench','labels','planning','trace','observer-lab','src','desktop','node_modules','config','environments'])await mkdir(path.join(source,name));
+ await cp(path.join(repo,'examples/datasets/minimal'),path.join(source,'datasets'),{recursive:true});
+ await mkdir(path.join(source,'config/targets'));await writeFile(path.join(source,'config/targets/real-dsh.json'),JSON.stringify({dshHome:'/Users/your-user/.dsh'}));
+ await writeFile(path.join(source,'package.json'),'{"type":"module"}');
+ await prepareWorkspace(source,fresh);
+ assert.deepEqual(JSON.parse(await readFile(path.join(fresh,'config/agents.json'),'utf8')),{schema:'evaldock.agent-targets/v1',targets:[]});
+ assert.equal((await readdir(fresh)).includes('var'),false);
+ assert.equal((await readdir(fresh)).includes('dataset-history'),false);
+ assert.deepEqual(await readFile(path.join(fresh,'datasets/catalog.md')),await readFile(path.join(repo,'examples/datasets/minimal/catalog.md')));
+});

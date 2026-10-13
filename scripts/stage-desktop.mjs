@@ -3,6 +3,8 @@ import {cp,mkdir,rm,writeFile,readFile,realpath,access} from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 const out=path.resolve('artifacts/desktop-runtime');
+// Check local edits as well as tracked names before collecting release resources.
+execFileSync(process.execPath,['scripts/check-publication-boundary.mjs'],{stdio:'inherit'});
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
 // Only tracked public runtime resources plus explicitly built files enter the bundle.
 const tracked=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);
@@ -18,7 +20,8 @@ for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility
 for(const file of ['workbench/design-prototypes/score-radar.js','workbench/design-prototypes/score-radar.css']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
-await cp('dist',path.join(out,'dist'),{recursive:true});
+// Compiled contract fixtures are development resources, not application resources.
+for(const name of ['src','observer-lab'])await cp(path.join('dist',name),path.join(out,'dist',name),{recursive:true});
 for(const file of ['desktop/workspace.mjs','desktop/library-archive.mjs','desktop/updates.mjs','workbench/lib/online-selection.mjs','workbench/lib/planner-target.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/benchdock-catalog.mjs']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
