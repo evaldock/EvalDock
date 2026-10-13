@@ -27,3 +27,5 @@ html:has(.dataset-catalog-toolbar){scrollbar-gutter:stable}
 .agent-diagnostics dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;margin:10px 0 0}
 .agent-diagnostics dd{margin:0;overflow-wrap:anywhere}
 .agent-card-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+
+#small-selection[hidden],#automatic-source[hidden]{display:none}
