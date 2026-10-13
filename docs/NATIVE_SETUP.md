@@ -2,9 +2,11 @@
 
 这是当前源码的实际启动方式，不是 Docker 安装说明。Docker 镜像和 Runner 尚未交付，发行状态见 [发布说明](RELEASE.md)。
 
+开发 Mac App 时，先按 [App 分支接班](MAC_APP.md#app-分支接班) 检出 `app` 并核对基线、工作区和待办范围；桌面启动与打包使用该文档中的命令。本页后续步骤介绍高级工作台及真实评测准备，不是只做桌面开发时必须执行的操作。
+
 ### 1. 准备环境
 
-使用 macOS、Git、Node.js 24 和 `package.json` 指定的 pnpm 版本。桌面 Agent 需要可登录的图形会话，部分题目还需要独立的工具、数据或服务环境。
+使用 macOS、Git，建议 Node.js 24.x，与当前 CI 一致；[package.json](../package.json) 声明最低 Node.js `>=22`，pnpm 固定为 `11.24.0`。最低要求与已验证版本分开记录，不能据此声称所有 Node 22 版本均已实测。桌面 Agent 需要可登录的图形会话，部分题目还需要独立的工具、数据或服务环境。
 
 ```sh
 git clone https://github.com/evaldock/EvalDock.git EvalDock

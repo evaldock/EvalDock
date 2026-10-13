@@ -2,16 +2,42 @@
 
 桌面版新增概览、我的 Agent、测试集、评测记录和设置页面。现有工作台保留为高级入口；也可用菜单「导航 → 主界面」或 Command+1 返回。支持原有六类配置目标和 WorkBuddy；DSH 与其他被测 Agent 使用同一评测入口；执行前仍由现有控制器检查服务和插件状态。
 
+## App 分支接班
+
+桌面开发使用 `app` 分支。2026-10-13 本轮 P1 计划基线为 `968b06fb85e6041289546550f442963459a6d369`；这是可追溯的计划起点，不是要求后续开发重置到该提交。实施顺序、提交与验证结果统一记录在 [App 待办清单](APP_TODO_20261013.md)，工作约束见 [AGENTS.md](../AGENTS.md)。
+
+新建工作目录：
+
+```sh
+git clone --branch app --single-branch https://github.com/evaldock/EvalDock.git EvalDock
+cd EvalDock
+git status --short --branch
+git rev-parse HEAD
+```
+
+复用已有目录时，先执行 `git status --short --branch`，有未提交改动就先核对归属并保留，再切换分支。工作区干净后执行 `git fetch origin app`；已有本地 `app` 时用 `git switch app`，否则用 `git switch --track origin/app`。需要更新时仅执行 `git pull --ff-only origin app`；出现分叉则先核对差异，不重置、强推或自动混入 `main` 的改动。
+
+截至该计划基线，原交接的 14 个未提交修改和 1 个新增图片尚未找回（P0 02），WorkBuddy 原 5.7.7 故障证据不足（P0 06），开发 VM 连接尚未恢复（P1 12–13）。本机 Git 操作或 CI 通过不代表这些阻塞已解除；具体恢复条件见清单，不改写原交接记录。
+
 ## 开发和打包
 
-使用项目指定的 pnpm 和 Node.js 22 以上版本：
+[package.json](../package.json) 声明 Node.js 最低版本 `>=22`、pnpm 固定为 `11.24.0`；当前 [CI](../.github/workflows/ci.yml) 使用 Node.js 24，本机已有验证使用 24.19.0，接班建议使用 24.x。声明最低版本不等于各个 Node 22 版本都已实测。先核对 `node --version`、`pnpm --version`，再按锁文件安装。
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm run verify
+node --test workbench/lib/model-settings.test.mjs
+```
+
+上述检查使用合成材料，不需要真实 Agent 或模型密钥。下列启动及打包命令按任务授权选择执行，不是接班时必须全部运行：
+
+```sh
 pnpm run desktop
 pnpm run desktop:pack
 pnpm run desktop:dmg
 ```
+
+`desktop` 先构建和暂存再启动原生窗口；`desktop:prepare` 只构建并暂存资源。直接启动普通 App 会读取当前用户环境；需要合成验收时应使用隔离材料与受控服务，不能把临时 Chromium 数据目录当作模型/Agent 凭据隔离。源码高级工作台的独立配置与启动步骤见 [原生源码指南](NATIVE_SETUP.md)，不要为桌面界面验收照抄其中的真实评测步骤。
 
 `desktop:pack` 生成当前 Mac 架构的 `.app`，`desktop:dmg` 生成安装镜像，均位于 `artifacts/mac/`。默认使用临时（ad-hoc）签名封装应用及其嵌套组件，并在签名后执行 `codesign --verify --deep --strict`，避免打包修改破坏 Electron 原始签名后被报告损坏。临时签名仅证明包内文件完整，不提供 Apple 认可的开发者身份，也不等于公证；首次打开仍可能被 macOS 拦截。对外发行并通过默认 Gatekeeper 检查，需要配置 Developer ID Application 证书、Apple 公证凭据并完成公证。不得将 `spctl` 显示 `override=security disabled` 的本机结果视为分发验收通过。应用、Dock 和安装镜像使用白色圆角方形的 EvalDock 小马头图标（`desktop/assets/icon.png` / `icon.icns`），四周保留透明边距；1024 像素 PNG 与包含各尺寸的 ICNS 使用同一图案。打包检查会核对应用图标文件与声明，防止回退到 Electron 默认图标。
 
