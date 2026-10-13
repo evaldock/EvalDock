@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,cp,writeFile,readFile,readdir,rm} from 'node:fs/promises';
+import {readdirSync,rmSync} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {crc32,deflateRawSync} from 'node:zlib';
 import {importLibraryArchive} from '../../desktop/library-archive.mjs';
-import {libraryFingerprint} from '../../desktop/workspace.mjs';
+import {libraryFingerprint,importLibrary} from '../../desktop/workspace.mjs';
 
 function archive(entries){
   const locals=[],central=[];let offset=0;
@@ -62,4 +63,43 @@ test('unsafe ZIP entries, corruption, limits and missing catalogs preserve the i
   await assert.rejects(importLibraryArchive(f.source,f.root,{archiveLimits:{bytes:10,files:100000}}),/超过导入限制/);
   const signal=AbortSignal.abort();await assert.rejects(importLibraryArchive(f.source,f.root,{signal}));
   assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
+});
+test('ZIP commit failure restores the original library after it was moved to backup',async t=>{
+  const f=await fixture(t);await writeFile(f.source,archive(f.entries));let injected=false;
+  await assert.rejects(importLibraryArchive(f.source,f.root,{onProgress:progress=>{
+    if(progress.phase==='COMMITTING'){
+      // Remove only this test's staged payload: the first rename can succeed,
+      // then switching the now-missing payload fails and must restore the backup.
+      const staged=readdirSync(f.root).filter(name=>name.startsWith('.dataset-import-'));
+      assert.equal(staged.length,1);rmSync(path.join(f.root,staged[0]),{recursive:true});injected=true;
+    }
+  }}),{code:'ENOENT'});
+  assert.equal(injected,true);assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
+  assert.deepEqual(await readdir(path.join(f.root,'dataset-history')),[]);
+  assert.equal((await readdir(f.root)).some(name=>/^\.dataset-(zip|import)-/.test(name)),false);
+});
+test('a successful replacement retains a complete backup that the existing importer can restore',async t=>{
+  const f=await fixture(t),replacement=f.entries.map(entry=>entry.name.endsWith('/question.json')?{...entry,data:JSON.stringify({...JSON.parse(entry.data),title:'Synthetic replacement title'})}:entry);
+  await writeFile(path.join(f.root,'user-state.txt'),'synthetic user data');
+  await writeFile(f.source,archive(replacement));await importLibraryArchive(f.source,f.root);
+  const [backupName]=await readdir(path.join(f.root,'dataset-history')),backup=path.join(f.root,'dataset-history',backupName);
+  assert.equal(await libraryFingerprint(backup),f.before);
+  const question=replacement.find(entry=>entry.name.endsWith('/question.json')).name;
+  assert.equal(JSON.parse(await readFile(path.join(f.root,'datasets',question))).title,'Synthetic replacement title');
+  const restored=await importLibrary(backup,f.root);assert.equal(restored.cases,1);
+  for(const entry of f.entries)assert.deepEqual(await readFile(path.join(f.root,'datasets',entry.name)),entry.data);
+  assert.equal(await libraryFingerprint(backup),f.before);assert.equal((await readdir(path.join(f.root,'dataset-history'))).length,2);
+  assert.equal(JSON.parse(await readFile(path.join(f.root,'datasets/evaldock-import.json'))).sha256,restored.sha256);
+  assert.equal(await readFile(path.join(f.root,'user-state.txt'),'utf8'),'synthetic user data');
+  assert.equal((await readdir(f.root)).some(name=>/^\.dataset-(zip|import)-/.test(name)),false);
+});
+test('cancellation after extraction starts and the file-count limit leave no partial library',async t=>{
+  const f=await fixture(t);await writeFile(f.source,archive(f.entries));const controller=new AbortController();let extracted=0;
+  await assert.rejects(importLibraryArchive(f.source,f.root,{signal:controller.signal,onProgress:progress=>{
+    if(progress.phase==='EXTRACTING'){extracted++;controller.abort();}
+  }}),{name:'AbortError'});
+  assert.equal(extracted,1);
+  await assert.rejects(importLibraryArchive(f.source,f.root,{archiveLimits:{bytes:4*1024**3,files:1}}),/超过导入限制/);
+  assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
+  assert.equal((await readdir(f.root)).some(name=>/^\.dataset-(zip|import)-/.test(name)),false);
 });
