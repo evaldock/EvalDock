@@ -5,18 +5,18 @@
 ## 1. 接班时先确认的事实
 
 - 开发源是独立的 **`app` 分支**，远端为 `evaldock/EvalDock`；本轮没有合并到 `main`，也没有合入起点核对时主线另有的四个提交。
-- 夜间起点：`da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1`。当前已上传的交接基线：**`e834218d03e1456f2a9c634aca4ce3380287f2cb`**，起点之后共 17 个提交、26 个仓库文件发生变化。
-- 最新正常快进推送为 `dff85f9 → e834218`，未强推；仅同步 todolist 与交接文档中的 CI #17、两处卡片修复及验收边界，两个文档 blob 均与本地该提交一致。产品代码仍为 `dff85f9`，没有新增功能或验收项。
-- **[CI #18 已通过](https://github.com/evaldock/EvalDock/actions/runs/38425921230)**，对应上述完整 SHA；北京时间 23:53:35 启动，23:54:37 更新为 `completed / success`。代码树为 `fb3dc2ec51f55b9a8bfe1cb3fe474810e58480de`，清单 blob 为 `e1e9c2fdc95bc7456e677e9cebaa5530129e0415`，交接 blob 为 `7eb72b29948c7e7ac685e8e7aa1ad7eee59f042b`。CI #17 仍只对应 `dff85f9`；原生合成证据也保留原修复基线，不能改称本次重新验收。
+- 夜间起点：`da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1`。当前已上传的交接基线：**`21303b492b0ff1e63928c31e18198d1376c002cb`**，起点之后共 18 个提交、26 个仓库文件发生变化。
+- 最新正常快进推送为 `e834218 → 21303b4`，未强推；仅同步 todolist 与交接文档中的 CI #18 记录及验收边界，两个文档 blob 均与本地该提交一致。产品代码仍为 `dff85f9`，没有新增功能或验收项。
+- **[CI #19 已通过](https://github.com/evaldock/EvalDock/actions/runs/38427971719)**，对应上述完整 SHA；北京时间 2026-10-14 00:08:02 启动，00:09:05 更新为 `completed / success`。代码树为 `278b281105ca53e0fd29f7315734e7586f365a91`，清单 blob 为 `d2102bc58a13eaa27caf367e66209c878f386609`，交接 blob 为 `bf64dc691c2d19d016ff4d49df0ce5d8b61c8193`。CI #18 仍只对应 `e834218`；CI #17 和原生合成证据保留 `dff85f9` 原修复基线，不能改称本次重新验收。
 - “上传成功”在本文中指 **GitHub `app` 上的源码、测试及文档提交**。本地 App 安装包、截图、控件树和原始测试日志位于忽略目录，未上传为 Release 或 Git 文件，开发 VM 也未同步。
 - 全部 36 个父项中，按原限定标准整项关闭 12 项，未整项关闭 24 项。12 项为 P0 的 01、03、04、05、07、08、10、11，以及 P1 的 09、22、26、34；其中 22 仅完成本地临时签名打包与资源审计。另有六个 A 部分已完成，父项仍未关闭。后续审核发现的 07/08 两处卡片缺陷已在 `dff85f9` 补修并完成限定合成验收；没有因此新增关闭业务、安装或发行项。
 - 当前可立即独立开发剩余 **0 项**。14、18B、17、21B、24、27B 已按用户要求暂停开发及验收准备，等明天沟通后明确恢复范围；02、06 保持阻塞。真实评测、其他 P1 和全部 P2 均不推进。
 
-**交接文档自身的交付边界：** 初版 `2758d1a` 随 `dff85f9` 推送，修复状态同步版 `e834218` 也已推送并通过 CI #18。当前这次记录 CI #18 的文档修改另作本地提交，尚未推送；CI #18 不覆盖这次新增文档提交。源码同步、合成验证、真实验收与正式发行分别记录。
+**交接文档自身的交付边界：** 初版 `2758d1a` 随 `dff85f9` 推送，`e834218` 和 `21303b4` 两次状态同步也已推送，分别通过 CI #18 和 #19。当前这次记录 CI #19 与提交完整性的文档修改另作本地提交，不计入上述 18 个已推送提交；尚未推送、没有对应 CI。源码同步、合成验证、真实验收与正式发行分别记录。
 
 ## 2. 已提交并进入远端 app 的内容
 
-以下 17 个提交均在已核对的远端基线历史内。三个中间提交随 `d911965` 一起推送，由 CI #12 验证该轮组合，不能说它们各自都有独立 CI 运行。
+以下 18 个提交均在已核对的远端基线历史内。三个中间提交随 `d911965` 一起推送，由 CI #12 验证该轮组合，不能说它们各自都有独立 CI 运行。
 
 | 提交 | 实际内容 | 对应云端检查 |
 | --- | --- | --- |
@@ -37,12 +37,17 @@
 | [2758d1a](https://github.com/evaldock/EvalDock/commit/2758d1a56a7ae8b2bfb6240f251da4844b03a578) | 初版夜间交接文档，未新增产品实现 | 随 `dff85f9`，CI #17；没有独立 CI |
 | [dff85f9](https://github.com/evaldock/EvalDock/commit/dff85f909775522d99c052dd0929d6b8e2d5077e) | 07/08：路径冲突不借用旧版本，恢复新安装接入入口；新增 4 项回归并更新 todolist | [#17](https://github.com/evaldock/EvalDock/actions/runs/38424535648)，成功 |
 | [e834218](https://github.com/evaldock/EvalDock/commit/e834218d03e1456f2a9c634aca4ce3380287f2cb) | 仅同步两份文档中的 CI #17、卡片修复及限定验收状态 | [#18](https://github.com/evaldock/EvalDock/actions/runs/38425921230)，成功 |
+| [21303b4](https://github.com/evaldock/EvalDock/commit/21303b492b0ff1e63928c31e18198d1376c002cb) | 仅记录 e834218 推送、CI #18 及合成/真实验收边界 | [#19](https://github.com/evaldock/EvalDock/actions/runs/38427971719)，成功 |
 
-旧 CI 核对记录保留；本次只重新读取 CI #18 的准确提交与日志，不为旧版本或中间提交补造新验收。
+旧 CI 核对记录保留；本次只重新读取 CI #19 的准确提交与日志，不为旧版本或中间提交补造新验收。
+
+**遗漏代码复核（2026-10-14，本次文档编辑前）。** 本仓库 `app`、`origin/app` 与 GitHub 分支均为 `21303b4`；夜间起点至该提交共 18 个提交，reflog 中当晚的 18 个 commit 均确认是远端 `app` 的祖先。工作区无暂存/未暂存改动、无未跟踪文件，stash 为空，所有本地分支均无未推送提交；本仓库仅有当前一个注册工作树。检查使用 `git status --porcelain=v1 --untracked-files=all`、`git stash list`、`git log --branches --not --remotes`、`git worktree list --porcelain` 及逐提交祖先检查。未发现应补交的代码；本次新文档提交另计，不将编辑前快照表述为它也已推送。
+
+忽略目录 `node_modules/`、`dist/`、`src/agent-trace/native-probe/lib/`、`artifacts/` 为依赖、构建产物和本地证据，不一并上传。本结论仅覆盖当前仓库及其注册工作树；02 所缺原工作树的 14 个改动和图片仍未找回，不能据此认定已恢复或已上传。
 
 ## 3. 具体修改了哪些文件和行为
 
-以下路径覆盖起点至 `e834218` 的 26 个变化文件；打包产物不计入 Git 文件数量。`dff85f9` 只修改卡片模块、对应回归和 todolist 三个既有文件；`e834218` 只更新清单与交接两份文档。
+以下路径覆盖起点至 `21303b4` 的 26 个变化文件；打包产物不计入 Git 文件数量。`dff85f9` 只修改卡片模块、对应回归和 todolist 三个既有文件；`e834218` 和 `21303b4` 只更新清单与交接两份文档。
 
 | 变化范围 | 文件 | 实际变化 |
 | --- | --- | --- |
@@ -54,7 +59,7 @@
 | CI 与资源暂存 | [ci.yml](../.github/workflows/ci.yml)、[stage-desktop.mjs](../scripts/stage-desktop.mjs) | `app` 推送触发原有 CI；新增前端运行模块纳入桌面暂存 |
 | 计划和证据模板 | [APP_TODO_20261013.md](APP_TODO_20261013.md)、[AGENT_VERSION_VALIDATION.md](AGENT_VERSION_VALIDATION.md) | 36 项实施/验收/依据、实际结果及阻塞；真实业务证据索引字段、模板和只读关联检查 |
 | 接班与事实说明 | [MAC_APP.md](MAC_APP.md)、[NATIVE_SETUP.md](NATIVE_SETUP.md)、[BENCHDOCK.md](BENCHDOCK.md)、[RELEASE.md](RELEASE.md)、[SUPPORT.md](../adapters/SUPPORT.md)、[README.md](../README.md)、[README.zh-CN.md](../README.zh-CN.md) | 对齐分支、工具链、COUNT/标准选题、源码示例与桌面空库、发现与适配、私有参考以及本地打包/正式发行边界 |
-| 本交接 | [APP_HANDOFF_20261014.md](APP_HANDOFF_20261014.md) | `2758d1a` 新增交接、`e834218` 同步修复状态，均已进入远端；本次 CI #18 记录另作未推送文档提交 |
+| 本交接 | [APP_HANDOFF_20261014.md](APP_HANDOFF_20261014.md) | `2758d1a` 新增交接、`e834218` 同步修复状态、`21303b4` 记录 CI #18，均已进入远端；本次 CI #19 与提交复核记录另作未推送文档提交 |
 
 未修改 Judge 评分规则、适配器协议、用户真实配置或历史业务报告；ZIP 产品运行逻辑本轮没有重写，相关新增内容是回归测试。没有恢复原交接丢失的 14 个改动和图片，也没有将同名新改动冒充原成果。
 
@@ -99,12 +104,13 @@
 | `736f9e9` | 318 项：317 通过、1 跳过、0 失败 | 5/5、4/4 | [CI #16 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38417995694/job/115367466415) |
 | `dff85f9` | 322 项：321 通过、1 跳过、0 失败；新增 4 项卡片回归均通过 | 5/5、4/4 | [CI #17 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38424535648/job/115390335282) |
 | `e834218` | 322 项：321 通过、1 跳过、0 失败；产品代码与 `dff85f9` 相同 | 5/5、4/4 | [CI #18 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38425921230/job/115395155784) |
+| `21303b4` | 322 项：321 通过、1 跳过、0 失败；产品代码与 `dff85f9` 相同 | 5/5、4/4 | [CI #19 任务日志](https://github.com/evaldock/EvalDock/actions/runs/38427971719/job/115402284272) |
 
 这些 CI 的发布边界、类型检查和构建通过。唯一跳过项是 [macOS 签名检查的平台条件](../tests/contracts/desktop-signature.test.mjs)：`desktop signature check rejects missing sealed resources`。不能写成 Linux 上 318 或 322 项全部通过。CI 不包含原生窗口操作、真实 Agent/业务验收或正式发行验收。
 
 ### 本地证据：已发生的合成测试和受限原生操作
 
-以下是仓库根目录下的**本地忽略路径**，不是 GitHub 附件；新克隆不会自带。今晚开发机器留存记录，具体保管/转交人待用户确认。需要原始截图或日志时由保管者通过受控方式交接，公共文档仅保留摘要和定位信息。原有汇总、卡片修复日志与原生记录按此前核对结果保留；本次只核对 CI #18 和文档同步证据，不重跑产品验收。
+以下是仓库根目录下的**本地忽略路径**，不是 GitHub 附件；新克隆不会自带。今晚开发机器留存记录，具体保管/转交人待用户确认。需要原始截图或日志时由保管者通过受控方式交接，公共文档仅保留摘要和定位信息。原有汇总、卡片修复日志与原生记录按此前核对结果保留；本次只核对 CI #19、文档同步和遗漏代码证据，不重跑产品验收。
 
 | 本地路径 | 可核对内容 |
 | --- | --- |
@@ -118,6 +124,7 @@
 | `artifacts/card-fixes-20261013/01-version.txt`、`02-new-install.txt`、`03-connected.txt/png`、`native-requests.jsonl`、`native-validation.json` | 默认渲染原生合成卡片操作、1 次新安装接入载荷、0 真实执行、7 个源码摘要及服务关闭记录 |
 | `artifacts/card-fixes-20261013/ci-dff85f9.json` | CI #17、完整提交、远端树和三个同步文件 blob、任务步骤及测试数量 |
 | `artifacts/card-fixes-20261013/ci-e834218.json` | CI #18、准确提交、两个文档 blob 及测试数量；不新增真实验收结论 |
+| `artifacts/card-fixes-20261013/ci-21303b4.json` | CI #19、准确提交、两个文档 blob、测试数量及编辑前 18 个提交均已推送/工作区干净的核对记录 |
 
 本地验证环境记录为 Node 24.19.0、pnpm 11.24.0、Electron 44.7.0；CI 使用 Ubuntu、Node 24、pnpm 11.24.0。P0 的软件渲染限制不消失；后来 P1 的默认渲染验收只覆盖其列出的场景，不能倒推所有 P0 场景都已在默认 GPU 重验。
 
@@ -173,17 +180,17 @@
    git remote -v
    git fetch origin app
    git rev-parse origin/app
-   git merge-base --is-ancestor e834218d03e1456f2a9c634aca4ce3380287f2cb origin/app
-   git log --reverse --oneline da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1..e834218d03e1456f2a9c634aca4ce3380287f2cb
-   git show --stat e834218d03e1456f2a9c634aca4ce3380287f2cb
+   git merge-base --is-ancestor 21303b492b0ff1e63928c31e18198d1376c002cb origin/app
+   git log --reverse --oneline da5c97cab13fdcf01557d1e2a7ac4df05ee16ea1..21303b492b0ff1e63928c31e18198d1376c002cb
+   git show --stat 21303b492b0ff1e63928c31e18198d1376c002cb
    ```
 
-   远端后续可能有新提交，不能把新 HEAD 自动当作已通过 CI #18 的对象。完整验证对象固定为 `e834218`；使用上方 CI 链接核对 `app`、完整 head SHA 和 `success`。
+   远端后续可能有新提交，不能把新 HEAD 自动当作已通过 CI #19 的对象。完整验证对象固定为 `21303b4`；使用上方 CI 链接核对 `app`、完整 head SHA 和 `success`。
 
 2. **需要复跑离线检查时，在独立源码目录复核该基线。** 下列新目录名必须尚不存在；安装依赖可能访问包仓库，但这些检查不启动真实 Agent 或模型。本轮没有重跑这些命令。工作树隔离只隔离源码，不等于干净操作系统，不能用来关闭 24。
 
    ```sh
-   git worktree add --detach ../EvalDock-app-review-20261014 e834218d03e1456f2a9c634aca4ce3380287f2cb
+   git worktree add --detach ../EvalDock-app-review-20261014 21303b492b0ff1e63928c31e18198d1376c002cb
    cd ../EvalDock-app-review-20261014
    node --version
    pnpm --version
@@ -193,7 +200,7 @@
    git diff --check
    ```
 
-   按 [现有工具链说明](MAC_APP.md) 使用 Node 24.x、pnpm 11.24.0；声明最低 Node >=22 不是所有 Node 22 已实测。`verify` 已包含发布边界、Python、类型检查、构建和契约，不要只运行依赖旧构建产物的定向测试后声称全量通过。Linux 预期有上述平台跳过，macOS 322/322 留存记录来自产品代码相同的 `dff85f9`，不是 `e834218` 的新本地验收；若实际不同，以新日志为准，不改写旧结果。
+   按 [现有工具链说明](MAC_APP.md) 使用 Node 24.x、pnpm 11.24.0；声明最低 Node >=22 不是所有 Node 22 已实测。`verify` 已包含发布边界、Python、类型检查、构建和契约，不要只运行依赖旧构建产物的定向测试后声称全量通过。Linux 预期有上述平台跳过，macOS 322/322 留存记录来自产品代码相同的 `dff85f9`，不是 `21303b4` 的新本地验收；若实际不同，以新日志为准，不改写旧结果。
 
 3. **核对原生证据，而不是把 CI 当作原生验收。** 先取得第 5 节的本地忽略目录，通过摘要及请求/资源记录检查相应场景。新克隆缺这些文件时记录“原始证据未转交”；现有 Git 文档和 CI 链接仍可复核，但不能声称已重新检查原截图。不要直接用正式后端启动 App 来重演合成验收；原受控服务、隔离条件和 P0 软件渲染限制必须保留。
 
@@ -209,6 +216,6 @@
 
 ## 9. 本次文档同步范围
 
-本次只更新 todolist 和本交接，记录 `e834218` 正常推送、两个文档摘要一致及 CI #18 的准确提交、日志和跳过项。没有修改代码、重跑本地产品测试、启动 App、连接 VM、运行真实评测或推进其他 P1/P2。两个卡片问题沿用 `dff85f9` 的修复与合成验收结论；CI #18 通过不增加真实 Agent、安装或发行验收。02、06 保持阻塞，六项分段工作继续暂停；材料、责任方和恢复授权仍按第 6 节处理。本次新文档提交尚未推送，不借用 CI #18 标成已通过云端检查。
+本次只更新 todolist 和本交接，记录 `21303b4` 正常推送、两个文档摘要一致及 CI #19 的准确提交、日志和跳过项，并复核截至该基线夜间 18 个提交均已推送、编辑前无未提交改动且未发现遗漏代码。没有修改代码、重跑本地产品测试、启动 App、连接 VM、运行真实评测或推进其他 P1/P2。两个卡片问题沿用 `dff85f9` 的修复与合成验收结论；CI #19 通过不增加真实 Agent、安装或发行验收。02、06 保持阻塞，六项分段工作继续暂停；材料、责任方和恢复授权仍按第 6 节处理。本次新文档提交不计入前述 18 个已推送提交，尚未推送，不借用 CI #19 标成已通过云端检查。
 
-上一轮 `e834218` 的文档检查记录为 173 个相对链接/锚点、2 段 shell 命令语法、16 个已上传提交及 26 个变化文件覆盖，保存在 `artifacts/card-fixes-20261013/docs-ci17-validation.json`。本次检查结果另存 `artifacts/card-fixes-20261013/docs-ci18-validation.json`；没有重跑产品测试，也没有新增真实验收结论。
+前两轮文档检查记录分别在 `artifacts/card-fixes-20261013/docs-ci17-validation.json` 与 `artifacts/card-fixes-20261013/docs-ci18-validation.json`，均只对应其原轮次。本次检查结果另存 `artifacts/card-fixes-20261013/docs-ci19-validation.json`；没有重跑产品测试，也没有新增真实验收结论。
