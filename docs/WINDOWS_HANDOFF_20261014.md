@@ -1,5 +1,7 @@
 # Windows 11 x64 基础适配任务卡
 
+> 最新已结束的 [CI #43](https://github.com/evaldock/EvalDock/actions/runs/38579789497) 修正：同一产品代码的 N2 首项正常输出检查再次超时，8 项中 7 项通过；清理状态 `STOPPED`，诊断到达 `CREATE_JOB`，没有目标进程启动回执。超时原因未确认。N2 尚未最终验收，N3 仍阻塞；下文 CI #42 的通过结论只代表该次运行。请优先阅读 [简版交接](WINDOWS_NIGHT_HANDOFF_20261014.md)。
+
 ## 本轮 N2/N3 证据与剩余登记
 
 **当前：N2 限定检查通过；N3 Windows 完整门禁阻塞；N4 保存交接。** 代码 `c92b6ed` 已推送，PR 保持草稿。本轮不连接 Windows/开发 VM，不修改范围外失败，不合并、不发布。

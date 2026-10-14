@@ -1,5 +1,7 @@
 # Windows 适配本轮结果（2026-10-14）
 
+> 最新已结束的 CI #43 修正：N2 首项正常输出检查再次超时，8 项相关检查中 7 项通过，因此 N2 尚未最终验收。清理状态为 `STOPPED`，超时原因未确认。下文的“N2 通过”仅对应历史 CI #42，不是当前完成状态。接手以 [简版交接](WINDOWS_NIGHT_HANDOFF_20261014.md) 为准。
+
 **N2 限定检查通过；N3 的 Windows 完整门禁仍阻塞。** 当前代码为 `c92b6ed66ebb210de12bd5aa28341638a536da40`，位于 `codex/windows-foundation`。[PR #1](https://github.com/evaldock/EvalDock/pull/1) 保持草稿，未合入 `app`。
 
 | 阶段 | 已验证结果 |
