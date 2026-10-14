@@ -1,6 +1,6 @@
 import {ModelSettings} from './lib/model-settings.mjs';
 import {AgentModelSettings} from './lib/agent-model-settings.mjs';
-import {appSummary} from './lib/app-summary.mjs';
+import {appSummary,appRecords} from './lib/app-summary.mjs';
 import {AgentDiscovery,graphTarget} from './lib/agent-discovery.mjs';
 import {loadTargets} from '../adapters/shared/registry.mjs';
 import {atomic as saveDiscoveryConfig} from '../adapters/shared/evaluation.mjs';
@@ -37,6 +37,9 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
       const addr=server.address(),hosts=['127.0.0.1:'+addr.port,'localhost:'+addr.port];
       if(!hosts.includes(req.headers.host)||req.headers.origin&&!hosts.map(h=>'http://'+h).includes(req.headers.origin)||req.headers['sec-fetch-site']==='cross-site'){json(res,403,{error:'请求来源不允许'});return;}
       const u=new URL(req.url,'http://'+req.headers.host);
+      if(req.method==='GET'&&u.pathname==='/archive/api/history'){
+        json(res,200,await appRecords({control,workbuddy,agents}));return;
+      }
       if(u.pathname.startsWith('/api/control/')){
         if(req.method==='GET'&&u.pathname==='/api/control/library'){json(res,200,libraryService?.status()??{automatic:false,state:'LOCAL'});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}

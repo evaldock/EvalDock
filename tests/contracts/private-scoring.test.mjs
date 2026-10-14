@@ -89,13 +89,16 @@ test('old private records remain immutable while JSON, HTML and workbench views 
   await json(path.join(root,'var/evaluation-results/agents/agent/runs/run/run.json'),{caseResults:[{caseId:'case',status:'COMPLETED'}]});
   const before=await readFile(file,'utf8');const projected=publicReportDocument(legacy);assert.ok(!JSON.stringify(projected).includes(secret));assert.deepEqual(projected.sourceReportDigest,legacy.contentDigest);
   const results=new ControlResults(root);assert.ok(!JSON.stringify(await results.get({targetId:'agent',runId:'run',state:'SUCCEEDED',events:[]})).includes(secret));
-  const inert={active:false,jobs:{jobs:new Map()},status:async()=>({jobs:[],runs:[],targets:[]})};
+  const archivedJob={id:'synthetic-private-history',targetId:'agent',runId:'run',state:'SUCCEEDED',createdAt:'2026-01-01',events:[]};
+  const inert={active:false,jobs:{jobs:new Map()},status:async()=>({jobs:[],runs:[],targets:[]}),records:async()=>({jobs:[archivedJob],runs:[await results.get(archivedJob)]})};
   const {server}=await startControlServer({root,port:0,controller:inert,workbuddyController:inert,agentControllers:{},modelSettingsFile:path.join(root,'models.env'),agentModelSettings:{init:async()=>{},get:async()=>({keyConfigured:false})}});t.after(()=>new Promise(resolve=>server.close(resolve)));
   const url='http://127.0.0.1:'+server.address().port+'/reports/agent/run/cases/case/report.';
   const catalogResponse=await fetch('http://127.0.0.1:'+server.address().port+'/api/control/evaluation-catalog');
   assert.equal(catalogResponse.status,200);const catalog=await catalogResponse.json();
   assert.equal(catalog.scoring.readyCases,1);assert.ok(!JSON.stringify(catalog).includes(secret));
   for(const extension of ['json','html']){const response=await fetch(url+extension);assert.equal(response.status,200);assert.ok(!(await response.text()).includes(secret));}
+  const archive=await fetch('http://127.0.0.1:'+server.address().port+'/archive/api/history');assert.equal(archive.status,200);
+  const history=await archive.json();assert.equal(history.runs.length,1);assert.ok(!JSON.stringify(history).includes(secret));
   assert.equal(await readFile(file,'utf8'),before);assert.equal(await readFile(htmlFile,'utf8'),secret);
 });
 

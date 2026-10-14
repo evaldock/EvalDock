@@ -8,6 +8,12 @@ export async function appSummary({control,workbuddy,agents}) {
       return {kind,targets:value.targets??[{id:kind,name:'WorkBuddy',...value}],active:!!c.active};
     } catch {return {kind,advanced:kind==='dsh',targets:[],error:'尚未配置或暂时无法连接'};}
   }));
+  return {agents:statuses,...await appRecords({control,workbuddy,agents})};
+}
+
+/** Read archived results independently of live Agent inspection. */
+export async function appRecords({control,workbuddy,agents}){
+  const entries=[['dsh',control],['workbuddy',workbuddy],...Object.entries(agents)];
   const records=await Promise.all(entries.map(async([kind,c])=>{
     try {
       if(c.records)return {...await c.records(),kind};
@@ -22,5 +28,5 @@ export async function appSummary({control,workbuddy,agents}) {
     for(const job of record.jobs)jobs.set(JSON.stringify([job.targetId??job.agentKind??record.kind,job.runId??job.id]),job);
     for(const run of record.runs)runs.set(JSON.stringify([run.agentId??run.agentKind??record.kind,run.run.id]),run);
   }
-  return {agents:statuses,jobs:[...jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),runs:[...runs.values()],errors:records.flatMap(r=>r.error?[r.error]:[])};
+  return {jobs:[...jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),runs:[...runs.values()],errors:records.flatMap(r=>r.error?[r.error]:[])};
 }
