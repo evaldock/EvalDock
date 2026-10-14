@@ -112,18 +112,22 @@ test('Windows supervisor preserves argv and target environment without shell exp
 
 test('Windows capture requires a supervisor cleanup receipt and isolates its launch channel',async t=>{
   const cwd=await temporary(t),source=(await readFile('adapters/shared/capture.mjs','utf8')).replace(/^import .*;\r?\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('../../adapters/shared/capture.mjs',import.meta.url).href));
-  for(const receipt of [true,false,null,'hung']){
+  for(const receipt of [true,false,null,'hung','cancel-before-ready']){
     let launch,request='',kills=0;const abort=new AbortController();
     const helper=new EventEmitter();helper.stdout=new PassThrough();helper.stderr=new PassThrough();
     helper.stdin=new Writable({write(chunk,_encoding,done){request+=chunk;done();}});helper.kill=()=>{kills++;};
     const context=vm.createContext({spawn:(command,args,options)=>{launch={command,args,options};setImmediate(()=>{
+      assert.equal(request,'');
+      if(receipt==='cancel-before-ready')abort.abort();
+      helper.stdout.write(JSON.stringify({type:'phase',name:'READ_REQUEST'})+'\n');
+      if(receipt==='cancel-before-ready')return;
       helper.stdout.write(JSON.stringify({type:'started',pid:12345,at:'2026-01-01T00:00:00Z'})+'\n');
       if(receipt==='hung')return;
       helper.stdout.write(JSON.stringify({type:'stdout',data:Buffer.from('{"type":"runtime/completed"}\n').toString('base64')})+'\n');
       helper.stdout.write(JSON.stringify({type:'exit',code:0,at:'2026-01-01T00:00:01Z'})+'\n');
       if(receipt!==null)helper.stdout.write(JSON.stringify({type:'cleanup',stopped:receipt,stderrBytes:0})+'\n');
       helper.emit('close',receipt===null?1:0);
-    });return helper;},path,fileURLToPath,platformEnvironment:()=>({SystemRoot:'C:\\Windows',PATH:'synthetic-path'}),Buffer,setTimeout:(fn,ms)=>setTimeout(fn,receipt==='hung'&&ms===5000?0:ms),clearTimeout,URL,
+    });return helper;},path,fileURLToPath,platformEnvironment:()=>({SystemRoot:'C:\\Windows',PATH:'synthetic-path'}),Buffer,setTimeout:(fn,ms)=>setTimeout(fn,['hung','cancel-before-ready'].includes(receipt)&&ms===5000?0:ms),clearTimeout,URL,
       process:{platform:'win32'},StringDecoder:(await import('node:string_decoder')).StringDecoder});
     const run=vm.runInContext(source+'\nrunProcess',context);
     const result=await run({command:'synthetic.exe',args:['a b'],cwd,env:{DEEPSEEK_API_KEY:'synthetic-target-secret'},deadlineMs:30000,signal:abort.signal,capture:new Capture('langgraph'),onEvent:langGraphEvent,onSession:()=>{if(receipt==='hung')abort.abort();}});
@@ -133,6 +137,7 @@ test('Windows capture requires a supervisor cleanup receipt and isolates its lau
     assert.ok(Buffer.from(config.environment,'base64').toString('utf16le').includes('DEEPSEEK_API_KEY=synthetic-target-secret'));
     if(receipt===null)assert.equal(result.error,'AGENT_PROCESS_FAILED');
     if(receipt==='hung'){assert.equal(kills,1);assert.equal(result.error,'AGENT_CANCELLED');}
+    if(receipt==='cancel-before-ready'){assert.equal(kills,1);assert.equal(result.error,'AGENT_CANCELLED');assert.equal(request.split('\n')[1],'stop');}
   }
 });
 

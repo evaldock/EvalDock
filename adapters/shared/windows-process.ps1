@@ -4,10 +4,11 @@ $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 try {
-  [Console]::WriteLine('{"type":"phase","name":"READ_REQUEST"}')
   # The host can replace Console.In; bind directly to inherited stdin instead.
   # Keep this reader for cancellation too: it may already buffer the next line.
   $control = [IO.StreamReader]::new([Console]::OpenStandardInput(), [Text.UTF8Encoding]::new($false))
+  [Console]::WriteLine('{"type":"phase","name":"READ_REQUEST"}')
+  [Console]::Out.Flush()
   $request = $control.ReadLine() | ConvertFrom-Json
   [Console]::WriteLine('{"type":"phase","name":"COMPILE"}')
   Add-Type -TypeDefinition @'

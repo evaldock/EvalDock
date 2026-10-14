@@ -128,12 +128,13 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
   capture.cleanup='PENDING';
   const reader=processReader(env,capture,onEvent);
   const supervisor={phase:'SPAWN',failure:null};
-  let protocol='',receipt=null,started=null,exit=null,watchdog,forced=false,finished=false,protocolFailed=false,stderrBytes=0,sessionRecord=Promise.resolve(),resolveOutcome;
+  let protocol='',receipt=null,started=null,exit=null,watchdog,forced=false,finished=false,protocolFailed=false,requestSent=false,stopRequested=false,stderrBytes=0,sessionRecord=Promise.resolve(),resolveOutcome;
   const outcome=new Promise(resolve=>{resolveOutcome=resolve;});
   const stop=reason=>{
     capture.error??=reason;
     if(finished)return;
-    if(!helper.stdin.destroyed&&!helper.stdin.writableEnded)helper.stdin.end('stop\n');
+    stopRequested=true;
+    if(requestSent&&!helper.stdin.destroyed&&!helper.stdin.writableEnded)helper.stdin.end('stop\n');
     watchdog??=setTimeout(()=>{
       forced=true;helper.kill(); // Only our supervisor handle; OS closes its job.
       helper.stdout.destroy();helper.stderr.destroy();helper.stdin.destroy();
@@ -154,7 +155,14 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
       try{
         if(line.length>16384)throw Error('Oversized supervisor frame');
         const row=JSON.parse(line);
-        if(row.type==='phase'&&['READ_REQUEST','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name))supervisor.phase=row.name;
+        if(row.type==='phase'&&['READ_REQUEST','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name)){
+          supervisor.phase=row.name;
+          if(row.name==='READ_REQUEST'&&!requestSent){
+            requestSent=true;
+            helper.stdin.write(JSON.stringify({command,args,cwd:path.resolve(cwd),environment,searchPath:values.get('PATH')?.[1]??''})+'\n');
+            if(stopRequested&&!helper.stdin.destroyed&&!helper.stdin.writableEnded)helper.stdin.end('stop\n');
+          }
+        }
         else if(row.type==='failure'&&['ENTER','CREATE_JOB','CREATE_TARGET','ASSIGNED','POWERSHELL'].includes(row.phase)&&Number.isInteger(row.code))supervisor.failure={phase:row.phase,code:row.code};
         else if(row.type==='stdout'&&typeof row.data==='string')reader.write(Buffer.from(row.data,'base64'));
         else if(row.type==='started'&&!started&&Number.isInteger(row.pid)&&row.pid>0&&Number.isFinite(Date.parse(row.at))){
@@ -167,7 +175,6 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
     }
     if(protocol.length>16384){protocol='';protocolFailed=true;stop('AGENT_PROCESS_PROTOCOL_ERROR');}
   });
-  helper.stdin.write(JSON.stringify({command,args,cwd:path.resolve(cwd),environment,searchPath:values.get('PATH')?.[1]??''})+'\n');
   signal?.addEventListener('abort',abort,{once:true});
   if(signal?.aborted)abort();
   const result=await outcome;
