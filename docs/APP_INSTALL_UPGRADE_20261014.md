@@ -26,7 +26,9 @@ DMG 扩展检查：标准 `desktop:dmg` 在下载 Electron 时出现 GitHub 连�
 
 辅助功能全局开关返回开启，但实际查询窗口时 `osascript` 返回“不允许辅助访问”（`-25211`）；菜单名称可读不代表窗口控制权限完整。本轮不把 Chromium 页面操作或 Apple Event 退出称为原生菜单点击验收，也没有改变系统权限。
 
-证据留在两端忽略目录 `artifacts/ssh-verification-20261014/` 和 `artifacts/vm-remaining-20261014/`。原开发 VM 工作台继续运行。本轮仅补充验证记录，不改变产品代码或原 36 项完成数量。
+证据位于忽略目录 `artifacts/ssh-verification-20261014/` 和 `artifacts/vm-remaining-20261014/`。早期源码日志与包页面截图已复制到本机，DMG 与退出失败的原始日志仍在 VM。本轮仅补充验证记录，不改变产品代码或原 36 项完成数量。
+
+收尾期间 `evaldock-dev` 连续在 SSH 握手阶段关闭连接，报 `kex_exchange_identification: Connection closed by remote host`；跳板可连接，但不能据此认定 VM SSH 正常。最后一次成功核对时原工作台 PID 未变。连接中断后无法确认最后安装副本已退出、完成空工作空间检查或同步本次文档；这些事项明确保留待完成，不重启 VM 或修改 SSH 服务来绕开阻塞。
 
 仍缺的环境与材料：新 macOS 用户创建需要管理员认证，当前 `sudo -n` 不可用；可用代码签名身份为 0，正式签名、公证及真实自动更新不能验收。新数据目录只验证已有用户内的隔离工作空间，不作为干净系统安装。真实 Agent 兼容性和业务评测还需固定实际目标、题目与参考材料、调用边界；当前合成结果不能替代这些验收。原 WorkBuddy 故障的同条件日志、Windows 环境亦未补齐。
 
