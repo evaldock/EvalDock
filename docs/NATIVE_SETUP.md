@@ -28,7 +28,7 @@ cp config/agents.example.json config/agents.json
 
 安装前核对[Agent 支持情况](../adapters/SUPPORT.md)中的应用身份、代码允许版本、历史验收范围与已知限制。存在适配器不代表所有版本兼容，版本预检通过也不等于真实任务已验收。
 
-**当前工作台启动仍依赖 DSH 控制器。** 即使准备测试其他 Agent，也需要先按本机安装情况配置 [config/targets/real-dsh.json](../config/targets/real-dsh.json)，并准备可用的 DSH Web Profile：
+**工作台仍初始化 DSH 控制器，但读取历史记录不要求安装或启动 DSH。** 模板连接配置保留在 [config/targets/real-dsh.json](../config/targets/real-dsh.json)。DSH 未安装、Web Profile 缺失或损坏时显示配置检查提示，其他 Agent 与历史记录仍可读取。需要使用 DSH 时，先按本机安装情况修改连接配置并准备可用的 DSH Web Profile：
 
 | 配置项 | 含义 |
 | --- | --- |

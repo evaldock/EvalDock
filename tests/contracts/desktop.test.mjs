@@ -18,6 +18,17 @@ test('desktop summary isolates offline Agent and retains other Agent records',as
  const result=await appSummary({control:bad,workbuddy:bad,agents:{pi:good}});
  assert.equal(result.agents.find(a=>a.kind==='pi').targets[0].evaluationReady,true);assert.equal(result.jobs[0].id,'j');assert.ok(result.agents.find(a=>a.kind==='dsh').error);
 });
+test('desktop summary merges disk archives and controller records by target and run',async()=>{
+ const archived={id:'external-synthetic',targetId:'pi-a',runId:'same-run',agentKind:'pi',createdAt:'2026-01-01'};
+ const current={...archived,id:'controller-synthetic',state:'SUCCEEDED'},other={...current,id:'other-synthetic',targetId:'pi-b'};
+ const run=agentId=>({agentId,agentKind:'pi',run:{id:'same-run'}});
+ const control={status:async()=>{throw Error('DSH profile missing');},records:async()=>({jobs:[archived],runs:[run('pi-a')]})};
+ const quiet={status:async()=>({}),records:async()=>({jobs:[],runs:[]})};
+ const pi={...quiet,records:async()=>({jobs:[current,other],runs:[run('pi-a'),run('pi-b')]})};
+ const summary=await appSummary({control,workbuddy:quiet,agents:{pi}});
+ assert.deepEqual(summary.jobs.map(j=>j.id),['controller-synthetic','other-synthetic']);
+ assert.deepEqual(summary.runs.map(r=>r.agentId),['pi-a','pi-b']);
+});
 test('library import validates content, archives previous version and records digest',async t=>{
  const root=await fixture(t),progress=[];const result=await importLibrary(path.join(repo,'datasets'),root,{onProgress:value=>progress.push(value)});
  assert.equal(result.cases,1);assert.match(result.sha256,/^[a-f0-9]{64}$/);assert.equal((await readdir(path.join(root,'dataset-history'))).length,1);
