@@ -1,32 +1,30 @@
-# EvalDock 今晚开发交接（2026-10-14）
+# EvalDock 开发交接（2026-10-14）
 
-## 结论
-
-今晚任务尚未全部完成，Windows 适配还不能验收。代码已上传到 `codex/windows-foundation` 分支；尚未合入 `app`，同事请查看该分支或 [草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1)。
+**代码和已有交接已上传，Windows 整体验收尚未完成。** 查看 `codex/windows-foundation` 分支或 [PR #1](https://github.com/evaldock/EvalDock/pull/1)，改动尚未合入 `app`。
 
 ## 已做
 
 - 将 `app/a84d2c0` 合入 Windows 开发分支，保留已有适配。
-- 新增 Windows 辅助脚本，处理取消、超时和所属子进程清理；调整内置模块加载后，相关测试中的目标进程已能启动。
-- 补充相关测试。本机和 Ubuntu 完整检查通过。
-- 已上传代码及仓库交接文档；代码最后修改为 `c92b6ed`。原始本机日志没有上传，GitHub CI 日志可在线查看。
+- 新增 Windows 辅助脚本，处理取消、超时和所属子进程清理，并调整内置模块加载。
+- 补充相关测试；本机与 Ubuntu 完整检查通过。
+- 代码提交为 `c92b6ed`；本次总结依据的已上传提交为 `62c9d3b`。
 
 ## 未完成及原因
 
-| 未完成 | 实际情况 |
+| 未完成 | 原因 |
 | --- | --- |
-| N2 最终验收 | CI #42 的 8 项相关检查全部通过；相同产品代码在 CI #43 中有 7 项通过、首项正常输出测试超时。清理状态为 `STOPPED`，超时原因未确认，不能宣布完成。 |
-| Windows 全套验证 | CI #43 另有 15 项失败输出，完整套件在 180 秒超时。范围外问题只登记，未修复；失败数量不代表独立根因数量。 |
-| Windows 安装包 | 完整检查失败，打包和上传未执行，没有生成候选包。 |
-| Windows 实机、真实 Agent 和升级验证 | 按约定未连接 Windows，未进行这些验收。 |
-| 合入 app、正式发布 | 未执行，当前验证仍未通过。 |
+| N2 最终验收 | CI #44 的 8 项相关检查通过，但 #43 曾有一项超时，原因尚未确认，不能据一次通过宣布问题完全解决。 |
+| Windows 全套验证 | CI #44 另有 15 项失败输出，套件在 180 秒超时。范围外问题只登记，未修复；尚未确认各项根因。 |
+| Windows 安装包 | 完整检查失败，打包被跳过，没有生成候选包。 |
+| 实机、真实 Agent 和升级验收 | 按约定未连接 Windows，也未开展这些验收。 |
+| 合入 app、正式发布 | 未执行，Windows 验收尚未通过。 |
 
-## 接手顺序
+## 接手建议
 
-先复现 N2 的正常输出测试超时，确认原因后修复；再单独处理 DSH 启动超时及其他登记项。不要把本轮记为“Windows 已适配完成”。
+先定位 N2 曾出现的超时，再单独处理 DSH 启动超时及其他已登记问题，不重复开发已有适配。
 
-证据：[CI #43](https://github.com/evaldock/EvalDock/actions/runs/38579789497)（源提交 `9af16df`，仅文档变化）、[CI #42](https://github.com/evaldock/EvalDock/actions/runs/38578414728)、[详细登记](WINDOWS_HANDOFF_20261014.md)。
+证据：[CI #44](https://github.com/evaldock/EvalDock/actions/runs/38580696078)、[CI #43](https://github.com/evaldock/EvalDock/actions/runs/38579789497)、[详细登记](WINDOWS_HANDOFF_20261014.md)。GitHub CI 日志可在线查看，本机原始日志未上传。本次仅更新文档，后续文档提交的 CI 状态在交付回复报告。
 
 ## 可直接转发
 
-今晚把最新 app 代码同步到了 Windows 开发分支，做了取消、超时和子进程清理的修复，代码和交接文档都上传了。Windows 测试还没全过：最新一轮有一项相关测试再次超时，另外还有其他失败没处理，所以还没有安装包，也没做实机验证。明天请接着排查这个超时，查看 `codex/windows-foundation` 分支或 PR #1，改动还没合到 app。
+今晚做了 Windows 取消、超时和子进程清理相关的修复，代码和交接都上传了。这轮相关测试通过了，但上一轮超时的原因还没查清，Windows 整体测试也没全过，所以还没有安装包，也没做实机验证。明天先接着排查超时。改动在 codex/windows-foundation 分支和 PR #1，还没合入 app。

@@ -1,10 +1,10 @@
 # Windows 11 x64 基础适配任务卡
 
-> 最新已结束的 [CI #43](https://github.com/evaldock/EvalDock/actions/runs/38579789497) 修正：同一产品代码的 N2 首项正常输出检查再次超时，8 项中 7 项通过；清理状态 `STOPPED`，诊断到达 `CREATE_JOB`，没有目标进程启动回执。超时原因未确认。N2 尚未最终验收，N3 仍阻塞；下文 CI #42 的通过结论只代表该次运行。请优先阅读 [简版交接](WINDOWS_NIGHT_HANDOFF_20261014.md)。
+> 截至已核验的 [CI #44](https://github.com/evaldock/EvalDock/actions/runs/38580696078)：源提交 `62c9d3b` 已上传，Ubuntu 通过；Windows 的 8 项 N2 检查通过，但另有 15 项失败输出，完整套件在 180 秒超时，未生成安装包。CI #43 曾出现 N2 首项超时，原因仍未确认，因此 N2 最终验收未关闭。下文 #42 证据为历史记录，当前总结见 [简版交接](WINDOWS_NIGHT_HANDOFF_20261014.md)。
 
-## 本轮 N2/N3 证据与剩余登记
+## CI #42 的 N2/N3 历史证据与失败登记
 
-**当前：N2 限定检查通过；N3 Windows 完整门禁阻塞；N4 保存交接。** 代码 `c92b6ed` 已推送，PR 保持草稿。本轮不连接 Windows/开发 VM，不修改范围外失败，不合并、不发布。
+**该次运行：N2 限定检查通过；N3 Windows 完整门禁阻塞；N4 保存交接。** 代码 `c92b6ed` 已推送，PR 保持草稿。本轮不连接 Windows/开发 VM，不修改范围外失败，不合并、不发布。
 
 N0 通过 `1efe140` 合入 `app/a84d2c0`。N2 相对该基线仅修改 `adapters/shared/capture.mjs`、新增 `adapters/shared/windows-process.ps1`，以及 `tests/contracts/agent-adapters.test.mjs`、`tests/contracts/hermes-openclaw.test.mjs`。既有 W1–W3 复用；Hermes/OpenClaw 测试调整限于文件 URL 和复制依赖。
 
