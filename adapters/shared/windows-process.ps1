@@ -4,7 +4,9 @@ $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 try {
+  [Console]::WriteLine('{"type":"phase","name":"READ_REQUEST"}')
   $request = [Console]::ReadLine() | ConvertFrom-Json
+  [Console]::WriteLine('{"type":"phase","name":"COMPILE"}')
   Add-Type -TypeDefinition @'
 using System;
 using System.IO;
@@ -54,6 +56,8 @@ public static class EvalDockOwnedProcess {
   [DllImport("kernel32.dll", SetLastError=true)] static extern bool TerminateProcess(IntPtr process,uint code);
   [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
   static readonly object outputLock = new object();
+  static string phase="ENTER";
+  static void Phase(string name) { phase=name; Emit("{\"type\":\"phase\",\"name\":\""+name+"\"}"); }
   static void Emit(string json) { lock(outputLock) { Console.WriteLine(json); Console.Out.Flush(); } }
   static void Check(bool success) { if(!success) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
   static void Close(ref IntPtr handle) { if(handle!=IntPtr.Zero && handle!=new IntPtr(-1)) CloseHandle(handle); handle=IntPtr.Zero; }
@@ -94,6 +98,7 @@ public static class EvalDockOwnedProcess {
     // A cancelled request queued during PowerShell compilation must not start a target.
     var cancel=Task.Run(()=>Console.ReadLine());
     try {
+      Phase("CREATE_JOB");
       if(cancel.Wait(10)) { Emit("{\"type\":\"cleanup\",\"stopped\":true,\"stderrBytes\":0}"); return 0; }
       job=CreateJobObjectW(IntPtr.Zero,IntPtr.Zero); Check(job!=IntPtr.Zero);
       var limits=new ExtendedLimit(); limits.basic.flags=0x2000; // KILL_ON_JOB_CLOSE, no breakaway.
@@ -114,11 +119,13 @@ public static class EvalDockOwnedProcess {
       string executable=Executable(command,cwd,searchPath);
       var argv=new StringBuilder(Quote(executable)); foreach(string arg in args) argv.Append(' ').Append(Quote(arg));
       env=Marshal.StringToHGlobalUni(environment);
+      Phase("CREATE_TARGET");
       Check(CreateProcessW(executable,argv,IntPtr.Zero,IntPtr.Zero,true,0x08080404,env,cwd,ref startup,out child));
       Check(AssignProcessToJobObject(job,child.process)); assigned=true;
       Close(ref outWrite); Close(ref errWrite); Close(ref input);
       outPump=Pump(outRead,true,n=>{}); outRead=IntPtr.Zero;
       errPump=Pump(errRead,false,n=>Interlocked.Add(ref stderrBytes,n)); errRead=IntPtr.Zero;
+      Phase("ASSIGNED");
       if(!cancel.IsCompleted) {
         string started=DateTime.UtcNow.ToString("o");
         Check(ResumeThread(child.thread)!=UInt32.MaxValue);
@@ -130,7 +137,11 @@ public static class EvalDockOwnedProcess {
         Emit("{\"type\":\"exit\",\"code\":"+exitCode+",\"at\":\""+DateTime.UtcNow.ToString("o")+"\"}");
         exitReported=true;
       }
-    } catch { failed=true; }
+    } catch(Exception error) {
+      failed=true;
+      var native=error as System.ComponentModel.Win32Exception;
+      Emit("{\"type\":\"failure\",\"phase\":\""+phase+"\",\"code\":"+(native==null?error.HResult:native.NativeErrorCode)+"}");
+    }
     finally {
       // On assignment failure the target is still suspended and cannot have descendants.
       if(child.process!=IntPtr.Zero && !assigned) {
@@ -163,8 +174,10 @@ public static class EvalDockOwnedProcess {
 }
 '@
   $environment = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($request.environment))
+  [Console]::WriteLine('{"type":"phase","name":"RUN"}')
   exit [EvalDockOwnedProcess]::Run($request.command,[string[]]$request.args,$request.cwd,$environment,$request.searchPath)
 } catch {
   # No exception text: errors may contain arguments, target paths or credentials.
+  [Console]::WriteLine('{"type":"failure","phase":"POWERSHELL","code":' + $_.Exception.HResult + '}')
   exit 1
 }

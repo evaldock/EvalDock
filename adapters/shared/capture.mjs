@@ -127,6 +127,7 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
     {env:system,windowsHide:true,stdio:['pipe','pipe','pipe']});
   capture.cleanup='PENDING';
   const reader=processReader(env,capture,onEvent);
+  const supervisor={phase:'SPAWN',failure:null};
   let protocol='',receipt=null,started=null,exit=null,watchdog,forced=false,finished=false,protocolFailed=false,stderrBytes=0,sessionRecord=Promise.resolve(),resolveOutcome;
   const outcome=new Promise(resolve=>{resolveOutcome=resolve;});
   const stop=reason=>{
@@ -153,7 +154,9 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
       try{
         if(line.length>16384)throw Error('Oversized supervisor frame');
         const row=JSON.parse(line);
-        if(row.type==='stdout'&&typeof row.data==='string')reader.write(Buffer.from(row.data,'base64'));
+        if(row.type==='phase'&&['READ_REQUEST','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name))supervisor.phase=row.name;
+        else if(row.type==='failure'&&['ENTER','CREATE_JOB','CREATE_TARGET','ASSIGNED','POWERSHELL'].includes(row.phase)&&Number.isInteger(row.code))supervisor.failure={phase:row.phase,code:row.code};
+        else if(row.type==='stdout'&&typeof row.data==='string')reader.write(Buffer.from(row.data,'base64'));
         else if(row.type==='started'&&!started&&Number.isInteger(row.pid)&&row.pid>0&&Number.isFinite(Date.parse(row.at))){
           started=row;capture.processGroupId=row.pid;
           sessionRecord=Promise.resolve().then(()=>onSession?.(capture.sessionId,{processGroupId:row.pid})).catch(()=>stop('AGENT_SESSION_RECORD_FAILED'));
@@ -177,7 +180,7 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
   else if(exit.code!==0)capture.error??='AGENT_PROCESS_FAILED';
   if(!capture.result&&!capture.error)capture.error='AGENT_TURN_INCOMPLETE';
   capture.cleanup=!forced&&!protocolFailed&&!protocol.trim()&&receipt?.stopped===true?'STOPPED':'UNKNOWN';
-  capture.diagnostics={exitCode:exit?.code??null,stderrBytes:stderrBytes+(receipt?.stderrBytes??0),parseErrors};
+  capture.diagnostics={exitCode:exit?.code??null,stderrBytes:stderrBytes+(receipt?.stderrBytes??0),parseErrors,supervisor:{...supervisor,forced}};
   return capture.finish();
 }
 

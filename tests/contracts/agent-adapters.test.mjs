@@ -44,6 +44,7 @@ test('process capture drains oversized lines, keeps framing, redacts target keys
   const cwd=await temporary(t),key='target-secret-key-for-test';
   const source="console.log('x'.repeat(700000)); console.log(JSON.stringify({type:'tool/call',data:{callId:'a',name:'tool',result:process.env.DEEPSEEK_API_KEY}})); console.log(JSON.stringify({type:'runtime/completed'}));";
   const result=await runProcess({command:process.execPath,args:['-e',source],cwd,env:{DEEPSEEK_API_KEY:key},deadlineMs:5000,capture:new Capture('langgraph'),onEvent:langGraphEvent});
+  if(result.error)t.diagnostic(JSON.stringify({error:result.error,cleanup:result.cleanup,diagnostics:result.diagnostics}));
   assert.equal(result.error,null);assert.equal(result.cleanup,'STOPPED');assert.ok(result.omitted>0);assert.ok(!JSON.stringify(result).includes(key));assert.ok(JSON.stringify(result).includes('[REDACTED]'));
   const abort=new AbortController();setTimeout(()=>abort.abort(),50);
   const cancelled=await runProcess({command:process.execPath,args:['-e','setInterval(()=>{},1000)'],cwd,env:{},deadlineMs:5000,signal:abort.signal,capture:new Capture('pi'),onEvent:piEvent});
