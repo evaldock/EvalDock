@@ -28,7 +28,7 @@ cp config/agents.example.json config/agents.json
 
 安装前核对[Agent 支持情况](../adapters/SUPPORT.md)中的应用身份、代码允许版本、历史验收范围与已知限制。存在适配器不代表所有版本兼容，版本预检通过也不等于真实任务已验收。
 
-DSH 配置缺失或初始化失败时，工作台仍可打开设置、其他 Agent 和已有记录；DSH 操作保持不可用。只有准备使用 DSH 时，才需要按本机安装情况配置 [config/targets/real-dsh.json](../config/targets/real-dsh.json)，并准备可用的 DSH Web Profile：
+**工作台仍初始化 DSH 控制器，但读取历史记录不要求安装或启动 DSH。** 模板连接配置保留在 [config/targets/real-dsh.json](../config/targets/real-dsh.json)。DSH 未安装、Web Profile 缺失或损坏时显示配置检查提示，其他 Agent 与历史记录仍可读取。需要使用 DSH 时，先按本机安装情况修改连接配置并准备可用的 DSH Web Profile：
 
 | 配置项 | 含义 |
 | --- | --- |
@@ -41,6 +41,8 @@ DSH 配置缺失或初始化失败时，工作台仍可打开设置、其他 Age
 `config/targets/real-dsh.json` 中的 `dshHome` 使用 `/Users/your-user/.dsh` 占位路径，需替换为运行用户的实际目录。维护脚本 `backfill-dsh-run-groups.mjs` 与 `verify-probe-semantic-v2.mjs` 默认读取当前用户的 `.dsh`，也可通过 `DSH_HOME` 指定其他目录。
 
 DSH、WorkBuddy 和其他目标的启动方式并非完全相同；详细准备要求见 [本地使用说明](RELEASE.md#本地使用现状) 与各适配器文档。首次在新机器上部署时，需要核对这些运行路径。
+
+Windows 基础适配还隔离了连接配置缺失或初始化失败的情况；Windows 上 DSH 操作保持不可用，设置、其他 Agent 和已有记录入口仍可读取。阶段验收与限制见 [Windows 任务卡](WINDOWS_HANDOFF_20261014.md)。
 
 ### 3. 启动工作台
 
