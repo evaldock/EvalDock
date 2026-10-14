@@ -155,7 +155,7 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
       try{
         if(line.length>16384)throw Error('Oversized supervisor frame');
         const row=JSON.parse(line);
-        if(row.type==='phase'&&['READ_REQUEST','REQUEST_READ','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name)){
+        if(row.type==='phase'&&['READ_REQUEST','REQUEST_READ','LOAD_UTILITY','PARSE_REQUEST','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name)){
           supervisor.phase=row.name;
           if(row.name==='READ_REQUEST'&&!requestSent){
             requestSent=true;

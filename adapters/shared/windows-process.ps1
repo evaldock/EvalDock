@@ -12,6 +12,12 @@ try {
   $requestLine = $control.ReadLine()
   [Console]::WriteLine('{"type":"phase","name":"REQUEST_READ"}')
   [Console]::Out.Flush()
+  # Resolve only the bundled utility module; do not scan user/module search paths.
+  $env:PSModulePath = [IO.Path]::Combine($PSHOME,'Modules')
+  $PSModuleAutoLoadingPreference = 'None'
+  [Console]::WriteLine('{"type":"phase","name":"LOAD_UTILITY"}')
+  Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Utility.psd1'))
+  [Console]::WriteLine('{"type":"phase","name":"PARSE_REQUEST"}')
   $request = ConvertFrom-Json -InputObject $requestLine
   [Console]::WriteLine('{"type":"phase","name":"COMPILE"}')
   Add-Type -TypeDefinition @'
