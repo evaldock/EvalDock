@@ -101,6 +101,19 @@ Windows runner 是 `windows-2025-vs2026`，不替代 Windows 11 x64 图形验收
 
 证据为 `ci31-ubuntu.log`、`ci31-windows.log`、`final-version-binding.json`；CI 日志链接可由同事直接查看，本机原始证据不随 Git 推送。上述结果不关闭 W1–W3 的 Windows 验收。此次新增文档提交及其最终 CI 只在交付回复报告。
 
+### 文档 68117e6 与 CI #32
+
+`68117e605b896fc5c04f8b5b9329bda220fc2373` 已提交推送本轮简明总结，并同步 todo 与交接文档，仅修改四份文档。按用户再次要求，现补入该提交已结束的 [CI #32](https://github.com/evaldock/EvalDock/actions/runs/38539144917) 结果。
+
+两份 job 日志确认实际检出 `b8aef59dfb44f0c799cad7bff890f8e7a65f1939`，父提交为 `16d12708432ef5dd8202da0fa2d6096e03c37a07` 与 `68117e6`，tree 为 `80db848cd45056d1978a1dca5285fdd8a3704d72`，不是独立分支原始文件树。
+
+| Job | 通过的校验 | 仍未通过或未执行 |
+| --- | --- | --- |
+| Ubuntu `115769306050`，成功 | 发布边界、类型检查、构建；358 项契约中 357 通过、1 项 Mac 专属签名检查跳过；Python 5、模型设置 4 通过 | Windows 原生验收 |
+| Windows `115769306647`，失败 | 工具与冻结依赖安装、发布边界、类型检查、构建、Python 5 通过 | 取消契约 120 秒、runner 180 秒超时，ETIMEDOUT、退出 1，全套契约未完成；后续模型设置、NSIS 构建、摘要及上传跳过 |
+
+证据为 `ci32-ubuntu.log`、`ci32-windows.log`、`ci32-result.json`。W1–W3 的 Windows 验收及 W4–W6 状态不变；本次文档提交产生的 CI 状态仅在回复报告。
+
 ### 阻塞、责任和下一步
 
 1. **Windows 门禁：已确认失败，W1 验收未关闭。** `tests/contracts/agent-adapters.test.mjs:39` 的取消契约调用 `runProcess`，取消后等待进程关闭。既有 `adapters/shared/capture.mjs:100` 的 `terminate` 对负 PID 发送信号，`127` 行等待 `close`；实际 Windows 运行出现上述超时。该调用链是后续应先核查的 W4 平台进程收尾路径，日志尚未给出其内部精确阻塞行，修复需另行确认 W4 范围。本轮只增加有限时失败诊断，不删测试、不放宽断言、不为等待结果重复触发 CI。后续先解决该依赖，再完整重跑并核实是否仍有其他 Windows 失败。

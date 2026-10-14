@@ -4,10 +4,10 @@
 
 ## Windows W1–W3 后续交付（2026-10-14）
 
-代码 `ba41ad7`、文档 `5cd49be` 及文档冲突协调 `29793a8` 均已推送至 `codex/windows-foundation`。[草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1) 指向 `app`，仓库公开，同事可查看；尚未合并。简明结果见 [本轮总结](WINDOWS_RESULT_20261014.md)，待办见 [Windows 状态](APP_TODO_20261013.md#windows-w1w3-本轮结果2026-10-14)，详细版本证据见 [Windows 交接](WINDOWS_HANDOFF_20261014.md)。
+代码 `ba41ad7`、文档 `5cd49be`、文档冲突协调 `29793a8` 及简明总结与清单同步 `68117e6` 均已推送至 `codex/windows-foundation`。[草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1) 指向 `app`，仓库公开，同事可查看；尚未合并。简明结果见 [本轮总结](WINDOWS_RESULT_20261014.md)，待办见 [Windows 状态](APP_TODO_20261013.md#windows-w1w3-本轮结果2026-10-14)，详细版本证据见 [Windows 交接](WINDOWS_HANDOFF_20261014.md)。
 
 - 已通过：本机契约 340、Python 5、模型设置 4；实际 Mac 包 1451 文件审计及签名完整性。[CI #28](https://github.com/evaldock/EvalDock/actions/runs/38534831008) 的检出文件树与代码提交一致，Ubuntu 339 通过、1 项 Mac 专属检查跳过。
-- 后续 [CI #31](https://github.com/evaldock/EvalDock/actions/runs/38536361338) 实际检出 `0a692915920766d6573d73cbb65a502d6a027b9a`（`app/16d1270` + 分支 `29793a8`）；Ubuntu 契约 357 通过、1 项 Mac 专属检查跳过，Python 5、模型设置 4 通过。
+- 文档 `68117e6` 的 [CI #32](https://github.com/evaldock/EvalDock/actions/runs/38539144917) 实际检出 `b8aef59dfb44f0c799cad7bff890f8e7a65f1939`（`app/16d1270` + 分支 `68117e6`）；Ubuntu 发布边界、类型检查、构建通过，契约 357 通过、1 项 Mac 专属检查跳过，Python 5、模型设置 4 通过。Windows 的工具/依赖安装、发布边界、类型检查、构建和 Python 5 项通过。
 - 未完成：Windows 取消契约 120 秒超时，完整 runner 180 秒超时；后续模型设置、NSIS 构建与上传跳过，没有 Windows 候选包。W4 进程收尾修复范围待确认，根因未最终确定；Windows 11 x64 原生环境由用户稍后提供。W4–W6 尚未实施，W1–W3 未整体验收关闭。
 
 以下 Mac 接续状态与夜间记录保留各自历史范围，其中旧的 Windows 暂停表述以上述后续交付为准。
