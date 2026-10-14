@@ -3,7 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
-import {execFile} from 'node:child_process';
+import {execFile,spawn} from 'node:child_process';
+import {EventEmitter} from 'node:events';
+import {PassThrough,Writable} from 'node:stream';
+import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import vm from 'node:vm';
 import {temporary} from './support.mjs';
@@ -15,6 +18,7 @@ import {writeTraceDirectory,readTraceDirectory} from '../../dist/src/all-trace/s
 import {projectTraceOverview} from '../../dist/src/reporting/trace-overview.js';
 import {startControlServer} from '../../workbench/control-server.mjs';
 import {sessionForJob} from '../../workbench/live-observation.mjs';
+import {platformEnvironment} from '../../adapters/shared/platform-environment.mjs';
 
 test('Pi push events preserve distinct tools and final answer, omit token updates and fit the common Trace store',async t=>{
   const c=new Capture('pi');
@@ -55,6 +59,80 @@ test('capture redacts nested secrets before clipping and cleans surviving tool p
   assert.equal(result.cleanup,'STOPPED');
   const pid=result.queue.find(r=>r.event.type==='tool/call').event.data.pid;
   assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
+});
+
+test('process capture cancels before launch without creating a session',async t=>{
+  const cwd=await temporary(t),abort=new AbortController();abort.abort();let session=false;
+  const result=await runProcess({command:path.join(cwd,'must-not-start'),args:[],cwd,env:{},signal:abort.signal,deadlineMs:1000,capture:new Capture('pi'),onEvent:piEvent,onSession:()=>{session=true;}});
+  assert.equal(result.error,'AGENT_CANCELLED');assert.equal(result.cleanup,'STOPPED');assert.equal(session,false);assert.equal(result.processGroupId,undefined);
+});
+
+for(const mode of ['cancel','timeout'])test('process capture '+mode+' stops owned children and preserves an unrelated process',{timeout:20000},async t=>{
+  const cwd=await temporary(t),abort=new AbortController();
+  const sentinel=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
+  t.after(()=>{sentinel.kill();});
+  await new Promise((resolve,reject)=>{sentinel.once('spawn',resolve);sentinel.once('error',reject);});
+  const childSource="setInterval(()=>{},1000)";
+  const source="const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e',"+JSON.stringify(childSource)+"],{stdio:'ignore'});console.log(JSON.stringify({type:'tool/call',data:{callId:'owned',pid:child.pid}}));setInterval(()=>{},1000);";
+  let ownedPid;
+  const result=await runProcess({command:process.execPath,args:['-e',source],cwd,env:{},signal:abort.signal,deadlineMs:5000,capture:new Capture('pi'),onEvent:(row,c)=>{
+    if(row.type==='tool/call'){ownedPid=row.data.pid;if(mode==='cancel')abort.abort();}piEvent(row,c);
+  }});
+  assert.ok(Number.isInteger(ownedPid),'the target actually started before cancellation or deadline');
+  assert.equal(result.error,mode==='cancel'?'AGENT_CANCELLED':'AGENT_TASK_TIMEOUT');assert.equal(result.cleanup,'STOPPED');
+  assert.throws(()=>process.kill(ownedPid,0),e=>e.code==='ESRCH');
+  assert.doesNotThrow(()=>process.kill(sentinel.pid,0));
+});
+
+test('Windows job cleans non-Node descendants after root exit and drains inherited pipes',{
+  skip:process.platform!=='win32'?'Requires Windows Job Objects and native process handles':false,timeout:20000,
+},async t=>{
+  const cwd=await temporary(t);
+  // Python does not provide Node/libuv's kill-direct-child-on-parent-exit behavior.
+  const source="import subprocess,sys,json\nc=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'])\nprint(json.dumps({'type':'tool/call','data':{'callId':'python-child','pid':c.pid}}),flush=True)\nprint(json.dumps({'type':'runtime/completed'}),flush=True)";
+  const result=await runProcess({command:pythonExecutable,args:['-u','-c',source],cwd,env:platformEnvironment(),deadlineMs:5000,capture:new Capture('langgraph'),onEvent:langGraphEvent});
+  assert.equal(result.error,null);assert.equal(result.cleanup,'STOPPED');
+  const pid=result.queue.find(row=>row.event.type==='tool/call').event.data.pid;
+  assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
+});
+
+test('Windows supervisor preserves argv and target environment without shell expansion',{
+  skip:process.platform!=='win32'?'Requires Windows CreateProcess argument and environment handling':false,timeout:15000,
+},async t=>{
+  const cwd=path.join(await temporary(t),'space 中文'),args=['','two words','quote"inside','trailing\\','中文','& echo forbidden','%PATH%'];await mkdir(cwd);
+  const source="console.log(JSON.stringify({type:'tool/call',data:{callId:'argv',args:process.argv.slice(1),allowed:process.env.TEST_ALLOWED,blocked:process.env.EVALDOCK_SUPERVISOR_TEST_SECRET??null}}));console.log(JSON.stringify({type:'runtime/completed'}))";
+  const original=process.env.EVALDOCK_SUPERVISOR_TEST_SECRET;process.env.EVALDOCK_SUPERVISOR_TEST_SECRET='synthetic-host-only-secret';
+  t.after(()=>{if(original===undefined)delete process.env.EVALDOCK_SUPERVISOR_TEST_SECRET;else process.env.EVALDOCK_SUPERVISOR_TEST_SECRET=original;});
+  const result=await runProcess({command:process.execPath,args:['-e',source,'--',...args],cwd,env:{TEST_ALLOWED:'target-only'},deadlineMs:5000,capture:new Capture('langgraph'),onEvent:langGraphEvent});
+  assert.equal(result.error,null);assert.equal(result.cleanup,'STOPPED');
+  const data=result.queue.find(row=>row.event.type==='tool/call').event.data;
+  assert.deepEqual(data.args,args);assert.equal(data.allowed,'target-only');assert.equal(data.blocked,null);
+});
+
+test('Windows capture requires a supervisor cleanup receipt and isolates its launch channel',async t=>{
+  const cwd=await temporary(t),source=(await readFile('adapters/shared/capture.mjs','utf8')).replace(/^import .*;\r?\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('../../adapters/shared/capture.mjs',import.meta.url).href));
+  for(const receipt of [true,false,null,'hung']){
+    let launch,request='',kills=0;const abort=new AbortController();
+    const helper=new EventEmitter();helper.stdout=new PassThrough();helper.stderr=new PassThrough();
+    helper.stdin=new Writable({write(chunk,_encoding,done){request+=chunk;done();}});helper.kill=()=>{kills++;};
+    const context=vm.createContext({spawn:(command,args,options)=>{launch={command,args,options};setImmediate(()=>{
+      helper.stdout.write(JSON.stringify({type:'started',pid:12345,at:'2026-01-01T00:00:00Z'})+'\n');
+      if(receipt==='hung')return;
+      helper.stdout.write(JSON.stringify({type:'stdout',data:Buffer.from('{"type":"runtime/completed"}\n').toString('base64')})+'\n');
+      helper.stdout.write(JSON.stringify({type:'exit',code:0,at:'2026-01-01T00:00:01Z'})+'\n');
+      if(receipt!==null)helper.stdout.write(JSON.stringify({type:'cleanup',stopped:receipt,stderrBytes:0})+'\n');
+      helper.emit('close',receipt===null?1:0);
+    });return helper;},path,fileURLToPath,platformEnvironment:()=>({SystemRoot:'C:\\Windows',PATH:'synthetic-path'}),Buffer,setTimeout:(fn,ms)=>setTimeout(fn,receipt==='hung'&&ms===5000?0:ms),clearTimeout,URL,
+      process:{platform:'win32'},StringDecoder:(await import('node:string_decoder')).StringDecoder});
+    const run=vm.runInContext(source+'\nrunProcess',context);
+    const result=await run({command:'synthetic.exe',args:['a b'],cwd,env:{DEEPSEEK_API_KEY:'synthetic-target-secret'},deadlineMs:30000,signal:abort.signal,capture:new Capture('langgraph'),onEvent:langGraphEvent,onSession:()=>{if(receipt==='hung')abort.abort();}});
+    assert.equal(result.cleanup,receipt===true?'STOPPED':'UNKNOWN');
+    assert.ok(!JSON.stringify(launch).includes('synthetic-target-secret'));
+    const config=JSON.parse(request.split('\n')[0]);assert.deepEqual(config.args,['a b']);
+    assert.ok(Buffer.from(config.environment,'base64').toString('utf16le').includes('DEEPSEEK_API_KEY=synthetic-target-secret'));
+    if(receipt===null)assert.equal(result.error,'AGENT_PROCESS_FAILED');
+    if(receipt==='hung'){assert.equal(kills,1);assert.equal(result.error,'AGENT_CANCELLED');}
+  }
 });
 
 test('LangGraph runner streams events without replay, deduplicates repeated state messages and does not use fixture scoring',async t=>{

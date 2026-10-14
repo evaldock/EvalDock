@@ -2,6 +2,7 @@ import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {writeFile,mkdir,copyFile} from 'node:fs/promises';
 import {temporary} from './support.mjs';
 import {Capture,runProcess} from '../../adapters/shared/capture.mjs';
@@ -27,7 +28,7 @@ test('OpenClaw distinguishes runtime failure and keeps tool traffic bounded',()=
 test('OpenClaw runner frames a single JSON envelope and masks credentials',async t=>{
  const root=await temporary(t),cli=path.join(root,'fake-cli.mjs');
  await writeFile(cli,`console.log(JSON.stringify({ok:true,status:'ok',final:'secret-api-value',sessionId:'native'},null,2));`);
- const r=await runProcess({command:process.execPath,args:[new URL('../../adapters/openclaw/runner.mjs',import.meta.url).pathname,process.execPath,cli],cwd:root,env:{PATH:process.env.PATH,DEEPSEEK_API_KEY:'secret-api-value'},deadlineMs:10000,capture:new Capture('openclaw'),onEvent:openClawEvent});
+ const r=await runProcess({command:process.execPath,args:[fileURLToPath(new URL('../../adapters/openclaw/runner.mjs',import.meta.url)),process.execPath,cli],cwd:root,env:{PATH:process.env.PATH,DEEPSEEK_API_KEY:'secret-api-value'},deadlineMs:10000,capture:new Capture('openclaw'),onEvent:openClawEvent});
  assert.equal(r.error,null,JSON.stringify(r));assert.equal(r.final,'[REDACTED]');assert.equal(r.cleanup,'STOPPED');assert.ok(!JSON.stringify(r).includes('secret-api-value'));assert.equal(r.diagnostics.parseErrors,0);
 });
 test('both new targets use the shared registry and implement the same adapter contract',async t=>{
@@ -58,6 +59,7 @@ test('OpenClaw transcript CLI runs from a desktop workspace path containing spac
  await mkdir(path.dirname(reader),{recursive:true});await mkdir(path.join(root,'adapters/shared'),{recursive:true});
  await copyFile(new URL('../../adapters/openclaw/transcript.mjs',import.meta.url),reader);
  await copyFile(new URL('../../adapters/shared/capture.mjs',import.meta.url),path.join(root,'adapters/shared/capture.mjs'));
+ await copyFile(new URL('../../adapters/shared/platform-environment.mjs',import.meta.url),path.join(root,'adapters/shared/platform-environment.mjs'));
  const state=path.join(root,'state'),db=path.join(state,'agents/main/agent/openclaw-agent.sqlite');await mkdir(path.dirname(db),{recursive:true});
  execFileSync(process.execPath,['--input-type=module','-e',`import {DatabaseSync} from 'node:sqlite';const db=new DatabaseSync(process.argv[1]);db.exec('CREATE TABLE transcript_events(session_id TEXT,seq INTEGER,event_json TEXT,event_zstd BLOB)');db.prepare('INSERT INTO transcript_events VALUES(?,?,?,?)').run('mine',1,JSON.stringify({type:'message',timestamp:'2026-10-10T00:00:00Z',message:{role:'assistant',stopReason:'stop',content:[{type:'text',text:'done'}]}}),null);db.close();`,db],{stdio:['ignore','pipe','pipe']});
  const out=execFileSync(process.execPath,[reader,state,'mine'],{stdio:['ignore','pipe','pipe']}).toString();assert.ok(out,'CLI must emit transcript JSON from a path with spaces');assert.equal(JSON.parse(out).final,'done');
