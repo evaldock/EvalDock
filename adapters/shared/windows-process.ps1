@@ -9,7 +9,10 @@ try {
   $control = [IO.StreamReader]::new([Console]::OpenStandardInput(), [Text.UTF8Encoding]::new($false))
   [Console]::WriteLine('{"type":"phase","name":"READ_REQUEST"}')
   [Console]::Out.Flush()
-  $request = $control.ReadLine() | ConvertFrom-Json
+  $requestLine = $control.ReadLine()
+  [Console]::WriteLine('{"type":"phase","name":"REQUEST_READ"}')
+  [Console]::Out.Flush()
+  $request = ConvertFrom-Json -InputObject $requestLine
   [Console]::WriteLine('{"type":"phase","name":"COMPILE"}')
   Add-Type -TypeDefinition @'
 using System;
