@@ -86,3 +86,41 @@ test('a late detail response cannot replace the current library revision',async(
  finish({ok:true,json:async()=>({stale:true})});await request;
  assert.equal(vm.runInContext("questionInventory.cases.get('synthetic-case').current",context),true);
 });
+
+async function restoredUiContext(selectedDataset,caseId){
+ const html=await readFile('workbench/design-prototypes/index.html','utf8'),ui=await readFile('workbench/design-prototypes/question-inventory-ui.js','utf8');
+ const extract=(start,end)=>{const from=html.indexOf(start),to=html.indexOf(end,from);assert.ok(from>=0&&to>from);return html.slice(from,to);};
+ const storage=new Map([
+  ['evaldock.workbench.ui.v2',JSON.stringify({page:'resources',selectedDataset,environmentContentVersion:2})],
+  ['evaldock.question-inventory.v1',JSON.stringify({expanded:[selectedDataset],caseId})],
+ ]);
+ const context=vm.createContext({UI_STATE_KEY:'evaldock.workbench.ui.v2',resourceSnapshot:{datasets:[]},selectedDataset:undefined,selectedAgent:'',activeRun:null,expandedGroups:{},initialCases:[],cases:[],events:[],step:0,lastUpdate:'',historicalAgents:[],environmentDemoChanges:[],environmentFilter:'all',environmentDemo:false,environmentStep:0,environmentSelected:0,rememberAgentView(){},restoreAgentView(){},page:'control',AbortSignal,document:{addEventListener(){}},setTimeout(){},sessionStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value)}});
+ vm.runInContext(extract('function persistUI(){','\nfunction schedulePersist(')+'\n'+extract('function restoreSession(){','\nfunction selectAgent(')+'\n'+ui+'\nfunction render(){persistUI();}',context);
+ vm.runInContext('restoreSession();render();',context);
+ return {context,storage};
+}
+test('startup restores saved local dataset and case navigation with an empty bundled snapshot',async()=>{
+ for(const caseId of ['synthetic-case',null]){
+  const {context,storage}=await restoredUiContext('dataset.synthetic/v1',caseId);
+  context.fetch=async()=>({ok:true,json:async()=>uiIndex('current.json')});
+  await vm.runInContext('loadQuestionInventory()',context);
+  assert.equal(context.selectedDataset,'dataset.synthetic/v1');assert.equal(vm.runInContext('questionInventory.state.caseId',context),caseId);
+  assert.equal(JSON.parse(storage.get('evaldock.workbench.ui.v2')).selectedDataset,'dataset.synthetic/v1');
+ }
+});
+test('failed initial inventory loading preserves saved navigation until a successful retry',async()=>{
+ const {context,storage}=await restoredUiContext('dataset.synthetic/v1','synthetic-case');
+ context.fetch=async()=>{throw Error('Synthetic unavailable catalog');};await vm.runInContext('loadQuestionInventory()',context);
+ assert.equal(context.selectedDataset,'dataset.synthetic/v1');assert.equal(vm.runInContext('questionInventory.state.caseId',context),'synthetic-case');assert.equal(vm.runInContext('questionInventory.error',context),true);
+ assert.equal(JSON.parse(storage.get('evaldock.workbench.ui.v2')).selectedDataset,'dataset.synthetic/v1');
+ context.fetch=async()=>({ok:true,json:async()=>uiIndex('current.json')});await vm.runInContext('loadQuestionInventory()',context);
+ assert.equal(context.selectedDataset,'dataset.synthetic/v1');assert.equal(vm.runInContext('questionInventory.state.caseId',context),'synthetic-case');assert.equal(vm.runInContext('questionInventory.error',context),null);
+});
+test('the loaded library clears missing or mismatched saved inventory selections',async()=>{
+ for(const [dataset,caseId,expected] of [['dataset.removed/v1','synthetic-case','__inventory__'],['dataset.synthetic/v1','removed-case','dataset.synthetic/v1'],['dataset.synthetic/v1','other-case','dataset.synthetic/v1'],['__inventory__','synthetic-case','__inventory__']]){
+  const {context,storage}=await restoredUiContext(dataset,caseId);
+  context.fetch=async()=>({ok:true,json:async()=>({...uiIndex('current.json'),datasets:[...uiIndex('current.json').datasets,{id:'dataset.other/v1',cases:[{caseId:'other-case',file:'other.json'}]}]})});
+  await vm.runInContext('loadQuestionInventory()',context);
+  assert.equal(context.selectedDataset,expected);assert.equal(vm.runInContext('questionInventory.state.caseId',context),null);assert.equal(JSON.parse(storage.get('evaldock.question-inventory.v1')).caseId,null);
+ }
+});

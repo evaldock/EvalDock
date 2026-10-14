@@ -917,7 +917,9 @@ function persistUI(){try{rememberAgentView();const demo=activeRun?savedDemoCases
 function schedulePersist(){clearTimeout(persistTimer);persistTimer=setTimeout(persistUI,80);}
 function restoreSession(){try{const v=JSON.parse(sessionStorage.getItem(UI_STATE_KEY)||'null');if(!v)return;
 environmentFilter=v.environmentFilter||'all';environmentDemo=v.environmentContentVersion===2?v.environmentDemo===true:true;environmentStep=v.environmentContentVersion===2?Math.min(environmentDemoChanges.length,Math.max(0,Number(v.environmentStep)||0)):environmentDemoChanges.length;environmentSelected=Number(v.environmentSelected)||0;
-agentViews=v.agentViews||{};lastRuns=v.lastRuns||{};scrollPositions=v.scrollPositions||{};caseTabs=v.caseTabs||{};expandedGroups={...expandedGroups,...(v.expandedGroups||{})};datasetQuery=v.datasetQuery||'';if(v.selectedDataset==='__inventory__'||resourceSnapshot.datasets.some(d=>d.id===v.selectedDataset))selectedDataset=v.selectedDataset;
+agentViews=v.agentViews||{};lastRuns=v.lastRuns||{};scrollPositions=v.scrollPositions||{};caseTabs=v.caseTabs||{};expandedGroups={...expandedGroups,...(v.expandedGroups||{})};datasetQuery=v.datasetQuery||'';
+// Validate saved library navigation after the current local catalog arrives.
+if(typeof v.selectedDataset==='string')selectedDataset=v.selectedDataset;
 if(Array.isArray(v.demo)&&v.demo.length===initialCases.length){savedDemoCases=v.demo;cases.splice(0,cases.length,...JSON.parse(JSON.stringify(v.demo)));}step=Math.min(events.length,Math.max(0,Number(v.step)||0));lastUpdate=v.lastUpdate||lastUpdate;
 if(historicalAgents.some(a=>a.id===v.selectedAgent)){selectedAgent=v.selectedAgent;const a=historicalAgents.find(a=>a.id===selectedAgent);activeRun=a.runs.find(r=>r.id===lastRuns[selectedAgent])||a.runs[0];cases.splice(0,cases.length,...JSON.parse(JSON.stringify(activeRun.cases)));dimensions.splice(0,dimensions.length,...activeRun.dimensions);}
 restoreAgentView();page=['tasks','control','workbuddy','pi','langgraph','qwenwork','doubaowork','hermes','openclaw','resources','labels','environment','settings'].includes(v.page)?v.page:'tasks';

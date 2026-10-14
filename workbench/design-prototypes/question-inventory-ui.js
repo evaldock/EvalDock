@@ -66,9 +66,10 @@ async function loadQuestionInventory(){
   const r=await fetch('question-inventory/index.json',{cache:'no-cache',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error(r.status);const index=await r.json();if(request!==inv.request)return;
   const before=new Map((inv.index?.datasets??[]).flatMap(d=>d.cases.map(c=>[c.caseId,c.file]))),after=new Map(index.datasets.flatMap(d=>d.cases.map(c=>[c.caseId,c.file])));
   for(const id of inv.cases.keys())if(!after.has(id)||after.get(id)!==before.get(id))inv.cases.delete(id);
-  if(inv.state.caseId&&!after.has(inv.state.caseId))inv.state.caseId=null;
-  if(!index.datasets.some(d=>d.id===selectedDataset))selectedDataset='__inventory__';
-  inv.index=index;inv.error=null;
+  const selected=index.datasets.find(d=>d.id===selectedDataset);
+  if(!selected)selectedDataset='__inventory__';
+  if(inv.state.caseId&&!selected?.cases.some(c=>c.caseId===inv.state.caseId))inv.state.caseId=null;
+  inv.index=index;inv.error=null;saveQuestionInventory();
  }catch{if(request===inv.request)inv.error=true;}
  if(request===inv.request&&typeof render==='function')render();
 }
