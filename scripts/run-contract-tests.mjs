@@ -6,6 +6,8 @@ import {spawnSync} from 'node:child_process';
 const directory=path.resolve('tests/contracts');
 const files=readdirSync(directory).filter(name=>name.endsWith('.test.mjs')).sort().map(name=>path.join(directory,name));
 if(!files.length)throw Error('No contract tests found');
-const result=spawnSync(process.execPath,['--test',...files],{stdio:'inherit'});
+// Fail with a test/file location when a platform-specific fixture never settles.
+// This bounds failures; it does not skip tests or relax their assertions.
+const result=spawnSync(process.execPath,['--test','--test-timeout=120000',...files],{stdio:'inherit'});
 if(result.error)throw result.error;
 process.exitCode=result.status??1;
