@@ -5,7 +5,10 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 try {
   [Console]::WriteLine('{"type":"phase","name":"READ_REQUEST"}')
-  $request = [Console]::ReadLine() | ConvertFrom-Json
+  # The host can replace Console.In; bind directly to inherited stdin instead.
+  # Keep this reader for cancellation too: it may already buffer the next line.
+  $control = [IO.StreamReader]::new([Console]::OpenStandardInput(), [Text.UTF8Encoding]::new($false))
+  $request = $control.ReadLine() | ConvertFrom-Json
   [Console]::WriteLine('{"type":"phase","name":"COMPILE"}')
   Add-Type -TypeDefinition @'
 using System;
@@ -91,12 +94,12 @@ public static class EvalDockOwnedProcess {
       }
     });
   }
-  public static int Run(string command,string[] args,string cwd,string environment,string searchPath) {
+  public static int Run(string command,string[] args,string cwd,string environment,string searchPath,TextReader control) {
     IntPtr job=IntPtr.Zero,outRead=IntPtr.Zero,outWrite=IntPtr.Zero,errRead=IntPtr.Zero,errWrite=IntPtr.Zero,input=IntPtr.Zero,env=IntPtr.Zero,attributes=IntPtr.Zero,handles=IntPtr.Zero;
     ProcessInfo child=new ProcessInfo(); bool assigned=false,attributesReady=false,stopped=false,failed=false,exitReported=false;
     long stderrBytes=0; Task outPump=null,errPump=null;
     // A cancelled request queued during PowerShell compilation must not start a target.
-    var cancel=Task.Run(()=>Console.ReadLine());
+    var cancel=Task.Run(()=>control.ReadLine());
     try {
       Phase("CREATE_JOB");
       if(cancel.Wait(10)) { Emit("{\"type\":\"cleanup\",\"stopped\":true,\"stderrBytes\":0}"); return 0; }
@@ -175,7 +178,7 @@ public static class EvalDockOwnedProcess {
 '@
   $environment = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($request.environment))
   [Console]::WriteLine('{"type":"phase","name":"RUN"}')
-  exit [EvalDockOwnedProcess]::Run($request.command,[string[]]$request.args,$request.cwd,$environment,$request.searchPath)
+  exit [EvalDockOwnedProcess]::Run($request.command,[string[]]$request.args,$request.cwd,$environment,$request.searchPath,$control)
 } catch {
   # No exception text: errors may contain arguments, target paths or credentials.
   [Console]::WriteLine('{"type":"failure","phase":"POWERSHELL","code":' + $_.Exception.HResult + '}')
