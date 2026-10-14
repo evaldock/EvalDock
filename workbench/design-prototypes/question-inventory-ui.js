@@ -1,5 +1,5 @@
-/* Read-only question inventory. Source snapshot and case payloads are loaded on demand. */
-const questionInventory={index:null,error:null,cases:new Map(),pending:new Set(),state:{expanded:[],caseId:null,scope:'all'}};
+/* Read-only public library; case payloads are loaded on demand. */
+const questionInventory={index:null,error:null,cases:new Map(),pending:new Set(),request:0,state:{expanded:[],caseId:null,scope:'all'}};
 try{Object.assign(questionInventory.state,JSON.parse(sessionStorage.getItem('evaldock.question-inventory.v1')||'{}'));}catch{}
 function saveQuestionInventory(){try{sessionStorage.setItem('evaldock.question-inventory.v1',JSON.stringify(questionInventory.state));}catch{}}
 function inventoryDatasetCases(d){return d.cases;}
@@ -37,24 +37,42 @@ function inventoryLabelView(){const inv=questionInventory,labels=inv.index?.labe
 function inventoryResourcesView(){
  inventoryDeferred.clear();const inv=questionInventory;if(!inv.index)return inventoryPanel('测试集',inv.error?'目录读取失败。<button data-inventory-retry>重试</button>':'正在读取题目目录…');
  const d=inv.index.datasets.find(x=>x.id===selectedDataset),meta=d?.cases.find(c=>c.caseId===inv.state.caseId),record=meta&&inv.cases.get(meta.caseId);
- const header='<div class="titlebar"><div><h1>'+esc(meta?.title??d?.name??'全部题目')+'</h1><p>测试集'+(d?' / '+esc(d.id):'')+(meta?' / '+esc(meta.caseId):'')+'</p></div></div>';
+ const header='<div class="titlebar"><div><h1>'+esc(meta?.title??d?.name??'全部题目')+'</h1><p>测试集'+(d?' / '+esc(d.id):'')+(meta?' / '+esc(meta.caseId):'')+'</p></div><button data-inventory-retry>刷新目录</button></div>'+(inv.error?'<p class="note">目录刷新失败，正在显示已加载的目录。请重试。</p>':'');
  if(meta){if(!record){loadInventoryCase(meta);return header+inventoryPanel('题目详情','正在读取…');}if(record.error)return header+inventoryPanel('题目详情','读取失败。<button data-inventory-retry-case="'+esc(meta.caseId)+'">重试</button>');
  const q=record.question,labels=inventoryDatasetLabels(d);
  const overview='<ul class="inventory-overview"><li><b>所属数据集：</b>'+esc(d.name)+'</li><li><b>题目编号：</b>'+esc(meta.caseId)+'</li><li><b>题目说明：</b>'+esc(meta.description??q.matching?.description??'未配置')+'</li><li><b>数据集标签：</b>'+labels+'</li><li><b>运行平台：</b>'+inventoryValue(q.environment?.platform)+'</li><li><b>时间上限：</b>'+esc(q.environment?.timeoutSeconds??'未配置')+' 秒</li><li><b>输入附件：</b>'+(q.inputs?.length??0)+' 项</li><li><b>难度分级：</b>'+inventoryDifficulty(meta)+'</li><li><b>定级依据：</b>'+esc(meta.difficulty?.rationale??'尚未标定')+'</li></ul>';
- return header+inventoryPanel('题目信息',overview)+inventoryPanel('完整题干','<div class="inventory-prompt">'+esc(q.task?.instructions??'未配置题干')+'</div>')+
- inventorySection('运行环境与要求',inventoryValue(q.environment),true)+inventorySection('证据检查点',inventoryValue(q.evidence),true)+inventorySection('评分配置与参考答案',inventoryValue(q.grading)+Object.entries(record.documents).filter(([k])=>k.startsWith('private/')).map(([k,v])=>inventorySection('参考文件 · '+k,inventoryDocument(k,v))).join(''))+
+ return header+inventoryPanel('题目信息',overview)+inventoryPanel('公开任务要求','<div class="inventory-prompt">'+esc(q.task?.instructions??'未配置题干')+'</div>')+
+ inventorySection('运行环境与要求',inventoryValue(q.environment),true)+inventorySection('评分参考状态','<p>'+esc(({READY:'评分参考已就绪',MISSING:'评分参考缺失',INVALID:'评分参考无效',UNAVAILABLE:'公开题不提供评分参考'})[record.scoringState]??'状态未确认')+'</p><p class="note">私有评分参考仅供 Judge 使用。</p>')+
  inventorySection('输入材料',inventoryValue(q.inputs)+Object.entries(record.documents).filter(([k])=>!k.startsWith('private/')).map(([k,v])=>inventorySection('材料 · '+k,inventoryDocument(k,v))).join(''))+
- inventorySection('来源与适配说明',inventoryValue(q.source))+inventorySection('附件清单',inventoryValue(record.files))+
- inventorySection('完整原始定义',inventoryPre(q)+Object.entries(record.documents).filter(([k])=>k.endsWith('.json')).map(([k,v])=>inventorySection(k,inventoryPre(v))).join(''))+
- '<p class="note inventory-source">来源文件：'+esc(record.sourcePath)+'<br>采集时间：'+esc(inv.index.capturedAt)+'</p>';
+ inventorySection('附件清单',inventoryValue(record.files))+
+ inventorySection('公开题目定义',inventoryPre(q))+
+ '<p class="note inventory-source">来源：当前本地题库 · '+esc(d.id)+' · '+esc(meta.caseId)+'<br>目录读取时间：'+esc(inv.index.capturedAt)+'</p>';
  }
  const datasets=d?[d]:inv.index.datasets;
  const description=d?inventoryPanel('数据集说明','<div class="inventory-prompt">'+esc(d.description)+'</div><div class="inventory-dataset-labels"><b>数据集标签</b><div>'+inventoryDatasetLabels(d)+'</div></div><p class="note">'+d.cases.length+' 道题目 · '+esc(d.datasetId)+'</p>'):'';
  return header+description+inventoryPanel(d?'题目列表':'数据集目录','<div class="table-scroll"><table class="scores inventory-catalog-table"><thead><tr><th style="width:30%">'+(d?'题目':'数据集')+'</th><th>'+(d?'中文介绍':'数据集描述')+'</th>'+(d?'':'<th style="width:18%">标签 / 题量</th>')+'</tr></thead><tbody>'+datasets.flatMap(ds=>d?ds.cases.map(c=>'<tr><td><button class="inventory-link" data-inventory-case="'+esc(c.caseId)+'">'+esc(c.title)+'</button><span class="case-id">'+esc(c.caseId)+'</span><span class="case-id">'+inventoryDifficulty(c)+'</span></td><td class="inventory-case-description">'+esc(c.description)+'</td></tr>'):['<tr><td><button class="inventory-link" data-inventory-dataset="'+esc(ds.id)+'">'+esc(ds.name)+'</button><span class="case-id">'+esc(ds.id)+'</span></td><td class="inventory-case-description">'+esc(ds.description)+'</td><td>'+inventoryDatasetLabels(ds)+'<p>'+ds.cases.length+' 题</p></td></tr>']).join('')+'</tbody></table></div>');
 }
 
-async function loadInventoryCase(meta){const inv=questionInventory;if(inv.pending.has(meta.caseId))return;inv.pending.add(meta.caseId);try{const r=await fetch('question-inventory/cases/'+meta.file,{cache:'no-cache'});if(!r.ok)throw Error(r.status);inv.cases.set(meta.caseId,await r.json());}catch{inv.cases.set(meta.caseId,{error:true});}finally{inv.pending.delete(meta.caseId);if(page==='resources'&&inv.state.caseId===meta.caseId)render();}}
-async function loadQuestionInventory(){try{const r=await fetch('question-inventory/index.json',{cache:'no-cache'});if(!r.ok)throw Error(r.status);questionInventory.index=await r.json();questionInventory.error=null;}catch{questionInventory.error=true;}if(typeof render==='function')render();}
+async function loadInventoryCase(meta){
+ const inv=questionInventory,key=meta.caseId+'::'+meta.file;if(inv.pending.has(key))return;inv.pending.add(key);
+ const current=()=>inv.index?.datasets.some(d=>d.cases.some(c=>c.caseId===meta.caseId&&c.file===meta.file));
+ try{const r=await fetch('question-inventory/cases/'+meta.file,{cache:'no-cache',signal:AbortSignal.timeout(10000)});if(r.status===404){await loadQuestionInventory();if(current())inv.cases.set(meta.caseId,{error:true});return;}if(!r.ok)throw Error(r.status);const record=await r.json();if(current())inv.cases.set(meta.caseId,record);}
+ catch{if(current())inv.cases.set(meta.caseId,{error:true});}
+ finally{inv.pending.delete(key);if(page==='resources'&&inv.state.caseId===meta.caseId)render();}
+}
+async function loadQuestionInventory(){
+ const inv=questionInventory,request=++inv.request;
+ try{
+  const r=await fetch('question-inventory/index.json',{cache:'no-cache',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error(r.status);const index=await r.json();if(request!==inv.request)return;
+  const before=new Map((inv.index?.datasets??[]).flatMap(d=>d.cases.map(c=>[c.caseId,c.file]))),after=new Map(index.datasets.flatMap(d=>d.cases.map(c=>[c.caseId,c.file])));
+  for(const id of inv.cases.keys())if(!after.has(id)||after.get(id)!==before.get(id))inv.cases.delete(id);
+  const selected=index.datasets.find(d=>d.id===selectedDataset);
+  if(!selected)selectedDataset='__inventory__';
+  if(inv.state.caseId&&!selected?.cases.some(c=>c.caseId===inv.state.caseId))inv.state.caseId=null;
+  inv.index=index;inv.error=null;saveQuestionInventory();
+ }catch{if(request===inv.request)inv.error=true;}
+ if(request===inv.request&&typeof render==='function')render();
+}
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-inventory-toggle],[data-inventory-dataset],[data-inventory-case],[data-inventory-overview],[data-inventory-retry],[data-inventory-retry-case],[data-inventory-label],[data-inventory-more]');if(!b)return;e.stopImmediatePropagation();
  const inv=questionInventory;

@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DshControl} from '../../workbench/lib/dsh-control.mjs';
 import {startControlServer} from '../../workbench/control-server.mjs';
-import {temporary} from './support.mjs';
+import {temporary,json} from './support.mjs';
+import path from 'node:path';
+import {writeFile,readFile} from 'node:fs/promises';
 test('DSH 401 preserves static plugins and sibling Agent history, and cannot permit DSH mutations',async t=>{
  const root=await temporary(t),control=new DshControl(root);
  Object.assign(control,{descriptor:{webEndpoint:'http://127.0.0.1:1',profile:'web'},env:{},testPolicy:{},jobs:{children:new Map(),jobs:new Map(),view:x=>x},plugins:async()=>({revision:'r',profile:{dsh:{profile:{bundles:[]}}},catalog:[{name:'saved-plugin'}]}),core:{dshConfiguration:async()=>({agentId:'dsh',plugins:[]}),dshStatus:async()=>{throw Error('DSH_WEB_HTTP_401');}},currentInspection:async()=>({source:'CURRENT_CONFIGURATION'}),externalRuns:{get:async()=>[]},results:{}});
@@ -10,4 +12,30 @@ test('DSH 401 preserves static plugins and sibling Agent history, and cannot per
  const pi={active:false,records:async()=>({jobs:[{runId:'run',state:'SUCCEEDED'}],runs:[{run:{id:'run'},agentKind:'pi'}]})},workbuddy={active:false,records:async()=>({jobs:[],runs:[]})};
  const {server}=await startControlServer({root,port:0,controller:control,workbuddyController:workbuddy,agentControllers:{pi}});t.after(()=>new Promise(r=>server.close(r)));
  const response=await fetch('http://127.0.0.1:'+server.address().port+'/api/control/status');assert.equal(response.status,200);const data=await response.json();assert.equal(data.runs[0].agentKind,'pi');assert.equal(data.jobs[0].runId,'run');assert.ok(data.csrf);
+});
+test('a missing DSH profile preserves sibling history and keeps DSH mutations blocked',async t=>{
+ const root=await temporary(t),control=new DshControl(root);
+ Object.assign(control,{descriptor:{dshHome:path.join(root,'uninstalled-dsh'),webEndpoint:'http://127.0.0.1:1',profile:'web'},profilePath:path.join(root,'uninstalled-dsh/profiles/web/package.json'),env:{},testPolicy:{},order:[],jobs:{children:new Map(),jobs:new Map(),view:x=>x},core:{dshConfiguration:async()=>{throw Error('DSH is not installed');}}});
+ const archive=path.join(root,'var/evaluation-results/agents/synthetic-dsh/runs/synthetic-dsh-run/run.json');
+ await json(archive,{fixture:true,agentKind:'dsh',status:'COMPLETED',caseResults:[]});const original=await readFile(archive);
+ const pi={active:false,records:async()=>({jobs:[{id:'synthetic-job',runId:'synthetic-run',state:'SUCCEEDED'}],runs:[{run:{id:'synthetic-run'},agentKind:'pi'}]})},quiet={active:false,records:async()=>({jobs:[],runs:[]})};
+ const {server}=await startControlServer({root,port:0,controller:control,workbuddyController:quiet,agentControllers:{pi},modelSettingsFile:path.join(root,'models.env'),agentModelSettings:{init:async()=>{}}});t.after(()=>new Promise(r=>server.close(r)));
+ const response=await fetch('http://127.0.0.1:'+server.address().port+'/api/control/status');
+ assert.equal(response.status,200);const data=await response.json();
+ assert.equal(data.runs[0].agentKind,'pi');assert.equal(data.jobs[0].runId,'synthetic-run');assert.ok(data.csrf);
+ assert.ok(data.jobs.some(j=>j.runId==='synthetic-dsh-run'));
+ assert.equal(data.status,'UNVERIFIED');assert.ok(data.error);await assert.rejects(control.idle());
+ const summary=await(await fetch('http://127.0.0.1:'+server.address().port+'/api/control/app')).json();
+ assert.ok(summary.jobs.some(j=>j.runId==='synthetic-dsh-run'));assert.equal(summary.agents.find(a=>a.kind==='dsh').targets[0].evaluationReady,false);
+ await writeFile(path.join(root,'invalid-profile.json'),'{invalid JSON');
+ control.profilePath=path.join(root,'invalid-profile.json');
+ const invalid=await control.status(true);assert.equal(invalid.status,'UNVERIFIED');assert.ok(invalid.error);await assert.rejects(control.idle());
+ assert.deepEqual(await readFile(archive),original);
+});
+test('an unreadable DSH installation retains readable plugin metadata and rejects service changes',async t=>{
+ const control=new DshControl(await temporary(t));let changes=0;
+ Object.assign(control,{descriptor:{dshHome:'synthetic-missing-installation',profile:'web'},env:{},jobs:{jobs:new Map(),children:new Map()},plugins:async()=>({catalog:[{name:'saved-plugin',version:'synthetic'}]}),core:{dshConfiguration:async()=>{throw Error('DSH_SOURCE_MISSING');}},externalRuns:{get:async()=>[]},requireStartup:async()=>{changes++;}});
+ const state=await control.status();assert.equal(state.status,'UNVERIFIED');assert.equal(state.plugins[0].name,'saved-plugin');assert.equal(state.externalEval,null);
+ for(const action of ['start','stop','restart'])await assert.rejects(control.action(action),/DSH 配置无法读取/);
+ assert.equal(changes,0);
 });

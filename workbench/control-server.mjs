@@ -1,6 +1,6 @@
 import {ModelSettings} from './lib/model-settings.mjs';
 import {AgentModelSettings} from './lib/agent-model-settings.mjs';
-import {appSummary} from './lib/app-summary.mjs';
+import {appSummary,appRecords} from './lib/app-summary.mjs';
 import {AgentDiscovery,graphTarget} from './lib/agent-discovery.mjs';
 import {loadTargets} from '../adapters/shared/registry.mjs';
 import {atomic as saveDiscoveryConfig} from '../adapters/shared/evaluation.mjs';
@@ -16,7 +16,7 @@ import {trimLogs} from './lib/background-io.mjs';
 import {initializeDshController} from './lib/initialize-dsh.mjs';
 import {WorkBuddyControl} from './lib/workbuddy-control.mjs';
 import {initializeAgentControllers} from './lib/agent-control.mjs';
-import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-config.mjs';
+import {evaluationCatalog,validateEvaluationConfig,questionInventory} from './lib/evaluation-config.mjs';
 import {confined,token} from './lib/files.mjs';
 import {parseVerifiedReportDocument,publicReportDocument,serializeReportDocument} from '../dist/src/reporting/record.js';
 import {renderReportHtml} from '../dist/src/reporting/html.js';
@@ -37,6 +37,18 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
       const addr=server.address(),hosts=['127.0.0.1:'+addr.port,'localhost:'+addr.port];
       if(!hosts.includes(req.headers.host)||req.headers.origin&&!hosts.map(h=>'http://'+h).includes(req.headers.origin)||req.headers['sec-fetch-site']==='cross-site'){json(res,403,{error:'请求来源不允许'});return;}
       const u=new URL(req.url,'http://'+req.headers.host);
+      if(req.method==='GET'&&u.pathname==='/question-inventory/index.json'){
+        json(res,200,(await questionInventory(root)).index);return;
+      }
+      if(req.method==='GET'&&u.pathname.startsWith('/question-inventory/cases/')){
+        const file=u.pathname.slice('/question-inventory/cases/'.length);
+        if(!/^[a-f0-9]{64}\.json$/.test(file)){json(res,404,{error:'题目不存在，请刷新目录'});return;}
+        const record=(await questionInventory(root)).cases.get(file);
+        json(res,record?200:404,record??{error:'题库已变化，请刷新目录后重试'});return;
+      }
+      if(req.method==='GET'&&u.pathname==='/archive/api/history'){
+        json(res,200,await appRecords({control,workbuddy,agents}));return;
+      }
       if(u.pathname.startsWith('/api/control/')){
         if(req.method==='GET'&&u.pathname==='/api/control/library'){json(res,200,libraryService?.status()??{automatic:false,state:'LOCAL'});return;}
         if(req.method==='GET'&&u.pathname==='/api/control/discovery'){json(res,200,await discovery.scan());return;}

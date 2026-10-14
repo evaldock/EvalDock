@@ -78,7 +78,7 @@ export class AgentControl {
   async records(){
     const owned=[...this.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,50);
     const runs=await Promise.all(owned.map(j=>this.results.get({...j,agentKind:this.kind})));
-    return {jobs:owned.map(j=>({...this.jobs.view(j),agentKind:this.kind,targetName:j.targetName??this.targets.find(t=>t.id===j.targetId)?.name,events:j.events.slice(-35)})),runs};
+    return {jobs:owned.map((j,index)=>({...this.jobs.view(j),progress:runs[index].progress,agentKind:this.kind,targetName:j.targetName??this.targets.find(t=>t.id===j.targetId)?.name,events:j.events.slice(-35)})),runs};
   }
   async run({targetId,smoke=false,datasetCount=1,caseCount=1,datasetIds,evaluationConfig}={}){
     if(this.active)throw Error('该 Agent 已有评测正在执行');

@@ -11,7 +11,7 @@ async function refreshArchiveHistory(force=false){
   try{
     const response=await fetch('/archive/api/history',{signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw Error('archive unavailable');
-    archiveSnapshot=await response.json();archiveError='';applyControlRuns(archiveSnapshot.runs);
+    archiveSnapshot=await response.json();archiveError=(archiveSnapshot.errors??[]).join('；');applyControlRuns(archiveSnapshot.runs);
   }catch{archiveError='硬盘历史结果暂时无法读取；已加载的记录仍保留。';}
 }
 const controlPluginDescriptions={

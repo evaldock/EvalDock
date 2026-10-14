@@ -14,7 +14,7 @@ let window,backend,origin,root,updates,quitting=false,importing=false,automaticL
 if(!app.requestSingleInstanceLock())app.quit();
 else {
   app.on('second-instance',()=>{window?.show();window?.focus();});
-  app.whenReady().then(start).catch(error=>{dialog.showErrorBox('EvalDock 启动失败',error.message);app.quit();});
+  app.whenReady().then(start).catch(error=>{if(!quitting)dialog.showErrorBox('EvalDock 启动失败',error.message);app.quit();});
 }
 async function startBackend(){
   const log=await open(path.join(root,'desktop.log'),'a',0o600);

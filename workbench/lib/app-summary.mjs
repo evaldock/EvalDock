@@ -8,12 +8,25 @@ export async function appSummary({control,workbuddy,agents}) {
       return {kind,targets:value.targets??[{id:kind,name:'WorkBuddy',...value}],active:!!c.active};
     } catch {return {kind,advanced:kind==='dsh',targets:[],error:'尚未配置或暂时无法连接'};}
   }));
+  return {agents:statuses,...await appRecords({control,workbuddy,agents})};
+}
+
+/** Read archived results independently of live Agent inspection. */
+export async function appRecords({control,workbuddy,agents}){
+  const entries=[['dsh',control],['workbuddy',workbuddy],...Object.entries(agents)];
   const records=await Promise.all(entries.map(async([kind,c])=>{
     try {
-      if(c.records)return await c.records();
+      if(c.records)return {...await c.records(),kind};
       const owned=[...c.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,50);
-      return {jobs:owned.map(j=>({...c.jobs.view(j),agentKind:kind})),runs:await Promise.all(owned.map(j=>c.results.get(j)))};
-    } catch {return {jobs:[],runs:[],error:kind+' 的记录暂时无法读取'};}
+      return {kind,jobs:owned.map(j=>({...c.jobs.view(j),agentKind:kind})),runs:await Promise.all(owned.map(j=>c.results.get(j)))};
+    } catch {return {kind,jobs:[],runs:[],error:kind+' 的记录暂时无法读取'};}
   }));
-  return {agents:statuses,jobs:records.flatMap(r=>r.jobs).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),runs:records.flatMap(r=>r.runs),errors:records.flatMap(r=>r.error?[r.error]:[])};
+  // DSH also discovers disk archives belonging to sibling Agents. Prefer each
+  // Agent's controller record and preserve runs with the same ID on other targets.
+  const jobs=new Map(),runs=new Map();
+  for(const record of records){
+    for(const job of record.jobs)jobs.set(JSON.stringify([job.targetId??job.agentKind??record.kind,job.runId??job.id]),job);
+    for(const run of record.runs)runs.set(JSON.stringify([run.agentId??run.agentKind??record.kind,run.run.id]),run);
+  }
+  return {jobs:[...jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),runs:[...runs.values()],errors:records.flatMap(r=>r.error?[r.error]:[])};
 }

@@ -98,7 +98,19 @@ export class DshControl {
     this.inspectionCache={key,value,until:Date.now()+60000};return value;
   }
   async readStatus(){
-    const p=await this.plugins(),configuration=await this.core.dshConfiguration(this.descriptor);let live=null,error=null,runningSessions=null,activeSessions=[],listener=false;
+    let p,configuration;
+    try{p=await this.plugins();configuration=await this.core.dshConfiguration(this.descriptor);}
+    catch{
+      // Installation/configuration checks must not make saved reports unavailable.
+      // Unknown DSH state continues to block every mutation through idle().
+      return {status:'UNVERIFIED',error:'DSH 配置无法读取，请检查 Web Profile 和安装目录',revision:null,
+        plugins:p?.catalog??[],agent:{id:null,plugins:[],profileDigest:null},staticInspection:null,
+        evaluationModels:this.evaluationModels(),testPolicy:this.testPolicy,caseConcurrency:3,
+        endpoint:this.descriptor.webEndpoint,profile:this.descriptor.profile,home:this.descriptor.dshHome,installRoot:this.descriptor.sourceRoot,
+        pid:null,version:null,model:null,needsRestart:false,modelReady:false,runningSessions:null,activeSessions:[],externalEval:null,busy:this.busy,preflight:null,
+        ...await this.records()};
+    }
+    let live=null,error=null,runningSessions=null,activeSessions=[],listener=false;
     try{const found=await exec('/usr/sbin/lsof',['-nP','-t','-iTCP:'+new URL(this.descriptor.webEndpoint).port,'-sTCP:LISTEN']);listener=!!found.stdout.trim();}catch(e){if(e.code!==1)error='无法检查 DSH 进程';}
     if(listener){try{live=await this.inspect(this.descriptor);activeSessions=(await this.rpc('session.list')).items.filter(s=>s.running).map(s=>({id:s.sessionId,title:s.projections?.values?.title||'未命名任务',cwd:s.cwd||'',cancelling:this.cancellingSessions.has(s.sessionId)}));runningSessions=activeSessions.length;for(const id of this.cancellingSessions)if(!activeSessions.some(s=>s.id===id))this.cancellingSessions.delete(id);}catch{error='DSH 服务身份或会话状态未确认';}}
     // DSH transport failure must not hide other Agents or archived results.
@@ -109,18 +121,24 @@ export class DshControl {
     let needsRestart=false;
     if(live){const started=Date.parse((await exec('/bin/ps',['-p',String(live.web.pid),'-o','lstart='])).stdout.trim());needsRestart=Number.isFinite(started)&&(await stat(this.profilePath)).mtimeMs>started+1500;}
     const staticInspection=await this.currentInspection(configuration,live);
-    const snapshot={staticInspection,evaluationModels:{planner:{model:this.env.EVALDOCK_PLANNER_MODEL??'deepseek-flash',keyConfigured:!!(this.env.EVALDOCK_PLANNER_API_KEY||this.env.DEEPSEEK_API_KEY)},judge:{model:this.env.EVALDOCK_JUDGE_MODEL??'deepseek-flash',keyConfigured:!!(this.env.EVALDOCK_JUDGE_API_KEY||this.env.DEEPSEEK_API_KEY)},separateAgentKey:!!this.env.DEEPSEEK_API_KEY&&this.env.EVALDOCK_PLANNER_API_KEY!==this.env.DEEPSEEK_API_KEY&&this.env.EVALDOCK_JUDGE_API_KEY!==this.env.DEEPSEEK_API_KEY},testPolicy:this.testPolicy,caseConcurrency:3,revision:p.revision+':'+configuration.agentId,plugins:p.catalog,agent:{id:configuration.agentId,plugins:configuration.plugins,profileDigest:configuration.profileDigest},endpoint:this.descriptor.webEndpoint,profile:this.descriptor.profile,home:this.descriptor.dshHome,installRoot:this.descriptor.sourceRoot,
+    const snapshot={staticInspection,evaluationModels:this.evaluationModels(),testPolicy:this.testPolicy,caseConcurrency:3,revision:p.revision+':'+configuration.agentId,plugins:p.catalog,agent:{id:configuration.agentId,plugins:configuration.plugins,profileDigest:configuration.profileDigest},endpoint:this.descriptor.webEndpoint,profile:this.descriptor.profile,home:this.descriptor.dshHome,installRoot:this.descriptor.sourceRoot,
       needsRestart,status:live?'RUNNING':listener?'UNVERIFIED':'STOPPED',pid:live?.web?.pid??null,version:live?.dshVersion??p.catalog.find(p=>p.name===mandatoryPlugins[0])?.version,model:live?.web?.model??null,runningSessions,activeSessions,externalEval,error,busy:this.busy,
-      modelReady:!!(this.env.EVALDOCK_PLANNER_API_KEY||this.env.DEEPSEEK_API_KEY)&&!!(this.env.EVALDOCK_JUDGE_API_KEY||this.env.DEEPSEEK_API_KEY),jobs:[...this.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,30).map(j=>({...this.jobs.view(j),events:j.events.slice(-35)}))};
+      modelReady:!!(this.env.EVALDOCK_PLANNER_API_KEY||this.env.DEEPSEEK_API_KEY)&&!!(this.env.EVALDOCK_JUDGE_API_KEY||this.env.DEEPSEEK_API_KEY),...await this.records()};
+    snapshot.preflight=this.lastPreflight?.revision===snapshot.revision&&JSON.stringify(this.lastPreflight.plugins)===JSON.stringify(p.profile.dsh.profile.bundles)?this.lastPreflight:null;
+    this.cached=snapshot;this.cacheUntil=Date.now()+4500;return snapshot;
+  }
+  evaluationModels(){
+    return {planner:{model:this.env.EVALDOCK_PLANNER_MODEL??'deepseek-flash',keyConfigured:!!(this.env.EVALDOCK_PLANNER_API_KEY||this.env.DEEPSEEK_API_KEY)},judge:{model:this.env.EVALDOCK_JUDGE_MODEL??'deepseek-flash',keyConfigured:!!(this.env.EVALDOCK_JUDGE_API_KEY||this.env.DEEPSEEK_API_KEY)},separateAgentKey:!!this.env.DEEPSEEK_API_KEY&&this.env.EVALDOCK_PLANNER_API_KEY!==this.env.DEEPSEEK_API_KEY&&this.env.EVALDOCK_JUDGE_API_KEY!==this.env.DEEPSEEK_API_KEY};
+  }
+  async records(){
     const owned=[...this.jobs.jobs.values()];
     const external=await this.externalRuns.get(owned,this.descriptor);
     const combined=[...owned,...external].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
     const visible=[...combined.filter(j=>['STARTING','RUNNING','CANCELLING'].includes(j.state)),...combined.filter(j=>!['STARTING','RUNNING','CANCELLING'].includes(j.state))].slice(0,40);
-    snapshot.jobs=visible.map(j=>j.source==='external'?{...j,events:j.events.slice(-35)}:{...this.jobs.view(j),events:j.events.slice(-35)});
-    snapshot.runs=await Promise.all(visible.map(j=>this.results.get(j)));
-    for(const job of snapshot.jobs){const result=snapshot.runs.find(r=>r.agentId===job.targetId&&r.run.id===job.runId);if(result?.plan.status==='FROZEN')job.scale={datasetCount:result.plan.datasets.length,caseCount:result.run.planned};}
-    snapshot.preflight=this.lastPreflight?.revision===snapshot.revision&&JSON.stringify(this.lastPreflight.plugins)===JSON.stringify(p.profile.dsh.profile.bundles)?this.lastPreflight:null;
-    this.cached=snapshot;this.cacheUntil=Date.now()+4500;return snapshot;
+    const runs=await Promise.all(visible.map(j=>this.results.get(j)));
+    const jobs=visible.map((j,index)=>({...(j.source==='external'?j:this.jobs.view(j)),progress:runs[index].progress,events:j.events.slice(-35)}));
+    for(const job of jobs){const result=runs.find(r=>r.agentId===job.targetId&&r.run.id===job.runId);if(result?.plan.status==='FROZEN')job.scale={datasetCount:result.plan.datasets.length,caseCount:result.run.planned};}
+    return {jobs,runs};
   }
   async exclusive(label,fn){
     if(this.busy)throw new Error('另一项操作正在进行');this.busy=label;this.cacheUntil=0;

@@ -84,6 +84,6 @@ export class ControlResults {
       run.targetSummary=run.agentName+(run.target.agentVersion?' / '+run.target.agentVersion:'');
     }
     try{if((await stat(await confined(this.root,base+'/report.html'))).isFile())reportPaths.push('reports/'+job.targetId+'/'+job.runId+'/report.html');}catch(e){if(e.code!=='ENOENT')throw e;}
-    return {source:job.source??'control',agentId:job.targetId,agentKind:run.agentKind,agentName:run.agentName,run,details,runtime,reportPaths,plan:{status:selected.length?'FROZEN':'PENDING',source:(frozenPlan?.model??resultSummary?.datasetMatchModel)==='explicit-all-datasets'?'全测试集计划':'Planner',model:frozenPlan?.model??resultSummary?.datasetMatchModel,createdAt:frozenPlan?.createdAt,datasets:selected.map(d=>({id:d.datasetId,caseCount:d.caseCount,labels:d.evaluationLabelIds,reason:d.reason,capabilities:d.targetCapabilities}))}};
+    return {source:job.source??'control',agentId:job.targetId,agentKind:run.agentKind,agentName:run.agentName,progress:runProgress({...job,summary}),run,details,runtime,reportPaths,plan:{status:selected.length?'FROZEN':'PENDING',source:(frozenPlan?.model??resultSummary?.datasetMatchModel)==='explicit-all-datasets'?'全测试集计划':'Planner',model:frozenPlan?.model??resultSummary?.datasetMatchModel,createdAt:frozenPlan?.createdAt,datasets:selected.map(d=>({id:d.datasetId,caseCount:d.caseCount,labels:d.evaluationLabelIds,reason:d.reason,capabilities:d.targetCapabilities}))}};
   }
 }
