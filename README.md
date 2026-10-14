@@ -65,7 +65,7 @@ The workbench lets you select agents and plugins, configure Planner and Judge AP
 ### Small-sample evaluation
 
 - **Capability-aware planning:** The Planner uses the agent's tools, plugins and capability profile to select a small set of representative tasks covering the target capabilities.
-- **Separate execution and estimation:** The Runtime executes selected tasks and the Judge produces case scores, while an independent estimator inspired by [tinyBenchmarks](https://proceedings.mlr.press/v235/maia-polo24a.html) infers performance across the target suite's dimensions.
+- **Separate execution and estimation:** The Runtime executes selected tasks and the Judge produces case scores, while an independent estimator infers performance across the target suite's dimensions.
 - **Calibration and reporting:** Historical full-suite results calibrate the model, sampled evaluations correct prediction bias, and reports distinguish measured scores from estimates and their uncertainty.
 
 ![Small-sample evaluation: full benchmark, representative tasks, agent execution and estimated performance](docs/assets/small-sample-evaluation.png)
@@ -146,6 +146,10 @@ Example LangGraph targets include DeepAgents and Agent Service Toolkit. Plugin s
 Adapter notes: [shared interface](adapters/README.md) · [OpenClaw](adapters/openclaw/README.md) · [Hermes](adapters/hermes/README.md) · [Qwen / Doubao Work](adapters/OFFICE_AGENTS.md). Replace example installation paths with your own.
 
 ## Dataset coverage
+
+[![EvalDock dataset coverage across agent capabilities and industry domains](docs/assets/dataset-coverage.png)](docs/assets/dataset-coverage.png)
+
+This development-catalog snapshot covers 144 entries and 1,658 cases; categories overlap and counts are not additive, differ from the public package below, and do not imply complete runtime validation.
 
 **BenchDock: 1,650 task records across 146 subsets.** 1,150 include public content; 500 provide sources only. The framework's default `datasets/` includes **one synthetic demo task** for workflow checks, not capability rankings. [Public data](https://huggingface.co/datasets/EvalDock/BenchDock) · [BenchDock tools and documentation](https://github.com/evaldock/BenchDock) · [Pinned pilot import and separate scoring](docs/BENCHDOCK.md). External catalog counts must not be added to the bundled count or treated as loaded, executed or scored task counts; see the [dataset guide](datasets/README.md). Public availability does not imply verified execution or official upstream scores.
 

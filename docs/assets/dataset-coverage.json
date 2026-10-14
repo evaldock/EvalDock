@@ -1,0 +1,542 @@
+{
+  "source": "User-provided coverage chart, reviewed for README use on 2026-10-14; aggregate counts only.",
+  "total_entries": 144,
+  "total_cases": 1658,
+  "count_basis": "Catalog-declared availableCaseCount; not a claim of validated runtime or Judge support.",
+  "cross_category_duplicates_allowed": true,
+  "highlighted": [
+    "τ³-bench",
+    "ToolLLM",
+    "AgentBench",
+    "GAIA",
+    "BFCL V4 Multi-Turn",
+    "Terminal-Bench",
+    "SWE-bench Verified",
+    "SpreadsheetBench",
+    "DocVQA",
+    "Spider 2.0",
+    "HLE",
+    "ARC-AGI-2",
+    "GPQA Diamond"
+  ],
+  "sections": [
+    {
+      "name_en": "Agent capabilities",
+      "name_zh": "Agent 能力",
+      "categories": [
+        {
+          "name_en": "Reasoning & instruction following",
+          "name_zh": "推理规划与指令遵循",
+          "entry_count": 133,
+          "cases": 1568,
+          "series": {
+            "τ³-bench": 192,
+            "ToolLLM": 102,
+            "MCP-Atlas": 94,
+            "HLE": 89,
+            "BixBench": 85,
+            "MemoryAgentBench": 75,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "AgentBoard": 40,
+            "CRMArena-Pro": 40,
+            "EntCollabBench": 40,
+            "FeatureBench": 40,
+            "ARC-AGI-2": 35,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "AutomationBench": 29,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "PersonaMem": 22,
+            "SkillsBench": 22,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "Memory Temporal Reasoning": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          }
+        },
+        {
+          "name_en": "Task completion & deliverables",
+          "name_zh": "任务完成与产物交付",
+          "entry_count": 116,
+          "cases": 1378,
+          "series": {
+            "τ³-bench": 200,
+            "ToolLLM": 122,
+            "HLE": 89,
+            "BixBench": 85,
+            "MemoryAgentBench": 75,
+            "SWE-bench Verified": 57,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "CRMArena-Pro": 40,
+            "FeatureBench": 40,
+            "ARC-AGI-2": 35,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "SkillsBench": 22,
+            "AgentBench": 21,
+            "AgentBoard": 20,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "EntCollabBench": 14,
+            "CyberGym": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          }
+        },
+        {
+          "name_en": "Code & external tools",
+          "name_zh": "代码与外部工具执行",
+          "entry_count": 72,
+          "cases": 760,
+          "series": {
+            "ToolLLM": 105,
+            "BixBench": 85,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "AlgoTune": 41,
+            "CRMArena-Pro": 40,
+            "Spider 2.0": 34,
+            "AWS Multi-agent": 30,
+            "AutomationBench": 29,
+            "GSO": 23,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "Frontier-Eng": 15,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "QCircuitBench": 11,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "SLDBench": 9,
+            "AgentBench": 5
+          }
+        },
+        {
+          "name_en": "Data processing & analysis",
+          "name_zh": "数据处理与分析",
+          "entry_count": 64,
+          "cases": 753,
+          "series": {
+            "ToolLLM": 111,
+            "MCP-Atlas": 94,
+            "BixBench": 85,
+            "SWE-bench Verified": 57,
+            "DSBench": 50,
+            "AgentBoard": 40,
+            "Spider 2.0": 34,
+            "GAIA": 33,
+            "Frontier-Eng": 30,
+            "Terminal-Bench": 28,
+            "SpreadsheetBench": 27,
+            "GSO": 23,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "AgentBench": 16,
+            "CRMArena-Pro": 15,
+            "OfficeBench": 15,
+            "CyberGym": 12,
+            "SciCode": 12,
+            "DA-Code": 11,
+            "WideSearch": 11,
+            "SLDBench": 9
+          }
+        },
+        {
+          "name_en": "Retrieval & web interaction",
+          "name_zh": "信息检索与网页操作",
+          "entry_count": 30,
+          "cases": 344,
+          "series": {
+            "ToolLLM": 118,
+            "MCP-Atlas": 84,
+            "τ³-bench": 52,
+            "AgentBoard": 27,
+            "GAIA": 22,
+            "CRMArena-Pro": 15,
+            "EntCollabBench": 15,
+            "WideSearch": 11
+          }
+        },
+        {
+          "name_en": "Documents & office tools",
+          "name_zh": "文档与办公工具",
+          "entry_count": 15,
+          "cases": 161,
+          "series": {
+            "EntCollabBench": 52,
+            "SpreadsheetBench": 27,
+            "GAIA": 22,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15
+          }
+        },
+        {
+          "name_en": "Multimodal understanding",
+          "name_zh": "多模态理解",
+          "entry_count": 14,
+          "cases": 169,
+          "series": {
+            "HLE": 65,
+            "GAIA": 33,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "ToolLLM": 11
+          }
+        },
+        {
+          "name_en": "Memory",
+          "name_zh": "记忆管理",
+          "entry_count": 6,
+          "cases": 109,
+          "series": {
+            "MemoryAgentBench": 75,
+            "PersonaMem": 22,
+            "Memory Temporal Reasoning": 12
+          }
+        },
+        {
+          "name_en": "Collaboration & delegation",
+          "name_zh": "协作与任务分工",
+          "entry_count": 10,
+          "cases": 135,
+          "series": {
+            "BFCL V4 Multi-Turn": 53,
+            "EntCollabBench": 52,
+            "AWS Multi-agent": 30
+          }
+        },
+        {
+          "name_en": "Execution loops & state",
+          "name_zh": "执行闭环与状态维护",
+          "entry_count": 38,
+          "cases": 440,
+          "series": {
+            "τ³-bench": 162,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "AlgoTune": 41,
+            "AutomationBench": 29,
+            "GSO": 23,
+            "ReplicationBench": 20,
+            "AgentBoard": 17,
+            "SWE-Smith": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "AgentBench": 5
+          }
+        },
+        {
+          "name_en": "Efficiency & reliability",
+          "name_zh": "成本效率与运行可靠性",
+          "entry_count": 97,
+          "cases": 1161,
+          "series": {
+            "τ³-bench": 200,
+            "ToolLLM": 122,
+            "MCP-Atlas": 94,
+            "HLE": 89,
+            "SWE-bench Verified": 57,
+            "BFCL V4 Multi-Turn": 53,
+            "Terminal-Bench": 53,
+            "DSBench": 50,
+            "Frontier-Eng": 45,
+            "AlgoTune": 41,
+            "ARC-AGI-2": 35,
+            "GAIA": 33,
+            "AWS Multi-agent": 30,
+            "GSO": 23,
+            "PersonaMem": 22,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "ReplicationBench": 20,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "Memory Temporal Reasoning": 12,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "Spider 2.0": 12,
+            "SpreadsheetBench": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GPQA Diamond": 11,
+            "USACO": 11,
+            "WideSearch": 11,
+            "SLDBench": 9,
+            "BixBench": 5
+          }
+        },
+        {
+          "name_en": "Safety & permissions",
+          "name_zh": "安全与权限边界",
+          "entry_count": 12,
+          "cases": 150,
+          "series": {
+            "τ³-bench": 76,
+            "ToolLLM": 35,
+            "EntCollabBench": 27,
+            "AgentOps-Bench": 12
+          }
+        }
+      ]
+    },
+    {
+      "name_en": "Industry scenarios",
+      "name_zh": "行业场景",
+      "categories": [
+        {
+          "name_en": "Finance & insurance",
+          "name_zh": "金融、银行与保险",
+          "entry_count": 14,
+          "cases": 157,
+          "series": {
+            "τ³-bench": 50,
+            "ToolLLM": 44,
+            "SkillsBench": 22,
+            "AWS Multi-agent": 15,
+            "Frontier-Eng": 15,
+            "AutomationBench": 4,
+            "Terminal-Bench": 4,
+            "EntCollabBench": 3
+          }
+        },
+        {
+          "name_en": "Retail & customer service",
+          "name_zh": "零售电商与客户服务",
+          "entry_count": 12,
+          "cases": 130,
+          "series": {
+            "τ³-bench": 50,
+            "MCP-Atlas": 30,
+            "MemoryAgentBench": 25,
+            "Spider 2.0": 11,
+            "ToolLLM": 9,
+            "AutomationBench": 5
+          }
+        },
+        {
+          "name_en": "Sales & marketing",
+          "name_zh": "销售、广告与营销",
+          "entry_count": 14,
+          "cases": 155,
+          "series": {
+            "MCP-Atlas": 81,
+            "CRMArena-Pro": 40,
+            "ToolLLM": 24,
+            "AutomationBench": 10
+          }
+        },
+        {
+          "name_en": "Legal, privacy & compliance",
+          "name_zh": "法务、隐私与合规",
+          "entry_count": 8,
+          "cases": 57,
+          "series": {
+            "EntCollabBench": 52,
+            "Terminal-Bench": 5
+          }
+        },
+        {
+          "name_en": "Business & human resources",
+          "name_zh": "企业办公与人力资源",
+          "entry_count": 15,
+          "cases": 177,
+          "series": {
+            "AgentBoard": 40,
+            "SpreadsheetBench": 27,
+            "MemoryAgentBench": 25,
+            "DocVQA": 15,
+            "Microsoft PPT-Eval": 15,
+            "OfficeBench": 15,
+            "PPTAgent": 15,
+            "GAIA": 11,
+            "AutomationBench": 10,
+            "ToolLLM": 4
+          }
+        },
+        {
+          "name_en": "Software, IT & cybersecurity",
+          "name_zh": "软件、IT 与网络安全",
+          "entry_count": 25,
+          "cases": 290,
+          "series": {
+            "SWE-bench Verified": 57,
+            "MemoryAgentBench": 50,
+            "FeatureBench": 40,
+            "Terminal-Bench": 26,
+            "GSO": 23,
+            "AgentBench": 21,
+            "Build Word2Vec": 20,
+            "AgentOps-Bench": 12,
+            "CyberGym": 12,
+            "SWE-Smith": 11,
+            "SLDBench": 9,
+            "AutomationBench": 5,
+            "ToolLLM": 4
+          }
+        },
+        {
+          "name_en": "Telecom & utilities",
+          "name_zh": "通信与公共事业",
+          "entry_count": 5,
+          "cases": 59,
+          "series": {
+            "τ³-bench": 50,
+            "Terminal-Bench": 5,
+            "ToolLLM": 4
+          }
+        },
+        {
+          "name_en": "Manufacturing & supply chain",
+          "name_zh": "制造、物流与供应链",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "MCP-Atlas": 34,
+            "DSBench": 30,
+            "Frontier-Eng": 30,
+            "AlgoTune": 13,
+            "Spider 2.0": 12,
+            "WideSearch": 11,
+            "Terminal-Bench": 5,
+            "ToolLLM": 4,
+            "EntCollabBench": 3
+          }
+        },
+        {
+          "name_en": "Healthcare & life sciences",
+          "name_zh": "医疗、生命科学与化学",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "BixBench": 85,
+            "AlgoTune": 13,
+            "HLE": 13,
+            "GPQA Diamond": 11,
+            "DSBench": 10,
+            "Terminal-Bench": 6,
+            "ToolLLM": 4
+          }
+        },
+        {
+          "name_en": "Research, mathematics & education",
+          "name_zh": "科研、数学与教育",
+          "entry_count": 39,
+          "cases": 460,
+          "series": {
+            "HLE": 89,
+            "BixBench": 85,
+            "AlgoTune": 41,
+            "ARC-AGI-2": 35,
+            "Build Word2Vec": 20,
+            "DSBench": 20,
+            "FeatureBench": 20,
+            "ReplicationBench": 20,
+            "AgentBoard": 15,
+            "Omni-MATH": 12,
+            "SciCode": 12,
+            "CodePDE": 11,
+            "DA-Code": 11,
+            "GAIA": 11,
+            "GPQA Diamond": 11,
+            "QCircuitBench": 11,
+            "USACO": 11,
+            "SLDBench": 9,
+            "ToolLLM": 9,
+            "Terminal-Bench": 7
+          }
+        },
+        {
+          "name_en": "Media & everyday services",
+          "name_zh": "文娱、媒体与生活服务",
+          "entry_count": 12,
+          "cases": 132,
+          "series": {
+            "ToolLLM": 39,
+            "HLE": 35,
+            "GAIA": 22,
+            "PersonaMem": 11,
+            "Spider 2.0": 11,
+            "DSBench": 10,
+            "Terminal-Bench": 4
+          }
+        },
+        {
+          "name_en": "Transport, travel & real estate",
+          "name_zh": "交通、旅游与房地产",
+          "entry_count": 13,
+          "cases": 142,
+          "series": {
+            "τ³-bench": 50,
+            "AWS Multi-agent": 15,
+            "MCP-Atlas": 13,
+            "Spider 2.0": 12,
+            "GAIA": 11,
+            "PersonaMem": 11,
+            "WideSearch": 11,
+            "DSBench": 10,
+            "HLE": 9
+          }
+        }
+      ]
+    }
+  ],
+  "industry_unassigned": [
+    {
+      "id": "dataset.memory-temporal-reasoning/v1",
+      "cases": 12
+    },
+    {
+      "id": "dataset.bfcl-multiturn/v1",
+      "cases": 53
+    }
+  ]
+}

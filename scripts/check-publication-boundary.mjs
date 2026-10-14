@@ -6,10 +6,13 @@ import path from 'node:path';
 const files=execFileSync('git',['ls-files','--cached','--others','--exclude-standard','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);
 const demo=new Set(['datasets/catalog.md','datasets/README.md','datasets/basic-file-delivery/case-001/question.json',
   'datasets/basic-file-delivery/case-001/input/numbers.json','datasets/basic-file-delivery/case-001/private/final.json']);
+// User-approved aggregate README figures; these contain no benchmark task payloads.
+const coverageFigures=new Set(['docs/assets/dataset-coverage.json','docs/assets/dataset-coverage.png',
+  'docs/assets/dataset-coverage.svg','docs/assets/dataset-coverage.zh-CN.png','docs/assets/dataset-coverage.zh-CN.svg']);
 const failures=[];
 for(const file of files){
   try{await access(file);}catch{continue;} // A reviewed removal may not yet be staged locally.
-  if(/^docs\/assets\/(?:dataset-coverage(?:\.|$)|workbench-console\.png$|scoring-overview\.png$|community\/)/.test(file)
+  if((/^docs\/assets\/(?:dataset-coverage(?:\.|$)|workbench-console\.png$|scoring-overview\.png$|community\/)/.test(file) && !coverageFigures.has(file))
     ||/^planning\/selected-plugins-/.test(file))failures.push(file+' is a retired local artifact');
   if(/\.(?:md|json|mjs|js|ts|py|html|txt|ya?ml|svg)$/.test(file)){
     const source=await readFile(file,'utf8');

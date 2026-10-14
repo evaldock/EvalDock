@@ -66,7 +66,7 @@ EvalDock 用来测试不同 Agent，以及同一 Agent 在不同插件配置下�
 ### 小样本评测
 
 - **能力感知与任务编排：** Planner 根据 Agent 的工具、插件与能力画像，从题库中选择覆盖目标能力的少量代表性任务。
-- **执行与估计分离：** Runtime 执行所选任务，Judge 产出逐题成绩，独立估计器借鉴 [tinyBenchmarks](https://proceedings.mlr.press/v235/maia-polo24a.html) 思路推断目标题库的多维表现。
+- **执行与估计分离：** Runtime 执行所选任务，Judge 产出逐题成绩，独立估计器推断目标题库的多维表现。
 - **校准与结果输出：** 以历史全量成绩校准估计模型，结合抽样实测修正预测偏差，输出能力估计及不确定性，并保留实测与估计的区别。
 
 ![小样本评测：全量题库、代表性题目、Agent 执行与表现估计](docs/assets/small-sample-evaluation.png)
@@ -147,6 +147,10 @@ LangGraph 的示例目标包括 DeepAgents 和 Agent Service Toolkit。插件选
 接入说明：[通用接口](adapters/README.md) · [OpenClaw](adapters/openclaw/README.md) · [Hermes](adapters/hermes/README.md) · [千问 / 豆包办公](adapters/OFFICE_AGENTS.md)。文档中的安装路径需替换为自己的路径。
 
 ## 数据集覆盖
+
+[![EvalDock 数据集覆盖：Agent 能力与行业场景](docs/assets/dataset-coverage.zh-CN.png)](docs/assets/dataset-coverage.zh-CN.png)
+
+图示为开发题库的覆盖快照（144 个条目、1,658 道题），分类有交叉，数量不可相加；与下方公开下载包的统计口径不同，也不代表全部完成运行验证。
 
 **BenchDock：1,650 条记录、146 个子集。** 其中 1,150 条附公开内容，500 条仅列来源。框架仓库默认 `datasets/` 只内置 **1 道合成演示题**，用于流程验证，不用于能力排名。[公开数据集](https://huggingface.co/datasets/EvalDock/BenchDock) · [BenchDock 工具与文档](https://github.com/evaldock/BenchDock) · [固定版本导入与独立评分](docs/BENCHDOCK.md)。外部目录记录数不能与源码内置题数相加，也不代表实际加载、执行或已评分的题数，核对方法见[题库说明](datasets/README.md)。已公开不代表全部可运行或已通过上游官方评分。
 

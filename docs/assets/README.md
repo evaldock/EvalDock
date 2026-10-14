@@ -24,3 +24,10 @@
 - `tag-execution-graph.png`：用户于 2026-10-13 提供的执行图截图，原图收录，用于 V2 方向展示；不表示公开版已接入 TAG，也不作为评分有效性的验证结果。
 
 - `small-sample-evaluation.png`：用户于 2026-10-13 提供的小样本评测概念图，原图收录；其中曲线为方案示意，不代表实测估计精度。
+
+## 数据集覆盖图（2026-10-14）
+
+- `dataset-coverage.png` / `dataset-coverage.zh-CN.png`：根据用户提供的覆盖图及其可编辑源数据重新绘制的英文、中文版本，去除图内说明小字；同名 SVG 保留矢量版本。
+- `dataset-coverage.json`：只包含分类、系列和汇总数量，不包含题目、私有参考或运行记录；来源数据逐条去重核对为 144 个条目、1,658 道题后导出汇总。
+- `scripts/render-dataset-coverage.py`：使用 matplotlib 与中文字体重新生成两种语言的 PNG / SVG；可通过 `EVALDOCK_CJK_FONT` 指定字体。
+- 图示是开发题库覆盖快照，与公开 BenchDock 下载包数量口径不同；星标突出代表性基准，跨类别数量不可相加，也不代表已完成真实运行或评分验证。
