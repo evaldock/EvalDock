@@ -66,6 +66,8 @@ open -n artifacts/mac/mac-arm64/EvalDock.app --args "--user-data-dir=$preview_di
 
 此检查保留原工作空间，模型凭据和已安装 Agent 仍属于当前系统用户。完全首次使用须在新 macOS 用户或干净 Mac 中验收；签名、公证和跨版本更新验证仍按下文要求完成。不要为制作干净安装包删除用户工作空间，后续升级继续保留配置、题库和结果。
 
+2026-10-14 在开发 VM 的不同源码构建间完成实际包手动替换的数据保留验收；两包均为 0.1.0 ad-hoc，未进行自动更新或正式发行。新系统用户的干净安装仍受管理员认证阻塞，原生报告点击与正常菜单退出也未验，详见 [安装与手动替换记录](APP_INSTALL_UPGRADE_20261014.md)。
+
 ## 首次运行
 
 1. 打开 App，在「设置」填写 Planner / Judge 接口及密钥。使用 Pi、Hermes、OpenClaw 或 LangGraph 时，还需在「被测 Agent 模型」单独填写 DeepSeek API Key；这些适配器当前使用 DeepSeek。办公 Agent 的账号在原应用中登录，DSH 继续使用自己的服务配置。
