@@ -19,7 +19,8 @@ function inspectFile(relative, bytes, failures) {
   if (parts.some(part=>/^(?:\.git|\.ssh|\.config|\.cache|\.evaldock|\.env(?:\..*)?|\.DS_Store|\.venv|venv|__pycache__|var|secrets|credentials|dataset-history|runtime-details|reports|Cache|Code Cache|GPUCache|Local Storage|IndexedDB|Cookies|Preferences)$/.test(part)) || /\.(?:log|pem|key|p12|pfx|pyc|env)$/.test(name) || name==='live-observation.json') failures.push(relative+' contains user state');
   if (!/\.(?:md|json|map|mjs|cjs|js|ts|py|html|txt|ya?ml|svg|css|strings)$/.test(name)) return;
   const text=bytes.toString('utf8');
-  if (/\/(?:Users|home)\/(?!your-user(?:\/|\b))[A-Za-z0-9._-]+/.test(text.replace(/https?:\/\/[^\s<>"']+/g,''))) failures.push(relative+' contains a personal home path');
+  const localText=text.replace(/https?:\/\/[^\s<>"']+/g,'');
+  if (/\/(?:Users|home)\/(?!your-user(?:\/|\b))[A-Za-z0-9._-]+/.test(localText)||/[A-Za-z]:[\\/]+(?:Users|Documents and Settings)[\\/]+(?!your-user(?:[\\/]|\b))[^\\/\s"'<>]+/i.test(localText)) failures.push(relative+' contains a personal home path');
   if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:ghp_|gho_)[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}|\bsk-[A-Za-z0-9_-]{20,}/.test(text)) failures.push(relative+' contains credential material');
   for (const name of snapshotFiles[relative]??[]) {
     const match=text.match(new RegExp('(?:^|\\n)const '+name+'\\s*=\\s*([^\\n]*);'));
@@ -73,9 +74,9 @@ function auditDesktopRuntime(root) {
 function auditDesktopArchive(archive) {
   const asar=createRequire(require.resolve('electron-builder'))('@electron/asar');
   const failures=[],inventory=[];
-  const desktopFiles=new Set(['desktop/main.mjs','desktop/preload.cjs','desktop/workspace.mjs','desktop/library-archive.mjs','desktop/updates.mjs','desktop/assets/icon.png']);
+  const desktopFiles=new Set(['desktop/main.mjs','desktop/preload.cjs','desktop/workspace.mjs','desktop/library-archive.mjs','desktop/library-paths.mjs','desktop/platform.mjs','desktop/updates.mjs','desktop/assets/icon.png','desktop/assets/icon.ico']);
   for (const entry of asar.listPackage(archive)) {
-    const relative=entry.replace(/^\//,''),stat=asar.statFile(archive,relative,false);
+    const relative=entry.replace(/\\/g,'/').replace(/^\//,''),stat=asar.statFile(archive,relative,false);
     if (stat.link) {failures.push(relative+' is an archive link');continue;}
     if (stat.files) continue;
     if (!(relative==='package.json'||relative.startsWith('node_modules/')||desktopFiles.has(relative))) failures.push(relative+' is not an application resource');
@@ -86,29 +87,31 @@ function auditDesktopArchive(archive) {
   if (fs.existsSync(unpacked)) {
     function visit(relative='') {
       const file=path.join(unpacked,relative),stat=fs.lstatSync(file);
-      if (stat.isDirectory()) {for (const name of fs.readdirSync(file)) visit(path.join(relative,name));return;}
+      if (stat.isDirectory()) {for (const name of fs.readdirSync(file)) visit(relative?relative+'/'+name:name);return;}
       if (!stat.isFile() || !declared.has(relative)) failures.push(relative+' is an undeclared unpacked resource');
     }
     visit();
   }
   assertClean(failures);return inventory;
 }
-function auditDesktopBundle(bundle) {
-  const resources=path.join(bundle,'Contents/Resources'),failures=[];
-  const allowed=new Set(['runtime','app.asar','app.asar.unpacked','icon.icns','app-update.yml']);
-  for (const name of fs.readdirSync(resources)) if (!allowed.has(name)&&!/^\w+\.lproj$/.test(name)) failures.push('Resources/'+name+' is not an application resource');
+function auditDesktopBundle(bundle,{platform='darwin'}={}) {
+  if(!['darwin','win32'].includes(platform))throw Error('Unsupported desktop package platform: '+platform);
+  const prefix=platform==='darwin'?'Contents/Resources':'resources';
+  const resources=path.join(bundle,prefix),failures=[];
+  const allowed=new Set(['runtime','app.asar','app.asar.unpacked','app-update.yml',...platform==='darwin'?['icon.icns']:['elevate.exe']]);
+  for (const name of fs.readdirSync(resources)) if (!allowed.has(name)&&!(platform==='darwin'&&/^\w+\.lproj$/.test(name))) failures.push(prefix+'/'+name+' is not an application resource');
   const updates=path.join(resources,'app-update.yml');
   if (fs.existsSync(updates)) inspectFile('app-update.yml',fs.readFileSync(updates),failures);
   assertClean(failures);
   return [
-    ...auditDesktopRuntime(path.join(resources,'runtime')).map(file=>({...file,path:'Contents/Resources/runtime/'+file.path})),
-    ...auditDesktopArchive(path.join(resources,'app.asar')).map(file=>({...file,path:'Contents/Resources/app.asar/'+file.path})),
+    ...auditDesktopRuntime(path.join(resources,'runtime')).map(file=>({...file,path:prefix+'/runtime/'+file.path})),
+    ...auditDesktopArchive(path.join(resources,'app.asar')).map(file=>({...file,path:prefix+'/app.asar/'+file.path})),
   ];
 }
 module.exports = {auditDesktopRuntime,auditDesktopArchive,auditDesktopBundle};
 if (require.main === module) {
   const root=path.resolve(process.argv[2]||'artifacts/desktop-runtime');
-  const inventory = root.endsWith('.app')?auditDesktopBundle(root):auditDesktopRuntime(root);
+  const inventory = root.endsWith('.app')?auditDesktopBundle(root):fs.existsSync(path.join(root,'EvalDock.exe'))?auditDesktopBundle(root,{platform:'win32'}):auditDesktopRuntime(root);
   if (process.argv[3]) fs.writeFileSync(process.argv[3], JSON.stringify({schema:'evaldock.release-files/v1',files:inventory},null,2)+'\n');
   console.log('Desktop publication boundary passed: ' + inventory.length + ' files.');
 }

@@ -1,3 +1,4 @@
+import {pythonExecutable} from './python-support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {selectCliProfile} from '../../adapters/shared/cli-interface.mjs';
@@ -57,13 +58,13 @@ test('native Hermes completion is accepted only from one completed owned session
  const root=await temporary(t),file=root+'/session.db';
  const reader=new URL('../../adapters/hermes/session-evidence.py',import.meta.url).pathname;
  const create=`import sqlite3,sys\nc=sqlite3.connect(sys.argv[1]);c.executescript("CREATE TABLE sessions(id TEXT,ended_at REAL);CREATE TABLE messages(id INTEGER,session_id TEXT,role TEXT,tool_call_id TEXT,tool_calls TEXT,tool_name TEXT,content TEXT,timestamp REAL,finish_reason TEXT);INSERT INTO sessions VALUES('owned',1);INSERT INTO messages VALUES(1,'owned','assistant',NULL,NULL,NULL,'delivered',1,'stop');");c.commit()`;
- execFileSync('python3',['-c',create,file]);
- const evidence=JSON.parse(execFileSync('python3',[reader,file,'--session-archive'],{encoding:'utf8'}));
+ execFileSync(pythonExecutable,['-c',create,file]);
+ const evidence=JSON.parse(execFileSync(pythonExecutable,[reader,file,'--session-archive'],{encoding:'utf8'}));
  assert.equal(evidence.sessionId,'owned');assert.equal(evidence.final,'delivered');
  const captured={queue:[],sessionId:'host-owned',final:evidence.final,result:{stopReason:'end_turn'},cleanup:'STOPPED'};
  assert.equal(restoreHermesEvidence(captured,evidence.rows,{archive:true}).final,'delivered');
- execFileSync('python3',['-c',"import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.execute(\"INSERT INTO sessions VALUES('other',1)\");c.commit()",file]);
- assert.throws(()=>execFileSync('python3',[reader,file,'--session-archive'],{stdio:'pipe'}));
+ execFileSync(pythonExecutable,['-c',"import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.execute(\"INSERT INTO sessions VALUES('other',1)\");c.commit()",file]);
+ assert.throws(()=>execFileSync(pythonExecutable,[reader,file,'--session-archive'],{stdio:'pipe'}));
 });
 
 test('Doubao binds moved named contracts and rejects ambiguous or changed exports',async()=>{

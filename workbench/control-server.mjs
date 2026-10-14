@@ -13,7 +13,7 @@ import {stat,readFile} from 'node:fs/promises';
 import {createReadStream,mkdirSync,openSync,closeSync} from 'node:fs';
 import {randomBytes,createHash} from 'node:crypto';
 import {trimLogs} from './lib/background-io.mjs';
-import {DshControl} from './lib/dsh-control.mjs';
+import {initializeDshController} from './lib/initialize-dsh.mjs';
 import {WorkBuddyControl} from './lib/workbuddy-control.mjs';
 import {initializeAgentControllers} from './lib/agent-control.mjs';
 import {evaluationCatalog,validateEvaluationConfig} from './lib/evaluation-config.mjs';
@@ -23,7 +23,7 @@ import {renderReportHtml} from '../dist/src/reporting/html.js';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const json=(res,status,value)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
 export async function startControlServer({root=path.dirname(here),port=18767,controller,workbuddyController,agentControllers,discoveryService,libraryService,modelSettingsFile,agentModelSettings:providedAgentModelSettings}={}){
-  const control=controller??new DshControl(root);if(!controller)await control.init();
+  const control=controller??await initializeDshController(root);
   const workbuddy=workbuddyController??new WorkBuddyControl({root});if(!workbuddyController)await workbuddy.init();
   const agents=agentControllers??await initializeAgentControllers(root);
   const others=()=>[workbuddy,...Object.values(agents)];

@@ -17,16 +17,19 @@
     "build": "pnpm run clean && pnpm run build:probe && tsc -p tsconfig.json",
     "check": "tsc -p src/agent-trace/native-probe/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "cli": "node dist/src/app/cli.js",
-    "test": "pnpm run build && node --test tests/contracts/*.test.mjs",
+    "test": "pnpm run build && node scripts/run-contract-tests.mjs",
     "verify": "node scripts/check-publication-boundary.mjs && pnpm run test:benchdock-import && pnpm run check && pnpm test",
     "workbench": "node workbench/control-server.mjs",
-    "test:benchdock-import": "python3 -m unittest discover -s tests -p test_benchdock_import.py",
+    "test:benchdock-import": "node scripts/run-python-tests.mjs",
     "desktop:icon": "swift scripts/build-desktop-icon.swift",
     "desktop:prepare": "pnpm run build && node scripts/stage-desktop.mjs",
     "desktop": "pnpm run desktop:prepare && electron .",
     "desktop:pack": "pnpm run desktop:prepare && electron-builder --mac --dir",
     "desktop:dmg": "pnpm run desktop:prepare && electron-builder --mac dmg",
-    "desktop:release": "node scripts/build-desktop-release.mjs"
+    "desktop:release": "node scripts/build-desktop-release.mjs",
+    "desktop:icon:win": "node scripts/build-windows-icon.mjs",
+    "desktop:pack:win": "pnpm run desktop:prepare && electron-builder --win --x64 --dir --publish never --config.directories.output=artifacts/windows",
+    "desktop:nsis": "pnpm run desktop:prepare && electron-builder --win nsis --x64 --publish never --config.directories.output=artifacts/windows"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
@@ -50,7 +53,10 @@
       "package.json",
       "desktop/assets/icon.png",
       "desktop/library-archive.mjs",
-      "desktop/updates.mjs"
+      "desktop/updates.mjs",
+      "desktop/platform.mjs",
+      "desktop/library-paths.mjs",
+      "desktop/assets/icon.ico"
     ],
     "extraResources": [
       {
@@ -84,6 +90,25 @@
       "owner": "evaldock",
       "repo": "EvalDock",
       "releaseType": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "desktop/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "EvalDock-${version}-windows-${arch}-setup.${ext}"
     }
   },
   "description": "Local desktop evaluation for agents and plugins",

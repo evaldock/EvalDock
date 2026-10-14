@@ -1,3 +1,4 @@
+import {pythonExecutable} from './python-support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -71,7 +72,7 @@ test('LangGraph runner streams events without replay, deduplicates repeated stat
     'def create_graph(): return Graph()',
   ].join('\n'));
   const runner=path.resolve('adapters/langgraph/runner.py');
-  const r=await promisify(execFile)('python3',['-u',runner,'--graph',graph+':create_graph','--input',input,'--thread','test'],{cwd,maxBuffer:1024*1024});
+  const r=await promisify(execFile)(pythonExecutable,['-u',runner,'--graph',graph+':create_graph','--input',input,'--thread','test'],{cwd,maxBuffer:1024*1024});
   const events=r.stdout.trim().split('\n').map(JSON.parse);
   assert.equal(events.filter(e=>e.type==='tool/call').length,1);assert.equal(events.filter(e=>e.type==='tool/result').length,1);
   assert.equal(events.find(e=>e.type==='assistant/final').data.text,'real observed final');

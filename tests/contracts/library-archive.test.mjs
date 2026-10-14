@@ -50,6 +50,7 @@ test('unsafe ZIP entries, corruption, limits and missing catalogs preserve the i
     [{name:'../escape',data:'bad'}],[{name:'/absolute',data:'bad'}],[{name:'C:/absolute',data:'bad'}],
     [{name:'link',data:'target',mode:0o120777}],[{name:'file',data:'bad',encrypted:true}],
     [{name:'answer',data:'one'},{name:'ANSWER',data:'two'}],
+    [{name:'folder/a',data:'one'},{name:'Folder/b',data:'two'}],
     [{name:'data',data:'bad',badCrc:true}],[{name:'data',data:'bad',deflate:true,size:1}],
     [{name:'missing.txt',data:'no catalog'}],
   ];
@@ -102,4 +103,20 @@ test('cancellation after extraction starts and the file-count limit leave no par
   await assert.rejects(importLibraryArchive(f.source,f.root,{archiveLimits:{bytes:4*1024**3,files:1}}),/超过导入限制/);
   assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
   assert.equal((await readdir(f.root)).some(name=>/^\.dataset-(zip|import)-/.test(name)),false);
+});
+test('ZIP cancellation at the validated commit boundary preserves the original library',async t=>{
+  const f=await fixture(t);await writeFile(f.source,archive(f.entries));const controller=new AbortController();
+  await assert.rejects(importLibraryArchive(f.source,f.root,{signal:controller.signal,onProgress:progress=>{
+    if(progress.phase==='COMMITTING')controller.abort();
+  }}),{name:'AbortError'});
+  assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
+  assert.equal((await readdir(f.root)).some(name=>/^\.dataset-(zip|import)-/.test(name)),false);
+});
+test('Windows ZIP names reject reserved aliases in an otherwise valid library',async t=>{
+  for(const name of ['NUL.txt','folder/aux.json','file.','file ']){
+    const f=await fixture(t);await writeFile(f.source,archive([...f.entries,{name,data:Buffer.from('synthetic')} ]));
+    await assert.rejects(importLibraryArchive(f.source,f.root,{platform:'win32'}),/不兼容 Windows/);
+    assert.equal(await libraryFingerprint(path.join(f.root,'datasets')),f.before);
+    assert.equal((await readdir(f.root)).some(entry=>/^\.dataset-(zip|import)-/.test(entry)),false);
+  }
 });

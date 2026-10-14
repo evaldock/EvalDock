@@ -1,8 +1,9 @@
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
+import {platformEnvironment} from './platform-environment.mjs';
 const exec=promisify(execFile);
 
-export const inspectionEnvironment=()=>Object.fromEntries(['PATH','HOME','LANG','TMPDIR','SSL_CERT_FILE','NODE_EXTRA_CA_CERTS'].filter(k=>process.env[k]).map(k=>[k,process.env[k]]));
+export const inspectionEnvironment=()=>platformEnvironment(process.env,{includeHome:true});
 
 /** Select a known command contract from advertised capabilities, never from a version range. */
 export async function selectCliProfile({command,args,profiles,execCommand=exec}){

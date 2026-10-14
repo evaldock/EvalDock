@@ -22,6 +22,9 @@ for(const file of ['adapters/hermes/session-evidence.py','adapters/compatibility
 for(const file of ['workbench/design-prototypes/score-radar.js','workbench/design-prototypes/score-radar.css','workbench/design-prototypes/agent-cards.js','workbench/design-prototypes/app-evaluation.js']){
   await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
 }
+for(const file of ['adapters/shared/platform-environment.mjs','workbench/lib/initialize-dsh.mjs','desktop/library-paths.mjs']){
+  await mkdir(path.dirname(path.join(out,file)),{recursive:true});await cp(file,path.join(out,file));
+}
 // Compiled contract fixtures are development resources, not application resources.
 for(const name of ['src','observer-lab'])await cp(path.join('dist',name),path.join(out,'dist',name),{recursive:true});
 for(const file of ['desktop/workspace.mjs','desktop/library-archive.mjs','desktop/updates.mjs','workbench/lib/online-selection.mjs','workbench/lib/planner-target.mjs','workbench/lib/benchdock-library.mjs','workbench/lib/benchdock-catalog.mjs']){

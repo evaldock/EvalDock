@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {parseEnv} from 'node:util';
 import {homedir} from 'node:os';
+import {platformEnvironment} from './platform-environment.mjs';
 
 export async function loadTargets(root) {
   let document;
@@ -29,7 +30,7 @@ export async function readAgentModelKey({environment=process.env,file=path.join(
 }
 export async function loadAgentEnvironment({environment:source=process.env,...credentialOptions}={}) {
   // Only the target credential is available to child Agents; evaluator keys are excluded.
-  const environment=Object.fromEntries(['PATH','LANG','TMPDIR','SSL_CERT_FILE','NODE_EXTRA_CA_CERTS'].filter(k=>source[k]).map(k=>[k,source[k]]));
+  const environment=platformEnvironment(source);
   const key=await readAgentModelKey({...credentialOptions,environment:source});
   if(!key)throw Error('AGENT_MODEL_KEY_MISSING');
   environment.DEEPSEEK_API_KEY=key;

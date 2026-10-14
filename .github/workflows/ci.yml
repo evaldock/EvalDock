@@ -2,7 +2,7 @@ name: CI
 
 # 发布门禁：构建与组件契约检查。
 # 本地等价命令：pnpm run verify
-# 说明：测试不访问公网、不需要模型 API Key，因此跑在 ubuntu-latest 即可。
+# 离线门禁不需要模型 API Key。Windows runner 验证基础平台与候选包，不替代 Windows 11 图形验收。
 
 on:
   push:
@@ -50,3 +50,58 @@ jobs:
         run: |
           pnpm run verify
           node --test workbench/lib/model-settings.test.mjs
+
+  windows:
+    name: Windows x64 离线门禁与候选包
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      EVALDOCK_PYTHON: python
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+      - name: 完整离线门禁
+        run: |
+          pnpm run verify
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test workbench/lib/model-settings.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 构建未发布 NSIS 候选
+        run: pnpm run desktop:nsis
+      - name: 记录实际候选摘要
+        run: |
+          $candidates = @(Get-ChildItem artifacts/windows/*-setup.exe)
+          if ($candidates.Count -ne 1) { throw 'Expected exactly one x64 NSIS candidate' }
+          if (!(Test-Path artifacts/windows/win-unpacked/evaldock-package-audit.json)) { throw 'Package audit is missing' }
+          $receipt = [ordered]@{
+            schema = 'evaldock.windows-candidate/v1'
+            sourceSha = (git rev-parse HEAD)
+            buildHost = 'GitHub Windows runner; GUI acceptance pending'
+            files = @($candidates | ForEach-Object { @{ name = $_.Name; bytes = $_.Length; sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash } })
+          }
+          $receipt | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 artifacts/windows/candidate-sha256.json
+      - name: 保存候选与实际包审计
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaldock-windows-x64-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            artifacts/windows/*-setup.exe
+            artifacts/windows/win-unpacked/evaldock-package-audit.json
+            artifacts/windows/candidate-sha256.json

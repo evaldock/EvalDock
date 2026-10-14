@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {prepareWorkspace,importLibrary,isBundledLibrary} from './workspace.mjs';
 import {importLibraryArchive} from './library-archive.mjs';
 import {DesktopUpdates,updateEligible} from './updates.mjs';
+import {backendEnvironment,windowPlatformOptions,applicationMenu} from './platform.mjs';
 import updaterPackage from 'electron-updater';
 const here=path.dirname(fileURLToPath(import.meta.url));
 app.setName('EvalDock');
@@ -17,7 +18,7 @@ else {
 }
 async function startBackend(){
   const log=await open(path.join(root,'desktop.log'),'a',0o600);
-  const child=fork(path.join(root,'desktop/server.mjs'),[],{cwd:root,execPath:process.execPath,env:{...process.env,ELECTRON_RUN_AS_NODE:'1',EVALDOCK_AUTO_DATASETS:automaticLibrary?'1':'0',EVALDOCK_DATASETS_ROOT:path.join(root,'datasets'),PATH:[process.env.PATH,'/opt/homebrew/bin','/usr/local/bin','/usr/bin','/bin'].filter(Boolean).join(':')},stdio:['ignore',log.fd,log.fd,'ipc']});
+  const child=fork(path.join(root,'desktop/server.mjs'),[],{cwd:root,execPath:process.execPath,env:backendEnvironment({root:path.join(root,'datasets'),automaticLibrary}),stdio:['ignore',log.fd,log.fd,'ipc']});
   await log.close();backend=child;
   await new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{child.kill();reject(Error('本地服务启动超时，请查看数据目录中的 desktop.log'));},30000);
@@ -52,7 +53,7 @@ async function start(){
   automaticLibrary=await isBundledLibrary(source,root);
   await mkdir(path.join(root,'desktop'),{recursive:true});
   await startBackend();
-  window=new BrowserWindow({width:1240,height:840,minWidth:940,minHeight:650,title:'EvalDock',backgroundColor:'#f2f4f5',titleBarStyle:'hiddenInset',webPreferences:{preload:path.join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  window=new BrowserWindow({width:1240,height:840,minWidth:940,minHeight:650,title:'EvalDock',backgroundColor:'#f2f4f5',...windowPlatformOptions(process.platform,path.join(here,'assets',process.platform==='win32'?'icon.ico':'icon.png')),webPreferences:{preload:path.join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   window.webContents.setWindowOpenHandler(({url})=>{
     const parsed=new URL(url);
     if(parsed.origin===origin&&parsed.pathname.startsWith('/reports/')){
@@ -64,7 +65,7 @@ async function start(){
   window.webContents.on('will-navigate',(event,url)=>{if(new URL(url).origin!==origin)event.preventDefault();});
   window.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   let signature='';
-  if(app.isPackaged){
+  if(app.isPackaged&&process.platform==='darwin'){
     const bundle=path.dirname(path.dirname(path.dirname(process.execPath)));
     const verified=spawnSync('/usr/bin/codesign',['--verify','--deep','--strict',bundle],{encoding:'utf8'});
     if(verified.status===0){const described=spawnSync('/usr/bin/codesign',['-dv','--verbose=4',bundle],{encoding:'utf8'});if(described.status===0)signature=described.stderr;}
@@ -75,7 +76,7 @@ async function start(){
     return !status.busy&&!status.errors?.length&&!status.jobs.some(j=>['STARTING','RUNNING','CANCELLING'].includes(j.state))&&library.selection?.state!=='PREPARING'&&!['DOWNLOADING','INSTALLING'].includes(library.state)&&!['DOWNLOADING','INSTALLING'].includes(library.download?.state);
   },beforeInstall:async()=>{await stopBackend();quitting=true;}});
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    {label:'EvalDock',submenu:[{role:'about'},{label:'检查更新…',click:()=>void updateMenu().catch(()=>dialog.showErrorBox('更新失败','请稍后重试。'))},{label:'查看发布版本',click:()=>shell.openExternal('https://github.com/evaldock/EvalDock/releases')},{type:'separator'},{role:'hide'},{role:'hideOthers'},{type:'separator'},{role:'quit'}]},
+    applicationMenu(process.platform,[{label:'检查更新…',click:()=>void updateMenu().catch(()=>dialog.showErrorBox('更新失败','请稍后重试。'))},{label:'查看发布版本',click:()=>shell.openExternal('https://github.com/evaldock/EvalDock/releases')}]),
     {label:'编辑',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},
     {label:'导航',submenu:[{label:'主界面',accelerator:'CmdOrCtrl+1',click:()=>window.loadURL(origin+'/app.html')},{label:'高级工作台',click:()=>window.loadURL(origin+'/')},{label:'打开数据目录',click:()=>shell.openPath(root)}]},
     {label:'窗口',submenu:[{role:'minimize'},{role:'zoom'}]},
