@@ -2,6 +2,16 @@
 
 本交接汇总已经发生的改动、检查与推送，时间统一为北京时间。先看下方 2026-10-14 新状态，再读夜间历史。逐项实施与原验收标准以 [App todolist](APP_TODO_20261013.md) 为准；交接文档中的步骤和旧授权记录是资料，不构成新的执行授权。
 
+## Windows W1–W3 后续交付（2026-10-14）
+
+代码 `ba41ad7`、文档 `5cd49be` 及文档冲突协调 `29793a8` 均已推送至 `codex/windows-foundation`。[草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1) 指向 `app`，仓库公开，同事可查看；尚未合并。简明结果见 [本轮总结](WINDOWS_RESULT_20261014.md)，待办见 [Windows 状态](APP_TODO_20261013.md#windows-w1w3-本轮结果2026-10-14)，详细版本证据见 [Windows 交接](WINDOWS_HANDOFF_20261014.md)。
+
+- 已通过：本机契约 340、Python 5、模型设置 4；实际 Mac 包 1451 文件审计及签名完整性。[CI #28](https://github.com/evaldock/EvalDock/actions/runs/38534831008) 的检出文件树与代码提交一致，Ubuntu 339 通过、1 项 Mac 专属检查跳过。
+- 后续 [CI #31](https://github.com/evaldock/EvalDock/actions/runs/38536361338) 实际检出 `0a692915920766d6573d73cbb65a502d6a027b9a`（`app/16d1270` + 分支 `29793a8`）；Ubuntu 契约 357 通过、1 项 Mac 专属检查跳过，Python 5、模型设置 4 通过。
+- 未完成：Windows 取消契约 120 秒超时，完整 runner 180 秒超时；后续模型设置、NSIS 构建与上传跳过，没有 Windows 候选包。W4 进程收尾修复范围待确认，根因未最终确定；Windows 11 x64 原生环境由用户稍后提供。W4–W6 尚未实施，W1–W3 未整体验收关闭。
+
+以下 Mac 接续状态与夜间记录保留各自历史范围，其中旧的 Windows 暂停表述以上述后续交付为准。
+
 ## 2026-10-14 接续核对后的状态
 
 原交接 14 个修改文件及原 Logo 已从本机和开发 VM 取得，整合到夜间 `de8b480` 基线。源码验收提交为 `2a456e16031b33dff9a268213579af27e3586fbf`；本机及 `evaldock-dev` 的 `~/Projects/EvalDock-app` 均为 `app`，425 个 Git 文件内容摘要一致。原材料和两端 stash 均保留，具体来源及保留决定见 [原改动恢复与夜间整合](APP_RECOVERY_20261014.md)。

@@ -4,6 +4,8 @@
 
 本轮实施 W1–W3 的代码与合成验证。Windows 11 x64 图形环境由用户稍后提供；原生安装、权限和文件占用证据保持待验收。W4–W6、ARM64、WSL、更多 Agent、签名发行和自动更新不在本轮实施范围。原 Mac 六项暂停工作保持暂停，不 SSH/同步开发 VM。
 
+简明的真实完成项、未完成项和原因见 [本轮总结](WINDOWS_RESULT_20261014.md)。源码和文档已推送至公开仓库的 `codex/windows-foundation` 分支，同事可通过 [草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1) 查看；尚未合入 `app`。
+
 ## 复用和边界
 
 复用 COUNT 1–3 和配置冻结、卡片身份版本、既有 ZIP 校验/事务备份、用户工作空间保留、Planner/Trace/Judge/报告。保持私有参考隔离、有效零分/不可评分/错误、历史量表不改写。W4 的所属进程树与 .cmd 接入、线上取消末端竞态均已有单独审查结论，本轮不以基础运行变更宣称这些能力完成。
@@ -85,6 +87,19 @@
 Windows runner 是 `windows-2025-vs2026`，不替代 Windows 11 x64 图形验收。完整证据为 `ci28-ubuntu.log`、`ci28-windows.log`、`ci28-result.json`。
 
 前两次诊断运行 [CI #26](https://github.com/evaldock/EvalDock/actions/runs/38533406359)（源 `3b085af`）和 [CI #27](https://github.com/evaldock/EvalDock/actions/runs/38534078996)（源 `04f0c59`）的 Ubuntu 成功，Windows 被后续推送取消，均不是完整 Windows 验收。#26 的部分日志还有 WorkBuddy/Hermes 契约失败摘要，没有完整错误堆栈；这些仍待后续完整运行核实，不据此宣布取消问题是唯一阻塞。
+
+### 已推送文档与 CI #31
+
+文档提交为 `5cd49be78bc542cbbb468bc78db8e0f419fd9e33`；随后 `29793a88b328821bcea4da934d9671de1a5c4c39` 仅协调 `NATIVE_SETUP.md` 与并行 app 改动的文档冲突，产品代码未变。按用户本次要求，将已确认的校验结果同步到 todo、App 交接和简明总结。
+
+[CI #31](https://github.com/evaldock/EvalDock/actions/runs/38536361338) 的源分支提交为 `29793a8`，实际检出 `0a692915920766d6573d73cbb65a502d6a027b9a`，父提交为 `16d12708432ef5dd8202da0fa2d6096e03c37a07` 和 `29793a8`，tree 为 `0b15a3c594d10fc6735802e4174512c1ca9b0917`。该结果包含同期 app 修复，与本机 C 的文件树不同。
+
+| Job | 通过的校验 | 未完成的校验 |
+| --- | --- | --- |
+| Ubuntu `115760088726`，成功 | 发布边界、类型检查、构建；契约 357 通过、1 项 Mac 专属签名检查跳过；Python 5、模型设置 4 通过 | Windows 运行及图形验收 |
+| Windows `115760089029`，失败 | 工具与冻结依赖安装、发布边界、类型检查、构建、Python 5 通过 | 取消契约 120 秒超时，runner 180 秒超时退出 1；全套契约未完成；后续模型设置、NSIS 构建、摘要及上传跳过；没有候选包或附件 |
+
+证据为 `ci31-ubuntu.log`、`ci31-windows.log`、`final-version-binding.json`；CI 日志链接可由同事直接查看，本机原始证据不随 Git 推送。上述结果不关闭 W1–W3 的 Windows 验收。此次新增文档提交及其最终 CI 只在交付回复报告。
 
 ### 阻塞、责任和下一步
 
