@@ -35,6 +35,7 @@
 ## Contents
 
 - [Overview](#overview)
+- [V2 directions](#v2-directions)
 - [Workbench](#workbench)
 - [Evaluation workflow](#evaluation-workflow)
 - [Scoring](#scoring)
@@ -56,6 +57,26 @@ EvalDock tests different agents and compares plugin configurations within the sa
 Each agent has its own execution adapter. Datasets, the All Trace format, and the Judge are shared. Every case keeps its tool calls, output files, scores, and scoring explanations for review or later comparison.
 
 The workbench lets you select agents and plugins, configure Planner and Judge API keys, choose tasks, and start or cancel runs.
+
+## V2 directions
+
+**V2 is being refined on our development server.** The architecture of both modules is outlined below; [reference source](research/v2/README.md) is included, but the modules are not yet enabled in the public version.
+
+### Small-sample evaluation
+
+- **Capability-aware planning:** The Planner uses the agent's tools, plugins and capability profile to select a small set of representative tasks covering the target capabilities.
+- **Separate execution and estimation:** The Runtime executes selected tasks and the Judge produces case scores, while an independent estimator inspired by [tinyBenchmarks](https://proceedings.mlr.press/v235/maia-polo24a.html) infers performance across the target suite's dimensions.
+- **Calibration and reporting:** Historical full-suite results calibrate the model, sampled evaluations correct prediction bias, and reports distinguish measured scores from estimates and their uncertainty.
+
+![Small-sample evaluation: full benchmark, representative tasks, agent execution and estimated performance](docs/assets/small-sample-evaluation.png)
+
+### TAG execution graph
+
+- **Unified evidence input:** Probe / Observer collect execution traces, environment changes and deliverables, which All Trace archives as the evidence base for TAG.
+- **Event–object–state model:** Calls and responses become events, files become objects, and observations and snapshots become states, connected by explicit relationships with references to the original evidence.
+- **Graph-based judging and diagnosis:** The Judge examines actions and their linked evidence, attaches detailed assessments and diagnostic findings to specific nodes, and preserves each task's original rubric.
+
+![TAG execution graph showing tool calls, responses and file evidence](docs/assets/tag-execution-graph.png)
 
 ## Workbench
 
@@ -193,8 +214,6 @@ Batch runs retain failed, cancelled, and operationally unhealthy case workspaces
 Back up the complete result directory. If you use VM snapshots, copy results outside the VM before restoring one. Separate workspaces and process cleanup do not restore the state of the entire machine.
 
 </details>
-
-V2 reference source for the [small-sample estimator and TAG graph](research/v2/README.md) is available separately. These unadapted snapshots are not called by the application or included in its normal build.
 
 ## Development
 

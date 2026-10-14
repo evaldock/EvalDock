@@ -18,3 +18,9 @@
 - `agents/claude.png`：来自 [Claude Code 官网](https://www.claude.com/product/claude-code) 使用的[官方图标资源](https://assets.claude.com/95a868946ac8a31e5ff832e2899f294aa368b836.png?w=32&h=32)，原图保存。
 
 获取日期：2026-09-28。图标仅用于标识对应产品；商标归各自所有者所有，不表示官方合作或背书。
+
+## V2 方案配图
+
+- `tag-execution-graph.png`：用户于 2026-10-13 提供的执行图截图，原图收录，用于 V2 方向展示；不表示公开版已接入 TAG，也不作为评分有效性的验证结果。
+
+- `small-sample-evaluation.png`：用户于 2026-10-13 提供的小样本评测概念图，原图收录；其中曲线为方案示意，不代表实测估计精度。
