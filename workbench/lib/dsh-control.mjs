@@ -135,8 +135,8 @@ export class DshControl {
     const external=await this.externalRuns.get(owned,this.descriptor);
     const combined=[...owned,...external].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
     const visible=[...combined.filter(j=>['STARTING','RUNNING','CANCELLING'].includes(j.state)),...combined.filter(j=>!['STARTING','RUNNING','CANCELLING'].includes(j.state))].slice(0,40);
-    const jobs=visible.map(j=>j.source==='external'?{...j,events:j.events.slice(-35)}:{...this.jobs.view(j),events:j.events.slice(-35)});
     const runs=await Promise.all(visible.map(j=>this.results.get(j)));
+    const jobs=visible.map((j,index)=>({...(j.source==='external'?j:this.jobs.view(j)),progress:runs[index].progress,events:j.events.slice(-35)}));
     for(const job of jobs){const result=runs.find(r=>r.agentId===job.targetId&&r.run.id===job.runId);if(result?.plan.status==='FROZEN')job.scale={datasetCount:result.plan.datasets.length,caseCount:result.run.planned};}
     return {jobs,runs};
   }

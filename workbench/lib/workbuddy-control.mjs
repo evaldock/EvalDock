@@ -34,7 +34,7 @@ export class WorkBuddyControl {
     }return found;
   }
   async status(){const value=await this.inspect();const pending=await this.pendingCleanup();if(pending.length){value.status='RECOVERY_REQUIRED';value.evaluationReady=false;value.reasonCode='WORKBUDDY_CLEANUP_REQUIRED';value.pendingCleanup=pending.length;}value.active=this.active;return value;}
-  async records(){if(!this.jobs)return {jobs:[],runs:[]};const owned=[...this.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,30);const runs=await Promise.all(owned.map(j=>this.results.get({...j,agentKind:'workbuddy'})));return {jobs:owned.map(j=>{const result=runs.find(r=>r.run.id===j.runId);return {...this.jobs.view(j),agentKind:'workbuddy',scale:{datasetCount:result?.plan.datasets.length||undefined,caseCount:result?.run.planned||undefined},events:j.events.slice(-35)};}),runs};}
+  async records(){if(!this.jobs)return {jobs:[],runs:[]};const owned=[...this.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,30);const runs=await Promise.all(owned.map(j=>this.results.get({...j,agentKind:'workbuddy'})));return {jobs:owned.map((j,index)=>{const result=runs[index];return {...this.jobs.view(j),progress:result.progress,agentKind:'workbuddy',scale:{datasetCount:result?.plan.datasets.length||undefined,caseCount:result?.run.planned||undefined},events:j.events.slice(-35)};}),runs};}
   async run({smoke=false,datasetCount=1,caseCount=1,datasetIds,evaluationConfig}={}){
     let validation;
     if(smoke){
