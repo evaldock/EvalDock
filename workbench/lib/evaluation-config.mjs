@@ -3,6 +3,8 @@ import {readFile,lstat,realpath} from 'node:fs/promises';
 import {loadDatasetDescriptionCatalog} from '../../dist/src/datasets/catalog.js';
 import {currentQuestionCases} from '../../dist/src/datasets/loader.js';
 import {readEvidenceFile} from '../../dist/src/all-trace/store.js';
+import {validatePortablePath} from '../../dist/src/core/models.js';
+import {createHash} from 'node:crypto';
 
 const referenceCache=new Map();
 async function scoringState(file,question){
@@ -25,6 +27,15 @@ async function scoringState(file,question){
 }
 
 const integer=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
+function publicInputs(inputs){
+  return (Array.isArray(inputs)?inputs:[]).flatMap(input=>{
+    try{
+      const source=validatePortablePath(input.source),destination=validatePortablePath(input.destination??input.source);
+      if(source.split('/').includes('private')||destination.split('/').includes('private'))return [];
+      return [{source,destination,delivery:input.delivery==='chat-attachment'?'chat-attachment':'workspace',.../^[a-f0-9]{64}$/i.test(input.sha256??'')?{sha256:input.sha256}:{}}];
+    }catch{return [];}
+  });
+}
 export async function evaluationCatalog(root){
   const datasetsRoot=path.resolve(root,process.env.EVALDOCK_DATASETS_ROOT??'datasets');
   const descriptions=await loadDatasetDescriptionCatalog(path.join(datasetsRoot,'catalog.md'),{allowEmpty:true});
@@ -35,12 +46,24 @@ export async function evaluationCatalog(root){
     const slug=String(item.datasetId).replace(/^dataset\./,'').replace(/\/v[1-9][0-9]*$/,'');
     const cases=await Promise.all(files.map(async(file,index)=>{
       const question=JSON.parse(await readFile(file,'utf8'));
-      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160),version:String(question.version??''),instructions:String(question.task?.instructions??'').slice(0,12000),timeoutSeconds:question.environment?.timeoutSeconds,dependencies:(question.environment?.dependencies??[]).map(d=>typeof d==='string'?d:String(d.name??d.id??'外部依赖')),labelIds:(question.capabilityLabels??[]).map(l=>'label.'+l+'/v1'),scoringState:await scoringState(file,question)};
+      return {index,id:slug+'.case-'+(index+1),title:String(question.title??question.id??('Case '+(index+1))).slice(0,160),version:String(question.version??''),instructions:String(question.task?.instructions??'').slice(0,12000),platform:question.environment?.platform,timeoutSeconds:question.environment?.timeoutSeconds,dependencies:(question.environment?.dependencies??[]).map(d=>typeof d==='string'?d:String(d.name??d.id??'外部依赖')),inputs:publicInputs(question.inputs),labelIds:(question.capabilityLabels??[]).map(l=>'label.'+l+'/v1'),scoringState:await scoringState(file,question)};
     }));
     datasets.push({id:item.datasetId,name:item.name,description:item.description,labelIds:item.labelIds,cases});
   }
   const cases=datasets.flatMap(d=>d.cases),ready=cases.filter(c=>c.scoringState==='READY');
   return {schema:'evaldock.workbench.evaluation-catalog/v1',datasets,scoring:{readyCases:ready.length,totalCases:cases.length,unavailableCases:cases.length-ready.length,labelIds:[...new Set(ready.flatMap(c=>c.labelIds))]}};
+}
+/** The advanced view uses the same public library as selection, never task references. */
+export async function questionInventory(root){
+  const catalog=await evaluationCatalog(root);
+  const {labels}=JSON.parse(await readFile(path.join(root,'workbench/design-prototypes/question-inventory/index.json'),'utf8'));
+  const cases=new Map(),datasets=catalog.datasets.map(dataset=>({...dataset,datasetId:dataset.id,cases:dataset.cases.map(c=>{
+    const record={question:{schema:'evaldock.public-question/v1',id:c.id,title:c.title,version:c.version,task:{instructions:c.instructions},environment:{platform:c.platform,timeoutSeconds:c.timeoutSeconds,dependencies:c.dependencies},inputs:c.inputs,capabilityLabels:c.labelIds.map(id=>id.slice(6,-3))},scoringState:c.scoringState,documents:{},files:c.inputs.map(input=>({path:input.source,sha256:input.sha256,delivery:input.delivery}))};
+    const file=createHash('sha256').update(JSON.stringify([dataset.id,record])).digest('hex')+'.json';cases.set(file,record);
+    return {id:c.id,caseId:c.id,caseIndex:c.index,title:c.title,description:c.instructions,labels:c.labelIds,version:c.version,scoringState:c.scoringState,file};
+  })}));
+  const revision=createHash('sha256').update(JSON.stringify({datasets,labels})).digest('hex');
+  return {index:{schema:'evaldock.workbench.question-inventory/v1',revision,capturedAt:new Date().toISOString(),datasets,labels},cases};
 }
 export async function validateEvaluationConfig(root,value){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['mode','selection'].includes(k)))throw Error('无效评测配置');
