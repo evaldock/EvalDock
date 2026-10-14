@@ -87,6 +87,25 @@ test('a new installation does not replace readiness, launch, model or cleanup ac
     {...target,reasonCode:'WORKBUDDY_CLEANUP_REQUIRED'}
   ])assert.doesNotMatch(cards([item],[fresh]),/data-connect/);
 });
+test('concrete Graph cards retain their own target, diagnosis and escaped name',()=>{
+  const graph={kind:'langgraph',format:'svg',description:'自定义 Graph 与工具评测'};
+  const html=renderAgentCards({
+    brands:[{...graph,name:'Chat <Graph>',targetId:'chat'},{...graph,name:'Files Graph',targetId:'files'}],
+    targets:[
+      {id:'chat',kind:'langgraph',name:'Chat <Graph>',version:'1.0.0',evaluationReady:true,status:'READY'},
+      {id:'files',kind:'langgraph',name:'Files Graph',version:'2.0.0',evaluationReady:false,status:'UNAVAILABLE',reasonCode:'AGENT_MODEL_KEY_MISSING'}
+    ],discovery:{agents:[]}
+  });
+  const articles=html.match(/<article\b[\s\S]*?<\/article>/g);assert.equal(articles.length,2);
+  assert.match(articles[0],/Chat &lt;Graph&gt;/);assert.match(articles[0],/data-target="chat"/);assert.doesNotMatch(articles[0],/<Graph>|2\.0\.0/);
+  assert.match(articles[1],/Files Graph/);assert.match(articles[1],/2\.0\.0/);assert.match(articles[1],/AGENT_MODEL_KEY_MISSING/);
+  assert.match(articles[1],/data-agent-model/);assert.match(articles[1],/查看检查详情/);
+  assert.match(articles[1],/已接入 · 待检查/);assert.doesNotMatch(articles[1],/data-start|data-target="chat"|可评测/);
+});
+test('an unconfigured Graph offers setup state without claiming an installed Agent',()=>{
+  const html=renderAgentCards({brands:[{kind:'langgraph',name:'LangGraph',format:'svg'}],targets:[],discovery:{agents:[]}});
+  assert.match(html,/待接入/);assert.doesNotMatch(html,/待安装|可评测|data-start/);
+});
 test('Claude cards bind each CLI or desktop label to its own version regardless of scan order',()=>{
   const claude={kind:'claude',name:'Claude Code',format:'png',planned:true};
   const cli={id:'cli',kind:'claude',type:'cli',version:'2.1.3'},desktop={id:'desktop',kind:'claude',type:'app',version:'0.9.7'};

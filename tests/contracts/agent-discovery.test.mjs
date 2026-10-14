@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile,symlink,readFile,rm,access} from 'node:fs/promises';
 import path from 'node:path';
 import {temporary,json} from './support.mjs';
-import {scanLocalAgents,AgentDiscovery} from '../../workbench/lib/agent-discovery.mjs';
+import {scanLocalAgents,AgentDiscovery,graphTarget} from '../../workbench/lib/agent-discovery.mjs';
 import {startControlServer} from '../../workbench/control-server.mjs';
 async function fixture(t){
  const home=await temporary(t),bin=path.join(home,'bin');await mkdir(bin);
@@ -76,4 +76,43 @@ test('connect accepts only fresh discovered IDs, preserves configured targets an
  assert.equal((await post({id:'detected'})).status,200);
  const targets=JSON.parse(await readFile(path.join(root,'config/agents.json'))).targets;assert.equal(targets.length,2);assert.deepEqual(targets[0],existing);
  available=false;assert.equal((await post({id:'detected'})).status,409);
+});
+
+test('project-local Pi and OpenClaw installs are connectable without PATH registration',async t=>{
+ const f=await fixture(t),pi=path.join(f.home,'Agents/pi/packages/coding-agent'),claw=path.join(f.home,'Agents/openclaw');
+ await json(path.join(pi,'package.json'),{name:'@earendil-works/pi-coding-agent',version:'1.0.0'});
+ await mkdir(path.join(pi,'dist/bundle'),{recursive:true});await writeFile(path.join(pi,'dist/bundle/cli.js'),'// JS entrypoint\n');
+ await json(path.join(claw,'node_modules/openclaw/package.json'),{name:'openclaw',version:'2026.9.6'});
+ await writeFile(path.join(claw,'node_modules/openclaw/openclaw.mjs'),'// JS entrypoint\n');
+ const node=path.join(claw,'runtime/node_modules/node/bin/node');await mkdir(path.dirname(node),{recursive:true});await writeFile(node,'#!/bin/sh\nexit 99\n',{mode:0o755});
+ const result=await scanLocalAgents(f.options),piTarget=result.agents.find(a=>a.kind==='pi')?.target,clawTarget=result.agents.find(a=>a.kind==='openclaw')?.target;
+ assert.ok(piTarget,'Pi source install must offer connect');assert.equal(piTarget.packageRoot,pi);assert.deepEqual(piTarget.extensions,[]);
+ assert.ok(clawTarget,'OpenClaw local install must offer connect');assert.equal(clawTarget.node,node);assert.equal(clawTarget.executable,path.join(claw,'node_modules/openclaw/openclaw.mjs'));
+ await rm(node);const missing=await scanLocalAgents(f.options);assert.equal(missing.agents.find(a=>a.kind==='openclaw').target,null);
+});
+
+test('explicit Graph setup validates local paths without importing code',async t=>{
+ const f=await fixture(t),root=path.join(f.home,'Graph Project');await mkdir(root);
+ await writeFile(path.join(root,'entry.py'),'raise RuntimeError("must not import during validation")');
+ const python=path.join(root,'python');await writeFile(python,'#!/bin/sh\nexit 99\n',{mode:0o755});
+ const input={name:'Graph',sourceRoot:'~/Graph Project',python,entrypoint:'~/Graph Project/entry.py:create_graph',model:'deepseek-v4-flash',tools:[],workspacePaths:'host'};
+ const target=await graphTarget(input,{home:f.home});assert.equal(target.entrypoint,path.join(root,'entry.py')+':create_graph');assert.equal(target.kind,'langgraph');assert.deepEqual(target.tools,[]);
+ await assert.rejects(graphTarget({...input,entrypoint:'~/Graph Project/missing.py:create_graph'},{home:f.home}),/是否存在/);
+ await assert.rejects(graphTarget({...input,tools:['bad name']},{home:f.home}),/工具名称/);
+ await assert.rejects(graphTarget({...input,apiKey:'not-accepted'},{home:f.home}),/未知/);
+});
+test('Graph UI connection preserves distinct entrypoints and does not overwrite existing configuration',async t=>{
+ const root=await temporary(t),source=path.join(root,'Graph');await mkdir(source);
+ for(const name of ['chat.py','files.py'])await writeFile(path.join(source,name),'# fixture');
+ const python=path.join(source,'python');await writeFile(python,'#!/bin/sh\n',{mode:0o755});
+ const quiet={active:false,records:async()=>({jobs:[],runs:[]})},control={status:async()=>({jobs:[],runs:[]})};let refreshed=0;
+ const graph={...quiet,refreshTargets:async()=>{refreshed++;}};
+ const {server}=await startControlServer({root,port:0,controller:control,workbuddyController:quiet,agentControllers:{langgraph:graph}});t.after(()=>new Promise(r=>server.close(r)));
+ const base='http://127.0.0.1:'+server.address().port,csrf=(await(await fetch(base+'/api/control/status')).json()).csrf;
+ const input={name:'Chat',sourceRoot:source,python,entrypoint:path.join(source,'chat.py')+':create_graph',model:'deepseek-v4-flash',tools:[],workspacePaths:'host'};
+ const post=(body,token=csrf)=>fetch(base+'/api/control/langgraph/connect',{method:'POST',headers:{'content-type':'application/json','x-workbench-token':token},body:JSON.stringify(body)});
+ assert.equal((await post(input,'bad')).status,403);graph.active=true;assert.equal((await post(input)).status,409);graph.active=false;
+ assert.equal((await post(input)).status,200);assert.equal((await post({...input,name:'Do not overwrite'})).status,200);
+ assert.equal((await post({...input,name:'Files',entrypoint:path.join(source,'files.py')+':create_graph',tools:['read_file','write_file']})).status,200);
+ const targets=JSON.parse(await readFile(path.join(root,'config/agents.json'))).targets;assert.equal(targets.length,2);assert.equal(targets[0].name,'Chat');assert.notEqual(targets[0].id,targets[1].id);assert.equal(refreshed,3);
 });

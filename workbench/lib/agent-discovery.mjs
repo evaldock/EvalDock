@@ -8,7 +8,7 @@ import path from 'node:path';
 const exec=promisify(execFile);
 const definitions=[
   {kind:'dsh',name:'DSH',commands:['dsh'],packages:['@deepseek-ai/dsh']},
-  {kind:'pi',name:'Pi',commands:['pi'],packages:['@mariozechner/pi-coding-agent']},
+  {kind:'pi',name:'Pi',commands:['pi'],packages:['@mariozechner/pi-coding-agent','@earendil-works/pi-coding-agent']},
   {kind:'openclaw',name:'OpenClaw',commands:['openclaw'],packages:['openclaw']},
   {kind:'hermes',name:'Hermes',commands:['hermes'],apps:['Hermes.app']},
   {kind:'workbuddy',name:'WorkBuddy',apps:['WorkBuddy.app']},
@@ -18,6 +18,7 @@ const definitions=[
   {kind:'claude',name:'Claude Code / Claude',commands:['claude'],apps:['Claude.app'],packages:['@anthropic-ai/claude-code'],unsupported:true},
 ];
 const exists=async file=>access(file).then(()=>true,()=>false);
+const executableFile=async file=>{try{await access(file,constants.X_OK);return (await stat(file)).isFile();}catch{return false;}};
 const json=async file=>{try{return JSON.parse(await readFile(file,'utf8'));}catch{return null;}};
 async function packageAt(file){
   let directory=path.dirname(file);
@@ -46,7 +47,10 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
       const pkg=await packageAt(canonical);
       if(pkg&&def.packages?.includes(pkg.name)){
         item.version=pkg.version??null;
-        if(def.kind==='openclaw'&&await exists(path.join(path.dirname(location),'node')))item.target={id:'local-openclaw',kind:def.kind,name:def.name,sourceRoot:pkg.root,node:path.join(path.dirname(location),'node'),executable:canonical,model:'deepseek-v4-flash'};
+        if(def.kind==='openclaw'){
+          const candidates=metadata.node?[metadata.node]:[path.join(path.dirname(location),'node'),...bins.map(bin=>path.join(bin,'node'))];
+          for(const node of candidates)if(await executableFile(node)){item.target={id:'local-openclaw',kind:def.kind,name:def.name,sourceRoot:pkg.root,node,executable:canonical,model:'deepseek-v4-flash'};break;}
+        }
         if(def.kind==='pi')item.target={id:'local-pi',kind:def.kind,name:def.name,sourceRoot:pkg.root,packageRoot:pkg.root,executable:canonical,model:'deepseek-flash',extensions:[],extensionCatalog:[]};
       }
       if(def.kind==='hermes')item.target={id:'local-hermes',kind:def.kind,name:def.name,sourceRoot:path.dirname(path.dirname(canonical)),executable:canonical,model:'deepseek-v4-flash'};
@@ -75,6 +79,20 @@ export async function scanLocalAgents({home=homedir(),pathValue=process.env.PATH
         if(def.kind==='claude')await add(def,location,'app',{metadataError:'无法读取应用元数据'});
       }
     }
+    // Bounded, known layouts; inspect metadata without launching code or traversing user projects.
+    const localEntries=def.kind==='pi'?[
+      {file:path.join(home,'Agents/pi/packages/coding-agent/dist/bundle/cli.js')},
+      {file:path.join(home,'Agents/pi/node_modules/@mariozechner/pi-coding-agent/dist/cli.js')},
+    ]:def.kind==='openclaw'?[
+      {file:path.join(home,'Agents/openclaw/node_modules/openclaw/openclaw.mjs'),node:path.join(home,'Agents/openclaw/runtime/node_modules/node/bin/node')},
+    ]:[];
+    for(const entry of localEntries){
+      try{
+        await access(entry.file,constants.R_OK);if(!(await stat(entry.file)).isFile())continue;
+        const pkg=await packageAt(await realpath(entry.file));
+        if(pkg&&def.packages.includes(pkg.name))await add(def,entry.file,'cli',{node:entry.node});
+      }catch{/* Missing or inaccessible local installation. */}
+    }
     for(const bin of bins)for(const command of def.commands??[]){
       const location=path.join(bin,command);
       try{await access(location,constants.X_OK);if(!(await stat(location)).isFile())continue;await add(def,location,'cli');}catch{/* Missing or inaccessible candidate is not an installed Agent. */}
@@ -90,4 +108,33 @@ export class AgentDiscovery {
     if(!force&&this.snapshot)return this.snapshot;
     this.pending=scanLocalAgents(this.options).then(value=>(this.snapshot=value)).finally(()=>{this.pending=null;});return this.pending;
   }
+}
+
+/** Explicit user configuration: validate files, but leave Graph imports to adapter preflight. */
+export async function graphTarget(input,{home=homedir()}={}){
+  const fields=['name','sourceRoot','python','entrypoint','model','tools','workspacePaths'];
+  if(Object.keys(input).some(k=>!fields.includes(k)))throw Error('未知 Graph 配置字段');
+  if(typeof input.name!=='string'||!input.name.trim()||input.name.length>100)throw Error('请填写 Agent 名称（最多 100 字）');
+  const expand=value=>{
+    if(typeof value!=='string'||value.length>4096||value.includes('\0'))throw Error('请填写有效的本机路径');
+    const file=value.startsWith('~/')?path.join(home,value.slice(2)):value;
+    if(!path.isAbsolute(file))throw Error('路径需要使用绝对路径或 ~/');return path.normalize(file);
+  };
+  const sourceRoot=expand(input.sourceRoot),python=expand(input.python);
+  const split=typeof input.entrypoint==='string'?input.entrypoint.lastIndexOf(':'):-1;
+  if(split<1||!/^[_a-zA-Z][_a-zA-Z0-9]*$/.test(input.entrypoint.slice(split+1)))throw Error('Graph 入口格式为 /路径/入口.py:工厂函数');
+  const file=expand(input.entrypoint.slice(0,split)),factory=input.entrypoint.slice(split+1);
+  try{
+    if(!(await stat(sourceRoot)).isDirectory()||!(await stat(file)).isFile())throw Error();
+    await access(file,constants.R_OK);
+    if(!await executableFile(python))throw Error();
+  }catch{throw Error('请检查项目目录、Python 和 Graph 入口文件是否存在且可访问');}
+  const relative=path.relative(await realpath(sourceRoot),await realpath(file));
+  if(relative.startsWith('..'+path.sep)||relative==='..'||path.isAbsolute(relative))throw Error('Graph 入口文件必须位于项目目录内');
+  if(typeof input.model!=='string'||!input.model.trim()||input.model.length>200)throw Error('请填写模型名称');
+  if(!Array.isArray(input.tools)||input.tools.length>100||input.tools.some(t=>typeof t!=='string'||!/^[-a-zA-Z0-9_.]{1,100}$/.test(t)))throw Error('工具名称请使用字母、数字、点、下划线或短横线');
+  if(!['host','virtual-root'].includes(input.workspacePaths))throw Error('请选择文件路径模式');
+  const entrypoint=file+':'+factory;
+  const id='local-graph-'+createHash('sha256').update(python+'\n'+entrypoint).digest('hex').slice(0,20);
+  return {id,kind:'langgraph',name:input.name.trim(),sourceRoot,python,entrypoint,model:input.model.trim(),tools:[...new Set(input.tools)],workspacePaths:input.workspacePaths,conversation:{mode:'HISTORY_REPLAY',input:'TASK_TRANSCRIPT'}};
 }

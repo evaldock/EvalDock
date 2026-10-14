@@ -1,6 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {zstdDecompressSync} from 'node:zlib';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {Capture} from '../shared/capture.mjs';
 export function collectTranscript(database,sessionId){
  const db=new DatabaseSync(database,{readOnly:true}),capture=new Capture('openclaw');
@@ -30,7 +31,7 @@ export function collectTranscript(database,sessionId){
   return capture.finish();
  }finally{db.close();}
 }
-if(process.argv[1]===new URL(import.meta.url).pathname){
+if(process.argv[1]===fileURLToPath(import.meta.url)){
  try{const r=collectTranscript(path.join(process.argv[2],'agents/main/agent/openclaw-agent.sqlite'),process.argv[3]||undefined);process.stdout.write(JSON.stringify(r));}
  catch(e){process.stdout.write(JSON.stringify({error:e.message?.startsWith('OPENCLAW_')?e.message:'OPENCLAW_TRANSCRIPT_UNAVAILABLE'}));process.exitCode=1;}
 }

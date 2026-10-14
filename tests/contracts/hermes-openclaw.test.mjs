@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {writeFile,mkdir,copyFile} from 'node:fs/promises';
 import {temporary} from './support.mjs';
 import {Capture,runProcess} from '../../adapters/shared/capture.mjs';
 import {hermesEvent} from '../../adapters/hermes/adapter.mjs';
@@ -51,4 +51,14 @@ test('completion transcript reader isolates native session, pairs actual IDs and
  db.close();console.log(JSON.stringify({mine:collectTranscript(file,'mine'),large:collectTranscript(file,'large')}));`);
  const out=execFileSync(process.execPath,[script,path.join(root,'transcript.sqlite')],{maxBuffer:512*1024,stdio:['ignore','pipe','pipe']});const r=JSON.parse(out);
  assert.equal(r.mine.final,'done');assert.ok(!JSON.stringify(r.mine).includes('PRIVATE OTHER SESSION'));assert.deepEqual(r.mine.queue.filter(e=>e.event.type.startsWith('tool/')).map(e=>e.event.data.callId),['a','a']);assert.ok(r.large.omitted>0);assert.ok(Buffer.byteLength(JSON.stringify(r.large))<300*1024);
+});
+
+test('OpenClaw transcript CLI runs from a desktop workspace path containing spaces',async t=>{
+ const root=path.join(await temporary(t),'Application Support/EvalDock'),reader=path.join(root,'adapters/openclaw/transcript.mjs');
+ await mkdir(path.dirname(reader),{recursive:true});await mkdir(path.join(root,'adapters/shared'),{recursive:true});
+ await copyFile(new URL('../../adapters/openclaw/transcript.mjs',import.meta.url),reader);
+ await copyFile(new URL('../../adapters/shared/capture.mjs',import.meta.url),path.join(root,'adapters/shared/capture.mjs'));
+ const state=path.join(root,'state'),db=path.join(state,'agents/main/agent/openclaw-agent.sqlite');await mkdir(path.dirname(db),{recursive:true});
+ execFileSync(process.execPath,['--input-type=module','-e',`import {DatabaseSync} from 'node:sqlite';const db=new DatabaseSync(process.argv[1]);db.exec('CREATE TABLE transcript_events(session_id TEXT,seq INTEGER,event_json TEXT,event_zstd BLOB)');db.prepare('INSERT INTO transcript_events VALUES(?,?,?,?)').run('mine',1,JSON.stringify({type:'message',timestamp:'2026-10-10T00:00:00Z',message:{role:'assistant',stopReason:'stop',content:[{type:'text',text:'done'}]}}),null);db.close();`,db],{stdio:['ignore','pipe','pipe']});
+ const out=execFileSync(process.execPath,[reader,state,'mine'],{stdio:['ignore','pipe','pipe']}).toString();assert.ok(out,'CLI must emit transcript JSON from a path with spaces');assert.equal(JSON.parse(out).final,'done');
 });

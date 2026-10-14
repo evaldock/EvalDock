@@ -78,7 +78,7 @@ export class AgentControl {
   async records(){
     const owned=[...this.jobs.jobs.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,50);
     const runs=await Promise.all(owned.map(j=>this.results.get({...j,agentKind:this.kind})));
-    return {jobs:owned.map(j=>({...this.jobs.view(j),agentKind:this.kind,events:j.events.slice(-35)})),runs};
+    return {jobs:owned.map(j=>({...this.jobs.view(j),agentKind:this.kind,targetName:j.targetName??this.targets.find(t=>t.id===j.targetId)?.name,events:j.events.slice(-35)})),runs};
   }
   async run({targetId,smoke=false,datasetCount=1,caseCount=1,datasetIds,evaluationConfig}={}){
     if(this.active)throw Error('该 Agent 已有评测正在执行');
@@ -106,7 +106,7 @@ export class AgentControl {
         this.jobs.cliPrefix=[...prefix,'--target-id',targetId,...validation?['--validation-config',JSON.stringify(validation)]:[],...evaluationConfig?['--evaluation-config',JSON.stringify(evaluationConfig)]:[]];
         job=await this.jobs.start({action:'run',targetId});
       }finally{this.jobs.cliPrefix=prefix;}
-      const record=this.jobs.get(job.id);Object.assign(record,{agentKind:this.kind,validationOnly:smoke,...validation?{validationConfig:validation}:{},...evaluationConfig?{evaluationConfig}:{}});
+      const record=this.jobs.get(job.id);Object.assign(record,{agentKind:this.kind,targetName:this.targets.find(t=>t.id===targetId)?.name,validationOnly:smoke,...validation?{validationConfig:validation}:{},...evaluationConfig?{evaluationConfig}:{}});
       await this.jobs.persist(record);return this.jobs.view(record);
     }finally{this.starting=false;}
   }

@@ -1,7 +1,7 @@
 import {ModelSettings} from './lib/model-settings.mjs';
 import {AgentModelSettings} from './lib/agent-model-settings.mjs';
 import {appSummary} from './lib/app-summary.mjs';
-import {AgentDiscovery} from './lib/agent-discovery.mjs';
+import {AgentDiscovery,graphTarget} from './lib/agent-discovery.mjs';
 import {loadTargets} from '../adapters/shared/registry.mjs';
 import {atomic as saveDiscoveryConfig} from '../adapters/shared/evaluation.mjs';
 import {projectPaths} from './lib/paths.mjs';
@@ -100,6 +100,17 @@ export async function startControlServer({root=path.dirname(here),port=18767,con
           if(route==='discovery/scan'){
             if(Object.keys(input).length)throw Error('扫描不接受路径或命令参数');
             json(res,200,await discovery.scan(true));return;
+          }
+          if(route==='langgraph/connect'){
+            if(pendingMutations.size||Object.values(agents).some(c=>c.active)||workbuddy.active)throw Error('请等待当前操作或评测完成后接入');
+            pendingMutations.add('discovery');
+            try{
+              const target=await graphTarget(input),targets=await loadTargets(root);
+              const existing=targets.find(t=>t.kind==='langgraph'&&t.python===target.python&&t.entrypoint===target.entrypoint);
+              if(!existing)await saveDiscoveryConfig(path.join(root,'config/agents.json'),{schema:'evaldock.agent-targets/v1',targets:[...targets,target]});
+              await agents.langgraph.refreshTargets();
+              json(res,200,{ok:true,targetId:existing?.id??target.id,existing:!!existing});return;
+            }finally{pendingMutations.delete('discovery');}
           }
           if(route==='discovery/connect'){
             if(Object.keys(input).some(k=>k!=='id')||typeof input.id!=='string')throw Error('请选择一个扫描结果');

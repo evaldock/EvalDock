@@ -28,7 +28,11 @@ const agentCatalog=[
  {kind:'codex',name:'Codex',format:'png',description:'评测适配器待接入',planned:true},
  {kind:'claude',name:'Claude Code',format:'png',description:'评测适配器待接入',planned:true},
 ];
-function agentCards(){return renderAgentCards({brands:agentCatalog,targets:targets(),discovery,pendingConnections});}
+function agentCards(){
+ const configured=targets();
+ const brands=agentCatalog.flatMap(brand=>brand.kind==='langgraph'&&configured.some(t=>t.kind==='langgraph')?configured.filter(t=>t.kind==='langgraph').map(t=>({...brand,name:t.name,targetId:t.id})): [brand]);
+ return renderAgentCards({brands,targets:configured,discovery,pendingConnections});
+}
 
 function agentModelForm(){
  return `<form id="agent-model-form" class="card"><h2>被测 Agent 模型</h2><p>Pi、Hermes、OpenClaw 和 LangGraph 的任务执行使用 DeepSeek，需要单独配置密钥。办公 Agent 请在原应用中完成登录。</p><label>DeepSeek API Key<input id="agent-api-key" name="apiKey" type="password" autocomplete="off" placeholder="${agentModelSettings.keyConfigured?'已配置；留空保留':'尚未配置'}"></label><p>密钥仅保存在本机，保存后返回「我的 Agent」查看运行条件。</p><button class="primary">保存 Agent 密钥</button></form>`;
@@ -39,7 +43,7 @@ function render(){
  const current=page();$('#breadcrumb').textContent='工作空间 / '+pages[current];document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===current));
  let html='';
  if(current==='home')html=renderHome({summary,catalog,settings,discovery,library});
- if(current==='agents')html=heading('我的 Agent','全部 Agent 与本机安装状态', `<button data-scan ${scanning?'disabled':''}>${scanning?'正在扫描…':'↻ 重新扫描'}</button>`)+`<div class="note agent-scan-note">${agentCatalog.length} 类 Agent · 已发现 ${new Set(discovery.agents.map(d=>d.kind)).size} 类本地安装 · ${discovery.scannedAt?'上次扫描 '+escape(new Date(discovery.scannedAt).toLocaleTimeString('zh-CN')):'正在扫描本机'}${discovery.errors.length?'<br>'+discovery.errors.map(escape).join('；'):''}</div><div class="agent-grid">${agentCards()}</div>`;
+ if(current==='agents')html=heading('我的 Agent','全部 Agent 与本机安装状态', `<div><button data-graph-setup>＋ 接入 LangGraph</button> <button data-scan ${scanning?'disabled':''}>${scanning?'正在扫描…':'↻ 重新扫描'}</button></div>`)+`<div class="note agent-scan-note">${agentCatalog.length} 类 Agent · 已发现 ${new Set(discovery.agents.map(d=>d.kind)).size} 类本地安装 · ${discovery.scannedAt?'上次扫描 '+escape(new Date(discovery.scannedAt).toLocaleTimeString('zh-CN')):'正在扫描本机'}${discovery.errors.length?'<br>'+discovery.errors.map(escape).join('；'):''}</div><div class="agent-grid">${agentCards()}</div>`;
  if(current==='datasets')html=renderDatasets({catalog,ui,library});
  if(current==='reports')html=renderReports({summary,ui});
  if(current==='settings')html=heading('设置','配置评分服务和本地工作空间。')+`<div class="settings"><form id="model-form" class="card"><h2>评测模型</h2><p>Planner 负责选题，Judge 负责评分。API Key 仅保存在本机，留空保留已有值。</p>${['planner','judge'].map(role=>`<fieldset><legend>${role==='planner'?'Planner · 选题':'Judge · 评分'}</legend><label>模型名称<input name="${role}-model" required value="${escape(settings?.[role]?.model)}"></label><label>接口地址<input name="${role}-endpoint" required type="url" value="${escape(settings?.[role]?.endpoint)}"></label><label>API Key<input name="${role}-apiKey" type="password" autocomplete="off" placeholder="${settings?.[role]?.keyConfigured?'已配置；留空保留':'尚未配置'}"></label></fieldset>`).join('')}<button class="primary">保存模型设置</button></form>${agentModelForm()}<section class="card"><h2>本地工作空间</h2><p>题库、运行记录和配置保存在本机。模型密钥沿用 ~/.config/evaldock/models.env。</p><button data-open-data>打开数据目录</button> <button data-configure>打开 Agent 配置目录</button></section></div>`;
@@ -131,6 +135,7 @@ document.addEventListener('click',async event=>{const button=event.target.closes
   }finally{pendingConnections.delete(key);button.disabled=false;button.textContent=label;if(page()==='agents')render();}
  }
  if(button.hasAttribute('data-agent-model')){location.hash='settings';render();$('#agent-api-key')?.focus();}
+ if(button.hasAttribute('data-graph-setup')){applyGraphPreset();$('#graph-error').textContent='';$('#graph-setup').showModal();}
  if(button.hasAttribute('data-connect')){button.disabled=true;await api('discovery/connect',{id:button.dataset.connect});notice('已接入，正在检查运行条件。');await refresh();}
  if(button.hasAttribute('data-start'))await openEvaluation(button.dataset.target,button.dataset.dataset);
  if(button.hasAttribute('data-library-prepare')){library=await api('library/prepare',{});render();}
@@ -164,7 +169,7 @@ document.addEventListener('submit',async event=>{
   input.value='';input.placeholder='已配置；留空保留';notice('被测 Agent 的模型密钥已保存，请返回「我的 Agent」检查状态。');await refresh();
  }catch(error){notice(error.message);}finally{button.disabled=false;}
 });
-window.addEventListener('hashchange',render);const initialNotice=new URLSearchParams(location.search).get('notice');if(initialNotice)notice(initialNotice);void refresh();setInterval(()=>{if(!$('#evaluation').open&&page()!=='settings')void refresh();},10000);
+window.addEventListener('hashchange',render);const initialNotice=new URLSearchParams(location.search).get('notice');if(initialNotice)notice(initialNotice);void refresh();setInterval(()=>{if(!$('#evaluation').open&&!$('#graph-setup').open&&page()!=='settings')void refresh();},10000);
 
 document.addEventListener('input',event=>{if(event.target.id==='dataset-search'){ui.datasetQuery=event.target.value;render();}if(event.target.id==='report-search'){ui.reportQuery=event.target.value;render();}});
 document.addEventListener('change',event=>{
@@ -175,6 +180,26 @@ document.addEventListener('change',event=>{
  if(e.hasAttribute('data-select-dataset')){const d=catalog.datasets.find(d=>d.id===e.dataset.selectDataset);if(d){if(e.checked)ui.selection.set(d.id,new Set(d.cases.map(c=>c.index)));else ui.selection.delete(d.id);render();}}
  if(e.hasAttribute('data-select-case')){const id=e.dataset.selectCase,set=ui.selection.get(id)??new Set();if(e.checked)set.add(Number(e.dataset.index));else set.delete(Number(e.dataset.index));ui.selection.set(id,set);render();}
 });
+
+function applyGraphPreset(){
+ const preset=$('#graph-preset').value,isDeep=preset==='deepagents',isFiles=preset==='toolkit-files';
+ const root=preset==='custom'?'':isDeep?'~/Agents/langgraph/deepagents':'~/Agents/langgraph/agent-service-toolkit';
+ $('#graph-name').value=preset==='custom'?'':isDeep?'DeepAgents':isFiles?'Agent Service Toolkit · 文件工具 Graph':'Agent Service Toolkit · 原始聊天 Graph';
+ $('#graph-root').value=root;$('#graph-python').value=root?root+'/.venv/bin/python':'';
+ $('#graph-entry').value=root?root+(isFiles?'/evaldock_files_entry.py:create_graph':'/evaldock_entry.py:create_graph'):'';
+ $('#graph-tools').value=isDeep?'shell, read_file, write_file, edit_file, ls, glob, grep, write_todos, task':isFiles?'read_file, write_file':'';
+ $('#graph-paths').value=isDeep?'virtual-root':'host';
+ $('#graph-note').textContent=isDeep?'使用本机已准备的 DeepAgents 适配入口，请核对实际路径与工具。':isFiles?'单独的文件工具 Graph，需已存在 evaldock_files_entry.py；不会替换原始聊天 Graph。':preset==='toolkit'?'原始 chatbot 未配置文件工具，能执行对话不代表能交付文件。':'填写可返回 stream / astream Graph 的工厂函数。';
+}
+$('#graph-preset').onchange=applyGraphPreset;
+$('#close-graph').onclick=()=>$('#graph-setup').close();
+$('#graph-form').onsubmit=async event=>{
+ event.preventDefault();const button=$('#save-graph');button.disabled=true;$('#graph-error').textContent='';
+ try{
+  const result=await api('langgraph/connect',{name:$('#graph-name').value,sourceRoot:$('#graph-root').value.trim(),python:$('#graph-python').value.trim(),entrypoint:$('#graph-entry').value.trim(),model:$('#graph-model').value.trim(),tools:$('#graph-tools').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),workspacePaths:$('#graph-paths').value});
+  $('#graph-setup').close();location.hash='agents';notice(result.existing?'此 Graph 已接入，保留原配置并重新检查。':'Graph 已保存，运行条件将显示在对应卡片中。');await refresh();
+ }catch(e){$('#graph-error').textContent=friendlyMessage(e.message);}finally{button.disabled=false;}
+};
 
 setInterval(async()=>{
  if(!(['DOWNLOADING','INSTALLING'].includes(library.state)||library.catalog?.state==='LOADING'||['DOWNLOADING','INSTALLING'].includes(library.download?.state)))return;

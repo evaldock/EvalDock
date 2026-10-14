@@ -34,15 +34,22 @@ test('catalog exposes public task details without grading references',async()=>{
 test('home always offers evaluation without repeating connection setup',async()=>{
  const {renderHome,friendlyMessage}=await import('../../workbench/design-prototypes/product-pages.js');
  const data={summary:{agents:[],jobs:[],runs:[]},catalog:{datasets:[]},settings:{},discovery:{agents:[]}};
- assert.match(renderHome(data),/去评测/);assert.doesNotMatch(renderHome(data),/去连接助手|还差|步准备/);
+ assert.match(renderHome(data),/开始评测/);assert.doesNotMatch(renderHome(data),/去连接助手|还差|步准备/);
  data.summary.agents=[{targets:[{evaluationReady:true}]}];
- assert.match(renderHome(data),/去评测/);
+ assert.match(renderHome(data),/开始评测/);
  data.catalog.datasets=[{cases:[{index:0}]}];
- assert.match(renderHome(data),/去评测/);
+ assert.match(renderHome(data),/开始评测/);
  data.settings={judge:{keyConfigured:true},planner:{keyConfigured:true}};
  assert.match(renderHome(data),/data-start/);
  assert.doesNotMatch(friendlyMessage('AGENT_VERSION_UNVERIFIED'),/AGENT_VERSION/);
  assert.match(friendlyMessage('AGENT_VERSION_UNVERIFIED'),/重新检查接口/);
  assert.match(friendlyMessage('AGENT_INTERFACE_CHANGED'),/接口不可用/);
  assert.match(friendlyMessage('AGENT_LOCAL_RUNTIME_UNAVAILABLE'),/执行环境尚未就绪/);
+});
+
+test('concrete Graph names remain distinct in report headings and searches',()=>{
+ const jobs=[{id:'a',targetName:'DeepAgents',agentKind:'langgraph',state:'SUCCEEDED'},{id:'b',targetName:'Toolkit files',agentKind:'langgraph',state:'SUCCEEDED'}];
+ assert.deepEqual(filterJobs(jobs,'DeepAgents','all').map(j=>j.id),['a']);
+ const html=renderRun({...jobs[1],targetName:'Toolkit <files>',events:[]},{reportPaths:[]});
+ assert.match(html,/Toolkit &lt;files&gt; 的评测/);assert.doesNotMatch(html,/<files>/);
 });

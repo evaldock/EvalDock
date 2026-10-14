@@ -52,7 +52,7 @@ async function start(){
   automaticLibrary=await isBundledLibrary(source,root);
   await mkdir(path.join(root,'desktop'),{recursive:true});
   await startBackend();
-  window=new BrowserWindow({width:1240,height:840,minWidth:940,minHeight:650,title:'EvalDock',backgroundColor:'#f7f8fa',titleBarStyle:'hiddenInset',webPreferences:{preload:path.join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  window=new BrowserWindow({width:1240,height:840,minWidth:940,minHeight:650,title:'EvalDock',backgroundColor:'#f2f4f5',titleBarStyle:'hiddenInset',webPreferences:{preload:path.join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   window.webContents.setWindowOpenHandler(({url})=>{
     const parsed=new URL(url);
     if(parsed.origin===origin&&parsed.pathname.startsWith('/reports/')){
