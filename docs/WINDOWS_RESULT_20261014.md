@@ -1,24 +1,34 @@
 # Windows 适配本轮结果（2026-10-14）
 
-源码和文档已 commit、push 到公开仓库的 `codex/windows-foundation` 分支，同事可查看 [草稿 PR #1](https://github.com/evaldock/EvalDock/pull/1)。尚未合入 `app`。
+**N2 限定检查通过；N3 的 Windows 完整门禁仍阻塞。** 当前代码为 `c92b6ed66ebb210de12bd5aa28341638a536da40`，位于 `codex/windows-foundation`。[PR #1](https://github.com/evaldock/EvalDock/pull/1) 保持草稿，未合入 `app`。
 
-## 已完成
-
-- W1：跨平台测试入口、Python 3 选择、Windows CI，超时按失败退出。
-- W2：Windows PATH/窗口/环境处理，DSH 缺失及初始化失败隔离。
-- W3：x64 NSIS/ICO/包审计配置，题库导入的 Windows 路径校验及取消边界。
-- 校验：代码 `ba41ad7` 本机契约 340、Python 5、模型设置 4 全部通过；`3b085af` 的实际 Mac 包 1451 文件审计及签名完整性通过。[CI #31](https://github.com/evaldock/EvalDock/actions/runs/38536361338) 检查 `app/16d1270` 与分支 `29793a8` 的合并版本 `0a69291`：Ubuntu 契约 357 通过、1 项 Mac 专属检查跳过，Python 5、模型设置 4 通过。
-
-## 未完成及真实原因
-
-| 未完成 | 原因 |
+| 阶段 | 已验证结果 |
 | --- | --- |
-| Windows 全套校验 | 取消契约 120 秒、runner 180 秒超时，退出 1，套件未完成；W4 收尾路径的根因及修复范围待确认。 |
-| Windows 安装包及包审计 | 门禁失败，NSIS 构建、摘要和上传跳过，未生成包。 |
-| Windows 11 安装、开窗、权限、文件占用、卸载保留 | 用户稍后提供 Windows 11 x64 环境，尚未实测。 |
-| W4 原生 Agent 接入及所属子孙进程回收 | 超出本轮 W1–W3 范围；Agent、版本、安装布局待确认。 |
-| W5 真实 Agent、Trace、Judge、报告验收 | 未进入该阶段；题目、参考、账号及费用上限待确认。 |
-| W6 两版本 Windows 升级与 Mac 回归 | 尚无两份明确的 Windows 候选包，未开始。 |
-| 合并、正式发行、自动更新 | 本轮未授权，Windows 验收尚未通过。 |
+| N0 | `1efe140` 合入 `app/a84d2c0`，保留既有 W1–W3；同步生命周期测试所需的平台函数。 |
+| N1 | 原共享采集使用负 PID 终止；Windows CI 取消测试超时。Windows 清理不能沿用 POSIX 进程组方式验收。 |
+| N2 | 新增 PowerShell/C# Job Object 辅助脚本，目标分配到 Job 后才恢复执行；取消、超时、根进程退出时清理所属进程，缺失回执仍为 `UNKNOWN`。CI #42 的 8 项限定检查通过。 |
+| N3 | 本机及 Ubuntu 完整门禁通过；Windows 另有失败，runner 在 180 秒退出，套件未完成。NSIS、包审计和上传未执行。 |
+| N4 | 更新交接和失败登记；实机、真实 Agent、升级验收继续阻塞。 |
 
-W1–W3 尚未整体验收完成，详细证据见 [Windows 交接](WINDOWS_HANDOFF_20261014.md)。
+## 验证证据
+
+[CI #42](https://github.com/evaldock/EvalDock/actions/runs/38578414728) 实际检出 `3e8a10ed011b199dd65710f838de063438e7de21`，父提交为 `app/a84d2c0` 和源 `c92b6ed`。tree `8159931004f3641d0fe31c7534efe61b68da994f` 与源提交相同。
+
+- 本机 macOS：契约 366 项，364 通过、2 项 Windows 专属检查跳过；Python 5、模型设置 4 通过；发布边界、类型检查、构建通过。
+- Ubuntu job `115901539877`：契约 366 项，363 通过、3 项平台专属检查跳过；Python 5、模型设置 4 通过。
+- Windows job `115901540282`：N2 正常输出/脱敏、根进程退出后清理、启动前取消、运行中取消、超时、Python 子进程及继承管道清理、参数/环境传递、缺失回执处理共 8 项检查通过。最后一项使用模拟辅助进程，不是原生故障注入。
+- 本机运行资源暂存审计 1019 文件通过，辅助脚本与源码逐字节一致。这不是 Windows 安装包验收。
+
+## 辅助脚本失败的定位与修复
+
+CI #41 到达 `REQUEST_READ`，未到达 `COMPILE`：输入已读到，阻塞位于 `ConvertFrom-Json` 调用阶段。`c92b6ed` 限定模块路径并显式导入 Windows PowerShell 自带 Utility 模块后，N2 检查在 CI #42 通过。未追踪默认模块发现内部的具体等待点，不将某个目录或网络访问写成已确认根因。
+
+经验：读取、解析、编译和启动分别记录固定阶段标记；以 Windows 实际回执确认修复，Mac/Ubuntu 通过不替代原生检查。
+
+## 剩余问题与建议
+
+Windows 日志另有 15 项失败输出，涉及 DSH 启动超时、Agent 档案/参数、日志、题库下载/导入、成本标签、包审计及难度标注。套件被总时限终止，没有完整断言汇总；这些不是已确认的 15 个独立根因。本轮只登记，未修改对应代码。位置见 [交接登记](WINDOWS_HANDOFF_20261014.md)。
+
+建议下一张任务卡仅处理 `tests/contracts/dsh-preflight.test.mjs:30` 对应的启动超时。它调用 `workbench/lib/dsh-preflight.mjs` 自有的 spawn/负 PID 终止路径，不调用 N2 共享辅助脚本；精确运行阻塞点仍需定位。其余失败另行诊断。
+
+未连接 Windows 或开发 VM，未运行真实 Agent/模型、未生成 Windows 候选包、未合并或发布。当前改动没有重新实现既有 W1–W3。

@@ -1,5 +1,36 @@
 # Windows 11 x64 基础适配任务卡
 
+## 本轮 N2/N3 证据与剩余登记
+
+**当前：N2 限定检查通过；N3 Windows 完整门禁阻塞；N4 保存交接。** 代码 `c92b6ed` 已推送，PR 保持草稿。本轮不连接 Windows/开发 VM，不修改范围外失败，不合并、不发布。
+
+N0 通过 `1efe140` 合入 `app/a84d2c0`。N2 相对该基线仅修改 `adapters/shared/capture.mjs`、新增 `adapters/shared/windows-process.ps1`，以及 `tests/contracts/agent-adapters.test.mjs`、`tests/contracts/hermes-openclaw.test.mjs`。既有 W1–W3 复用；Hermes/OpenClaw 测试调整限于文件 URL 和复制依赖。
+
+[CI #42](https://github.com/evaldock/EvalDock/actions/runs/38578414728) 实际 checkout 为 `3e8a10ed011b199dd65710f838de063438e7de21`，tree `8159931004f3641d0fe31c7534efe61b68da994f` 与源 `c92b6ed66ebb210de12bd5aa28341638a536da40` 一致。Windows job `115901540282` 的 8 项 N2 检查通过；回执故障检查使用模拟辅助进程，其余包含原生启动、取消、超时和所属子进程清理。Ubuntu job `115901539877` 成功。完整计数和边界见 [本轮结果](WINDOWS_RESULT_20261014.md)。
+
+CI #41 在读到输入后的 `ConvertFrom-Json` 调用阶段阻塞；显式加载 Windows PowerShell 自带 Utility 模块后，CI #42 的 N2 检查通过。未确定默认模块发现内部的具体等待路径。未增加超时阈值、删除断言或跳过失败测试；缺失清理完成回执仍记录 `UNKNOWN`。
+
+Windows 完整套件在 180 秒总时限退出；后续模型设置、NSIS 构建、包审计和上传未运行，附件列表为空。以下是该次日志的 15 项失败输出，只登记位置，**未确认各项根因，未修改对应代码**：
+
+| 登记项 | 数量 | 测试位置（tests/contracts/ 下） |
+| --- | ---: | --- |
+| DSH 启动超时 | 1 | `dsh-preflight.test.mjs:30` |
+| WorkBuddy 档案、Hermes 计数/完成、Pi 可选参数 | 4 | `agent-cost-evidence.test.mjs:31`、`:118`；`agent-version-negotiation.test.mjs:27`、`:55` |
+| 日志截断与链接限制 | 1 | `background.test.mjs:22` |
+| 题库下载、取消、进度及路由 | 4 | `benchdock-catalog.test.mjs:69`、`:117`、`:145`、`:203` |
+| 成本标签目录 | 1 | `cost-label.test.mjs:16` |
+| 发布资源审计 | 2 | `desktop-publication.test.mjs:13`、`:40` |
+| 题库导入备份及摘要 | 1 | `desktop.test.mjs:32` |
+| 难度标注绑定 | 1 | `difficulty-sampling.test.mjs:52` |
+
+DSH 测试调用 `workbench/lib/dsh-preflight.mjs` 独立的 spawn/负 PID kill 路径，不调用 N2 的 `runProcess`。建议另立单张任务卡定位并修复该路径；本轮不实施。其他登记项先取得完整断言证据，再判断产品代码还是测试夹具问题，不能由失败名称推断原因。
+
+本机原始证据位于忽略目录 `artifacts/windows-ci-repair-20261014/n2-repair/`：`result.json`、`ci42-windows.log`、`ci42-ubuntu.log`、`ci42-failure-register.json`、`module-verify.log`、`module-model.log`、`final-stage.log`。原始日志不随 Git 推送。暂存审计 1019 文件通过，辅助脚本源码/暂存 SHA-256 均为 `a6f6b8e5d8e1f0c9011361d0ec48dabeeec67024cbbfbe94a3336e80ff27bf54`。
+
+Windows 11 图形、权限、安装/卸载保留、真实 Agent 和升级继续阻塞。下文为先前 W1–W3 的历史任务与证据；其中 W4 未实施、负 PID 路径待授权等旧状态已由本节限定的 N2 更新，不代表其余 W4–W6 完成。最终文档提交触发的 CI 状态只在交付回复报告，不递归追加文档。
+
+## 历史 W1–W3 任务与证据
+
 2026-10-14，来源：用户上传《EvalDock Windows 适配开发交接 2026-10-14.md》及本轮 W1–W6 只读查重；用户已要求按建议开始。开发基线为 app 的 `5f38918b0c5d05149bb067f59cc4a55760ff003e`，包含 `2a456e1` 的恢复功能。使用独立工作树，原本地文档分叉和未提交修改保留。旧附件 SHA 仅为历史定位，不用于重置。
 
 本轮实施 W1–W3 的代码与合成验证。Windows 11 x64 图形环境由用户稍后提供；原生安装、权限和文件占用证据保持待验收。W4–W6、ARM64、WSL、更多 Agent、签名发行和自动更新不在本轮实施范围。原 Mac 六项暂停工作保持暂停，不 SSH/同步开发 VM。
