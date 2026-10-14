@@ -26,8 +26,8 @@ cp config/agents.example.json config/agents.json
 
 编辑 `config/agents.json`，只保留本机已安装的目标，填写真实可执行文件和安装目录。
 示例中的 `/Users/your-user` 必须替换；该文件被 Git 忽略。
-现有工作台启动路径仍依赖 DSH 控制器：按本机安装位置调整 `config/targets/real-dsh.json`，
-确保它指向已配置的 DSH Web Profile，然后执行：
+使用 DSH 时按本机安装位置调整 `config/targets/real-dsh.json`，确保它指向已配置的 DSH Web Profile。
+缺少 DSH 不再阻止设置、其他 Agent 和历史记录入口，DSH 自身操作仍不可用。启动工作台：
 
 ```sh
 pnpm run workbench
@@ -69,7 +69,7 @@ Docker 发行方案计划仅内置[一道基础演示题](../examples/datasets/R
 尚需实现并验收以下项目，完成前不发布可用性承诺或正式镜像标签：
 
 1. 将工作台对本机进程的直接调用抽为已认证的 Runner 接口，保留预检、取消及收尾语义。
-2. 使未安装 DSH 的机器也能启动工作台、配置模型、连接其他 Agent。
+2. 本地后台已隔离 DSH 初始化失败；容器中的启动、模型配置和其他 Agent 连接仍需按实际 Runner 环境验证。
 3. 参数化 Agent 路径、服务监听地址和持久化路径；保留来源校验和 CSRF 防护。
 4. 增加 Dockerfile、Compose 及可单独安装的 Runner，凭据不进入镜像层或构建参数。
 5. 新机器完成 CLI 与桌面 Agent 的真实端到端验证，以及断线、升级、回退和数据保留验证。
