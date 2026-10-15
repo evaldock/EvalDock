@@ -59,7 +59,10 @@ export class Capture {
   add(type,data={},at=new Date().toISOString()) {
     this.seen++;
     if(['token','thinking','heartbeat','state/snapshot'].includes(type)){this.noise++;return;}
-    const limited=JSON.parse(JSON.stringify(excerpt(data)));if(JSON.stringify(limited)!==JSON.stringify(data))this.clipped++;
+    // Bound tool payload fields separately so excerpts keep the call/result envelope.
+    const safe=redact(data),tool=type==='tool/call'||type==='tool/result';
+    const limited=JSON.parse(JSON.stringify(tool?Object.fromEntries(Object.entries(safe).map(([key,value])=>[key,bounded(value,16384)])):bounded(safe,16384)));
+    if(JSON.stringify(limited)!==JSON.stringify(data))this.clipped++;
     const event={type,data:limited},record={at,event},size=bytes(record);
     if(type==='tool/call'||type==='tool/result'){
       const callId=data.callId;if(!callId){this.omitted++;return;}
