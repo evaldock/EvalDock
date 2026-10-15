@@ -5,6 +5,7 @@ import {EventEmitter} from 'node:events';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import path from 'node:path';
 import vm from 'node:vm';
+import {backendEnvironment,windowPlatformOptions,applicationMenu} from '../../desktop/platform.mjs';
 
 // Exercise the actual entry point with a deferred renderer load and owned backend.
 // Closing a loading window rejects loadURL, as Electron does during an early quit.
@@ -34,7 +35,8 @@ async function desktop(){
  vm.runInNewContext(source,{
   app,BrowserWindow,Menu:{setApplicationMenu(){},buildFromTemplate:x=>x},dialog:{showErrorBox:(title,message)=>errors.push({title,message})},ipcMain:{handle(){}},shell:{},fork,
   mkdir:async()=>{},open:async()=>({fd:1,close:async()=>{}}),path,fileURLToPath,prepareWorkspace:async()=>{},isBundledLibrary:async()=>false,
-  DesktopUpdates,updateEligible:()=>false,updaterPackage:{autoUpdater:{}},process:{env:{},execPath:'synthetic-electron'},setTimeout,clearTimeout,URL,
+  backendEnvironment:options=>backendEnvironment({...options,environment:{},platform:process.platform}),windowPlatformOptions,applicationMenu,
+  DesktopUpdates,updateEligible:()=>false,updaterPackage:{autoUpdater:{}},process:{env:{},platform:process.platform,execPath:'synthetic-electron'},setTimeout,clearTimeout,URL,
  },{filename:entry});
  const settle=async()=>{for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));};
  await settle();assert.equal(windows.length,1);assert.ok(windows[0].rejectLoad,'renderer load is pending');

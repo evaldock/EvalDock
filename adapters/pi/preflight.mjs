@@ -5,6 +5,7 @@ import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {StringDecoder} from 'node:string_decoder';
 import {piLaunch} from './launch.mjs';
+import {platformEnvironment} from '../shared/platform-environment.mjs';
 
 export function piConfigurationKey(inspection){
   return createHash('sha256').update(JSON.stringify([inspection.protocol??null,inspection.version,inspection.installRoot,inspection.permissionPreset??'PI_DEFAULT_TOOLS',(inspection.extensions??[]).filter(e=>e.enabled).map(e=>[e.name,e.version,e.path,e.entries]).sort((a,b)=>a[0].localeCompare(b[0]))])).digest('hex');
@@ -36,7 +37,7 @@ export async function preflightPi(target,inspection,{timeoutMs=15000}={}){
   let child;
   try{
     const cwd=path.join(home,'workspace');await mkdir(cwd);
-    const env=Object.fromEntries(['PATH','LANG','TMPDIR','SSL_CERT_FILE','NODE_EXTRA_CA_CERTS'].filter(k=>process.env[k]).map(k=>[k,process.env[k]]));
+    const env=platformEnvironment();
     const launch=await piLaunch(target,inspection,home,{mode:'rpc',env:{...env,DEEPSEEK_API_KEY:'preflight-no-api-call'}});
     let stderr='',buffer='',ready=false,timedOut=false,startFailed=false,overflow=false;
     const decoder=new StringDecoder('utf8');

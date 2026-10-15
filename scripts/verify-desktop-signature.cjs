@@ -8,6 +8,10 @@ function verifySignature(appPath) {
   } catch (error) { throw new Error('Desktop signature verification failed: '+(error.stderr?.toString().trim() || error.message)); }
   console.log('Desktop code signature integrity passed.');
 }
-module.exports = async context => verifySignature(path.join(context.appOutDir,'EvalDock.app'));
+module.exports = async context => {
+  if(context.electronPlatformName==='win32')return; // Unsigned candidate; no Windows trust claim.
+  if(context.electronPlatformName!=='darwin')throw Error('Unsupported desktop signature platform');
+  verifySignature(path.join(context.appOutDir,'EvalDock.app'));
+};
 module.exports.verifySignature = verifySignature;
 if (require.main === module) verifySignature(path.resolve(process.argv[2]));

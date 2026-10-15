@@ -42,6 +42,8 @@ cp config/agents.example.json config/agents.json
 
 DSH、WorkBuddy 和其他目标的启动方式并非完全相同；详细准备要求见 [本地使用说明](RELEASE.md#本地使用现状) 与各适配器文档。首次在新机器上部署时，需要核对这些运行路径。
 
+Windows 基础适配还隔离了连接配置缺失或初始化失败的情况；Windows 上 DSH 操作保持不可用，设置、其他 Agent 和已有记录入口仍可读取。阶段验收与限制见 [Windows 任务卡](WINDOWS_HANDOFF_20261014.md)。
+
 ### 3. 启动工作台
 
 ```sh

@@ -4,6 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {crc32} from 'node:zlib';
 import yauzl from 'yauzl';
 import {importLibrary} from './workspace.mjs';
+import {LibraryPaths} from './library-paths.mjs';
 
 const limits={bytes:4*1024**3,files:100000};
 function entryPath(entry){
@@ -18,7 +19,7 @@ function entryPath(entry){
 }
 
 /** Expand into a disposable directory; the existing importer owns validation and switching. */
-export async function importLibraryArchive(source,root,{onProgress=()=>{},signal,archiveLimits=limits}={}){
+export async function importLibraryArchive(source,root,{onProgress=()=>{},signal,archiveLimits=limits,platform=process.platform}={}){
   const info=await lstat(source);
   if(!info.isFile()||info.isSymbolicLink()||!source.toLowerCase().endsWith('.zip'))throw Error('请选择普通 ZIP 题库文件');
   const temporary=path.join(root,'.dataset-zip-'+randomUUID());
@@ -26,13 +27,11 @@ export async function importLibraryArchive(source,root,{onProgress=()=>{},signal
   try{
     await mkdir(temporary,{recursive:true,mode:0o700});
     zip=await yauzl.openPromise(source,{strictFileNames:true,validateEntrySizes:true});
-    const seen=new Set();let bytes=0,files=0;
+    const names=new LibraryPaths({platform});let bytes=0,files=0;
     if(zip.entryCount>archiveLimits.files*2)throw Error('ZIP 条目数量超过导入限制');
     for await(const entry of zip.eachEntry()){
       signal?.throwIfAborted();
-      const {name,directory}=entryPath(entry),key=name.normalize('NFC').toLowerCase();
-      if(seen.has(key))throw Error('ZIP 包含重复或大小写冲突的路径');
-      seen.add(key);
+      const {name,directory}=entryPath(entry);names.add(name,{directory});
       const destination=path.join(temporary,name);
       if(directory){await mkdir(destination,{recursive:true,mode:0o700});continue;}
       bytes+=entry.uncompressedSize;files++;
@@ -61,6 +60,6 @@ export async function importLibraryArchive(source,root,{onProgress=()=>{},signal
     }else{
       for(const name of ['__MACOSX','.DS_Store'])await rm(path.join(temporary,name),{recursive:true,force:true});
     }
-    return await importLibrary(library,root,{onProgress});
+    return await importLibrary(library,root,{onProgress,signal,platform});
   }finally{zip?.close();await rm(temporary,{recursive:true,force:true});}
 }

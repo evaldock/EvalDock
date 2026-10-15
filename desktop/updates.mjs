@@ -1,8 +1,8 @@
 /** Keep update discovery, download and installation separate from evaluation readiness. */
 export class DesktopUpdates {
-  constructor({updater,enabled,version,canInstall,beforeInstall=async()=>{},onChange=()=>{}}){
+  constructor({updater,enabled,version,canInstall,beforeInstall=async()=>{},onChange=()=>{},platform=process.platform}){
     Object.assign(this,{updater,canInstall,beforeInstall,onChange});
-    this.value={state:enabled?'IDLE':'DISABLED',version,availableVersion:null,percent:0,error:null,reason:enabled?null:'自动更新需要已安装的 Developer ID 签名版。当前开发版或临时签名版请通过发布页下载安装。'};
+    this.value={state:enabled?'IDLE':'DISABLED',version,availableVersion:null,percent:0,error:null,reason:enabled?null:platform==='darwin'?'自动更新需要已安装的 Developer ID 签名版。当前开发版或临时签名版请通过发布页下载安装。':'当前平台尚未启用自动更新，请使用经验证的安装包手动更新。配置、题库和记录保留在本机。'};
     updater.autoDownload=false;updater.autoInstallOnAppQuit=false;
     updater.allowPrerelease=false;updater.allowDowngrade=false;
     updater.on('checking-for-update',()=>this.set({state:'CHECKING',error:null}));

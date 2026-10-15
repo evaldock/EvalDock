@@ -1,3 +1,4 @@
+import {pythonExecutable} from './python-support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -82,7 +83,7 @@ test('OpenClaw uses a native session total once, or explicitly sums the owned re
 
 test('LangGraph captures native message usage without repeated checkpoint snapshots',()=>{
  const script=`import sys,json\nsys.path.insert(0,'adapters/langgraph')\nimport runner\nrows=[]\nrunner.emit=lambda kind,data:rows.append((kind,data))\ne=runner.Evidence()\nm={'type':'ai','id':'response-1','content':'done','usage_metadata':{'input_tokens':100,'output_tokens':9,'total_tokens':109,'input_token_details':{'cache_read':60}}}\ne.message(m)\ne.message(m)\nprint(json.dumps([data for kind,data in rows if kind=='session/usage']))`;
- const r=spawnSync('python3',['-c',script],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
+ const r=spawnSync(pythonExecutable,['-c',script],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
  const rows=JSON.parse(r.stdout);assert.equal(rows.length,1);assert.equal(rows[0].usage.input_tokens,100);
 });
 
@@ -102,8 +103,8 @@ test('process timing ends before descendant cleanup and remains separate from ca
 test('Hermes archive reads session counters without deriving unknown fields or leaking other sessions',async t=>{
  const root=await temporary(t),db=path.join(root,'state.db');
  const seed=`import sqlite3,sys\nc=sqlite3.connect(sys.argv[1])\nc.execute('CREATE TABLE sessions(id TEXT,ended_at REAL,input_tokens INTEGER,output_tokens INTEGER,cache_read_tokens INTEGER)')\nc.execute('CREATE TABLE messages(id INTEGER,session_id TEXT,role TEXT,tool_call_id TEXT,tool_calls TEXT,tool_name TEXT,content TEXT,timestamp REAL,finish_reason TEXT)')\nc.execute('INSERT INTO sessions VALUES(?,?,?,?,?)',('owned',20,100,5,60))\nc.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?,?,?)',(1,'owned','assistant',None,None,None,'done',20,'stop'))\nc.commit()`;
- assert.equal(spawnSync('python3',['-c',seed,db],{encoding:'utf8'}).status,0);
- const r=spawnSync('python3',['adapters/hermes/session-evidence.py',db,'--session-archive'],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
+ assert.equal(spawnSync(pythonExecutable,['-c',seed,db],{encoding:'utf8'}).status,0);
+ const r=spawnSync(pythonExecutable,['adapters/hermes/session-evidence.py',db,'--session-archive'],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
  const data=JSON.parse(r.stdout);assert.deepEqual(data.usage,{input_tokens:100,output_tokens:5,cache_read_tokens:60});
  assert.equal(data.usage.reasoning_tokens,undefined);
 });
@@ -116,7 +117,7 @@ test('report token projection prefers session totals to duplicate response mirro
 
 test('Hermes streaming completion enriches omitted cache and reasoning counters from the owned DB',async t=>{
  const root=await temporary(t),cli=path.join(root,'hermes'),caseDirectory=path.join(root,'case');await mkdir(caseDirectory);
- const python=spawnSync('python3',['-c','import sys; print(sys.executable)'],{encoding:'utf8'});assert.equal(python.status,0,python.stderr);
+ const python=spawnSync(pythonExecutable,['-c','import sys; print(sys.executable)'],{encoding:'utf8'});assert.equal(python.status,0,python.stderr);
  await symlink(python.stdout.trim(),path.join(root,'python'));
  await writeFile(cli,`#!/usr/bin/python3\nimport os,json,sqlite3\nfrom pathlib import Path\nc=sqlite3.connect(str(Path(os.environ['HERMES_HOME'])/'state.db'))\nc.execute('CREATE TABLE sessions(id TEXT,input_tokens INTEGER,output_tokens INTEGER,cache_read_tokens INTEGER,cache_write_tokens INTEGER,reasoning_tokens INTEGER)')\nc.execute('INSERT INTO sessions VALUES(?,?,?,?,?,?)',('owned',100,5,80,0,2))\nc.commit();c.close()\nprint(json.dumps({'type':'system','session_id':'owned'}))\nprint(json.dumps({'type':'result','session_id':'owned','exit_code':0,'text':'done','tokens':{'input':100,'output':5,'total':185}}))\n`);await chmod(cli,0o700);
  const adapter=createHermesAdapter({executable:cli,model:'synthetic'});

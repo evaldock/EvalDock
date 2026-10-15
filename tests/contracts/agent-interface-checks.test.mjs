@@ -1,3 +1,4 @@
+import {pythonExecutable} from './python-support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -30,7 +31,7 @@ test('Pi requires a successful RPC preflight beyond package discovery',async t=>
 test('Graph inspection loads the configured object, checks streaming and closes its context',async t=>{
  const root=await directory(t),file=path.join(root,'graph.py'),marker=path.join(root,'closed');
  const source=valid=>`from contextlib import contextmanager\nclass Graph:\n    def ${valid?'stream':'invoke'}(self, *args, **kwargs):\n        raise RuntimeError("must not execute a task")\n@contextmanager\ndef graph():\n    try:\n        yield Graph()\n    finally:\n        open(${JSON.stringify(marker)}, "w").write("closed")\n`;
- const target={python:'python3',sourceRoot:root,entrypoint:file+':graph'};
+ const target={python:pythonExecutable,sourceRoot:root,entrypoint:file+':graph'};
  await writeFile(file,source(true));assert.equal((await inspectLangGraph(target,{loadEnvironment:async()=>({PATH:process.env.PATH})})).evaluationReady,true);assert.equal(await readFile(marker,'utf8'),'closed');
  await rm(marker);await writeFile(file,source(false));const s=await inspectLangGraph(target,{loadEnvironment:async()=>({PATH:process.env.PATH})});assert.equal(s.evaluationReady,false);assert.equal(s.reasonCode,'LANGGRAPH_INTERFACE_UNAVAILABLE');assert.equal(await readFile(marker,'utf8'),'closed');
  await rm(marker);await writeFile(file,source(false).replace('def invoke(', 'def unsupported('));assert.equal((await inspectLangGraph(target,{loadEnvironment:async()=>({PATH:process.env.PATH})})).evaluationReady,false);assert.equal(await readFile(marker,'utf8'),'closed');

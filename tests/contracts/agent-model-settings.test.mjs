@@ -22,7 +22,7 @@ test('fresh Agent credentials can be configured independently of evaluator crede
  assert.equal(target.EVALDOCK_PLANNER_API_KEY,undefined);assert.equal(target.EVALDOCK_JUDGE_API_KEY,undefined);
  assert.equal(controller.jobs.environment.DEEPSEEK_API_KEY,undefined);
  assert.ok(controller.jobs.secrets.includes('target-fixture'));assert.equal(controller.preflights.size,0);assert.equal(controller.cacheUntil,0);
- assert.equal((await stat(file)).mode&0o777,0o600);
+ if(process.platform!=='win32')assert.equal((await stat(file)).mode&0o777,0o600); // Windows ACLs require a native user-access check.
  await settings.save({apiKey:''});assert.equal((await loadAgentEnvironment({file,legacyFile,environment})).DEEPSEEK_API_KEY,'target-fixture');
 });
 
