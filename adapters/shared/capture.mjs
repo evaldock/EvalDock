@@ -122,6 +122,9 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
     values.set(key.toUpperCase(),[key,value]);
   }
   const environment=Buffer.from([...values.values()].sort(([a],[b])=>a.toUpperCase().localeCompare(b.toUpperCase())).map(([key,value])=>key+'='+value).join('\0')+'\0\0','utf16le').toString('base64');
+  const began=performance.now(),trace=[];
+  const mark=(phase,details={})=>{if(trace.length<32)trace.push({phase,atMs:Math.round((performance.now()-began)*1000)/1000,...details});};
+  mark('SPAWN');
   const helper=spawn(path.join(system.SystemRoot??system.WINDIR??'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'),
     ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(new URL('./windows-process.ps1',import.meta.url))],
     {env:system,windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -133,18 +136,21 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
   const stop=reason=>{
     capture.error??=reason;
     if(finished)return;
+    if(!stopRequested)mark('STOP_REQUESTED',{reason});
     stopRequested=true;
     if(requestSent&&!helper.stdin.destroyed&&!helper.stdin.writableEnded)helper.stdin.end('stop\n');
     watchdog??=setTimeout(()=>{
+      mark('WATCHDOG_EXPIRED',{lastPhase:supervisor.phase});
       forced=true;helper.kill(); // Only our supervisor handle; OS closes its job.
       helper.stdout.destroy();helper.stderr.destroy();helper.stdin.destroy();
       resolveOutcome({code:1}); // Missing job receipt always remains UNKNOWN.
     },5000);
   };
   const abort=()=>stop('AGENT_CANCELLED');
-  const timer=setTimeout(()=>stop('AGENT_TASK_TIMEOUT'),deadlineMs);
+  mark('DEADLINE_ARMED',{deadlineMs});
+  const timer=setTimeout(()=>{mark('DEADLINE_EXPIRED',{lastPhase:supervisor.phase});stop('AGENT_TASK_TIMEOUT');},deadlineMs);
   helper.once('error',()=>{capture.error??='AGENT_PROCESS_START_FAILED';resolveOutcome({code:1});});
-  helper.once('close',code=>resolveOutcome({code}));
+  helper.once('close',code=>{mark('SUPERVISOR_CLOSED',{code});resolveOutcome({code});});
   helper.stdin.on('error',()=>stop('AGENT_PROCESS_FAILED'));
   helper.stderr.on('data',chunk=>{stderrBytes+=chunk.length;});
   helper.stdout.on('data',chunk=>{
@@ -156,6 +162,7 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
         if(line.length>16384)throw Error('Oversized supervisor frame');
         const row=JSON.parse(line);
         if(row.type==='phase'&&['READ_REQUEST','REQUEST_READ','LOAD_UTILITY','PARSE_REQUEST','COMPILE','RUN','CREATE_JOB','CREATE_TARGET','ASSIGNED'].includes(row.name)){
+          mark(row.name);
           supervisor.phase=row.name;
           if(row.name==='READ_REQUEST'&&!requestSent){
             requestSent=true;
@@ -166,10 +173,11 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
         else if(row.type==='failure'&&['ENTER','CREATE_JOB','CREATE_TARGET','ASSIGNED','POWERSHELL'].includes(row.phase)&&Number.isInteger(row.code))supervisor.failure={phase:row.phase,code:row.code};
         else if(row.type==='stdout'&&typeof row.data==='string')reader.write(Buffer.from(row.data,'base64'));
         else if(row.type==='started'&&!started&&Number.isInteger(row.pid)&&row.pid>0&&Number.isFinite(Date.parse(row.at))){
+          mark('TARGET_STARTED');
           started=row;capture.processGroupId=row.pid;
           sessionRecord=Promise.resolve().then(()=>onSession?.(capture.sessionId,{processGroupId:row.pid})).catch(()=>stop('AGENT_SESSION_RECORD_FAILED'));
-        }else if(row.type==='exit'&&!exit&&Number.isInteger(row.code)&&Number.isFinite(Date.parse(row.at)))exit=row;
-        else if(row.type==='cleanup'&&!receipt&&typeof row.stopped==='boolean'&&Number.isSafeInteger(row.stderrBytes)&&row.stderrBytes>=0)receipt=row;
+        }else if(row.type==='exit'&&!exit&&Number.isInteger(row.code)&&Number.isFinite(Date.parse(row.at))){mark('TARGET_EXITED',{code:row.code});exit=row;}
+        else if(row.type==='cleanup'&&!receipt&&typeof row.stopped==='boolean'&&Number.isSafeInteger(row.stderrBytes)&&row.stderrBytes>=0){mark('CLEANUP_RECEIVED',{stopped:row.stopped});receipt=row;}
         else throw Error('Invalid supervisor frame');
       }catch{protocolFailed=true;stop('AGENT_PROCESS_PROTOCOL_ERROR');}
     }
@@ -187,7 +195,7 @@ async function runWindowsProcess({command,args,cwd,env,signal,deadlineMs,capture
   else if(exit.code!==0)capture.error??='AGENT_PROCESS_FAILED';
   if(!capture.result&&!capture.error)capture.error='AGENT_TURN_INCOMPLETE';
   capture.cleanup=!forced&&!protocolFailed&&!protocol.trim()&&receipt?.stopped===true?'STOPPED':'UNKNOWN';
-  capture.diagnostics={exitCode:exit?.code??null,stderrBytes:stderrBytes+(receipt?.stderrBytes??0),parseErrors,supervisor:{...supervisor,forced}};
+  capture.diagnostics={exitCode:exit?.code??null,stderrBytes:stderrBytes+(receipt?.stderrBytes??0),parseErrors,supervisor:{...supervisor,forced,trace:trace.slice()}};
   return capture.finish();
 }
 

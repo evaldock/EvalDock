@@ -44,7 +44,7 @@ test('process capture drains oversized lines, keeps framing, redacts target keys
   const cwd=await temporary(t),key='target-secret-key-for-test';
   const source="console.log('x'.repeat(700000)); console.log(JSON.stringify({type:'tool/call',data:{callId:'a',name:'tool',result:process.env.DEEPSEEK_API_KEY}})); console.log(JSON.stringify({type:'runtime/completed'}));";
   const result=await runProcess({command:process.execPath,args:['-e',source],cwd,env:{DEEPSEEK_API_KEY:key},deadlineMs:5000,capture:new Capture('langgraph'),onEvent:langGraphEvent});
-  if(result.error)t.diagnostic(JSON.stringify({error:result.error,cleanup:result.cleanup,diagnostics:result.diagnostics}));
+  t.diagnostic(JSON.stringify({error:result.error,cleanup:result.cleanup,diagnostics:result.diagnostics}));
   assert.equal(result.error,null);assert.equal(result.cleanup,'STOPPED');assert.ok(result.omitted>0);assert.ok(!JSON.stringify(result).includes(key));assert.ok(JSON.stringify(result).includes('[REDACTED]'));
   const abort=new AbortController();setTimeout(()=>abort.abort(),50);
   const cancelled=await runProcess({command:process.execPath,args:['-e','setInterval(()=>{},1000)'],cwd,env:{},deadlineMs:5000,signal:abort.signal,capture:new Capture('pi'),onEvent:piEvent});
@@ -128,7 +128,7 @@ test('Windows capture requires a supervisor cleanup receipt and isolates its lau
       if(receipt!==null)helper.stdout.write(JSON.stringify({type:'cleanup',stopped:receipt,stderrBytes:0})+'\n');
       helper.emit('close',receipt===null?1:0);
     });return helper;},path,fileURLToPath,platformEnvironment:()=>({SystemRoot:'C:\\Windows',PATH:'synthetic-path'}),Buffer,setTimeout:(fn,ms)=>setTimeout(fn,['hung','cancel-before-ready'].includes(receipt)&&ms===5000?0:ms),clearTimeout,URL,
-      process:{platform:'win32'},StringDecoder:(await import('node:string_decoder')).StringDecoder});
+      process:{platform:'win32'},performance,StringDecoder:(await import('node:string_decoder')).StringDecoder});
     const run=vm.runInContext(source+'\nrunProcess',context);
     const result=await run({command:'synthetic.exe',args:['a b'],cwd,env:{DEEPSEEK_API_KEY:'synthetic-target-secret'},deadlineMs:30000,signal:abort.signal,capture:new Capture('langgraph'),onEvent:langGraphEvent,onSession:()=>{if(receipt==='hung')abort.abort();}});
     assert.equal(result.cleanup,receipt===true?'STOPPED':'UNKNOWN');
