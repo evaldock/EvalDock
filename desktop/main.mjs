@@ -9,7 +9,7 @@ import {DesktopUpdates,updateEligible} from './updates.mjs';
 import updaterPackage from 'electron-updater';
 const here=path.dirname(fileURLToPath(import.meta.url));
 app.setName('EvalDock');
-let window,backend,origin,root,updates,quitting=false,importing=false,automaticLibrary=false;
+let window,backend,origin,root,updates,quitting=false,importing=false,automaticLibrary=false,reportSerial=0;
 if(!app.requestSingleInstanceLock())app.quit();
 else {
   app.on('second-instance',()=>{window?.show();window?.focus();});
@@ -56,8 +56,27 @@ async function start(){
   window.webContents.setWindowOpenHandler(({url})=>{
     const parsed=new URL(url);
     if(parsed.origin===origin&&parsed.pathname.startsWith('/reports/')){
-      const report=new BrowserWindow({width:1050,height:780,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false,javascript:false}});report.loadURL(url);
+      const report=new BrowserWindow({width:1050,height:780,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false,javascript:true,partition:'evaldock-report-'+(++reportSerial)}});
+      const directory=parsed.pathname.slice(0,parsed.pathname.lastIndexOf('/')+1),loader=directory+'report-data.js';
+      // Reports need the evidence loader, but must not inherit access to control APIs.
+      report.webContents.session.webRequest.onBeforeRequest((request,callback)=>{
+        let allowed=false;
+        try{
+          const target=new URL(request.url),relative=target.pathname.slice(directory.length);
+          allowed=target.origin===origin&&['GET','HEAD'].includes(request.method)&&target.pathname.startsWith(directory)&&
+            (target.pathname===parsed.pathname||target.pathname===loader||/^(all-trace\/(manifest\.json|events\.jsonl|blobs\/[a-f0-9]{64})|output\/.+)$/.test(relative))&&
+            (request.resourceType!=='script'||target.pathname===loader);
+        }catch{}
+        callback({cancel:!allowed});
+      });
+      report.webContents.session.webRequest.onHeadersReceived((response,callback)=>{
+        const headers={...response.responseHeaders},key=Object.keys(headers).find(key=>key.toLowerCase()==='content-security-policy')??'Content-Security-Policy';
+        headers[key]=[...(headers[key]??[]),"default-src 'none'; script-src "+origin+loader+"; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"];
+        callback({responseHeaders:headers});
+      });
+      report.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
       report.webContents.setWindowOpenHandler(()=>({action:'deny'}));report.webContents.on('will-navigate',event=>event.preventDefault());
+      report.loadURL(url);
     }
     return {action:'deny'};
   });
