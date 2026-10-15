@@ -1,5 +1,7 @@
 # Windows 开发总结（2026-10-14）
 
+> 后续进展见 [2026-10-15 超时定位与交接](WINDOWS_TIMEOUT_INVESTIGATION_20261015.md)：已完成 Windows 10 限定实机验证并上传阶段计时诊断；此前超时根因和 Windows 整体验收仍未关闭。下文保留 2026-10-14 的历史结果。
+
 **已上传，尚未完成 Windows 整体验收。** 分支为 `codex/windows-foundation`，[PR #1](https://github.com/evaldock/EvalDock/pull/1) 保持草稿，未合入 `app`。简版及转发话术见 [交接文档](WINDOWS_NIGHT_HANDOFF_20261014.md)。
 
 ## 已完成的修改

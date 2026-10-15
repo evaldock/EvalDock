@@ -1,5 +1,7 @@
 # EvalDock 开发交接（2026-10-14）
 
+> 最新接手请看 [2026-10-15 超时定位与交接](WINDOWS_TIMEOUT_INVESTIGATION_20261015.md)，其中包含 Windows 10 实机结果、新诊断提交及更新后的转发话术。下文为昨晚交接记录。
+
 **代码和已有交接已上传，Windows 整体验收尚未完成。** 查看 `codex/windows-foundation` 分支或 [PR #1](https://github.com/evaldock/EvalDock/pull/1)，改动尚未合入 `app`。
 
 ## 已做
