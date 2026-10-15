@@ -83,7 +83,7 @@ deduplicated. No unobserved thoughts or tools are fabricated.
 
 Oversized tool arguments and results are excerpted within their payload fields,
 preserving the call ID, tool name and error status used to pair events. Excerpting
-still marks evidence as truncated and blocks full-evidence scoring; preserving
+still marks evidence as truncated and blocks scoring; preserving
 the envelope does not make the omitted content observable.
 
 Cost evidence uses native completed-response counters or a native session total;
