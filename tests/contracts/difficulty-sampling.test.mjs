@@ -40,7 +40,7 @@ async function fixture(t){
  const root=await temporary(t),cases=[];
  for(let n=1;n<=15;n++){
   const {dir,q}=await question(path.join(root,'datasets'),n),bytes=await readFile(path.join(dir,'question.json'));
-  cases.push({questionId:q.id,questionPath:path.relative(root,path.join(dir,'question.json')),level:n<=5?'EASY':n<=10?'MEDIUM':'HARD',questionSha256:createHash('sha256').update(bytes).digest('hex')});
+  cases.push({questionId:q.id,questionPath:path.relative(root,path.join(dir,'question.json')).split(path.sep).join('/'),level:n<=5?'EASY':n<=10?'MEDIUM':'HARD',questionSha256:createHash('sha256').update(bytes).digest('hex')});
  }
  await json(path.join(root,'planning/case-sampling.json'),{schema:'evaldock.case-sampling/v1',version:'1',enabled:true,percentages});
  await json(path.join(root,'planning/case-difficulty.json'),{schema:'evaldock.case-difficulty/v1',version:'1',cases});
