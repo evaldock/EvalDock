@@ -62,9 +62,17 @@ export class ControlResults {
       const c={id:cr.caseId,title:r?.case?.question?.title??cr.caseId,dataset:cr.datasetId,status:r?.execution?.exitCode===0?'done':cr.status==='COMPLETED'?'done':'error',time:r?.execution?.durationMs!==undefined?(r.execution.durationMs/1000).toFixed(1)+' s':'—',evidence:0,evidenceUnit:'条已加载证据',weight:scoreEntries[0]?.weight??r?.case?.grading?.weight??1,scores:Object.fromEntries(scoreEntries.map(s=>[String(s.labelId),{state:s.status==='ERROR'?'error':typeof s.score==='number'?'scored':'null',value:s.score,reason:s.reason,scale:s.scale,standardDigest:s.labelDigest?.value}])),events:(r?.timeline??[]).map(t=>({text:t.label,detail:t.status})),files:[],file:'',finalAnswer:r?.execution?.stdout??'',answerTruncated:r?.execution?.stdoutTruncated??false};
       run.cases.push(c);
       if(r){
+        // Optional cleanup metadata must neither hide a report nor reuse a stale confirmation.
+        let session=null;
+        try{
+          const file=await confined(this.root,base+'/cases/'+cr.caseId+'/session.json'),info=await stat(file);
+          if(info.isFile()&&info.size<=64*1024*1024)session=JSON.parse(await readFile(file,'utf8'));
+        }catch{/* Missing, unreadable or damaged receipts remain unconfirmed. */}
+        const ownedSession=session?.schema==='evaldock.agent-session/v1'&&session.runId===job.runId&&session.caseId===cr.caseId&&typeof session.sessionId==='string'&&Array.isArray(r.execution?.agentSessionIds)&&r.execution.agentSessionIds.includes(session.sessionId);
+        const cleanupState=ownedSession&&['STOPPED','PENDING','NOT_STARTED'].includes(session.cleanup)?session.cleanup:'UNKNOWN';
         identity={...identity,...r.target};
         details[c.id]={task:r.execution?.task??r.case?.task,inputs:r.case?.inputs?.map(i=>i.destination)??[],output:r.case?.allowedPaths??[],labels:r.case?.labelIds??[],environment:r.plan?.casePlan?.environmentId,deadline:r.case?.deadlineMs,source:'report.json'};
-        runtime[job.targetId+'::'+job.runId+'::'+c.id]={execution:r.execution,observers:[],files:[],failures:r.failures??[],reset:r.reset?{...r.reset,environmentState:r.environmentState}:null,allTraceEntryCount:r.allTraceRef?.entryCount??null,traceLoadState:r.allTraceRef?'available':'missing',...(r.allTraceRef?{traceDetailPath:'api/control/trace/'+job.targetId+'/'+job.runId+'/'+c.id}:{})};
+        runtime[job.targetId+'::'+job.runId+'::'+c.id]={execution:r.execution,observers:[],files:[],failures:r.failures??[],cleanupState,reset:r.reset?{...r.reset,environmentState:r.environmentState}:null,allTraceEntryCount:r.allTraceRef?.entryCount??null,traceLoadState:r.allTraceRef?'available':'missing',...(r.allTraceRef?{traceDetailPath:'api/control/trace/'+job.targetId+'/'+job.runId+'/'+c.id}:{})};
         Object.assign(run.target,{dshVersion:r.target?.dshPackageVersion,profile:r.target?.profile,driverStatus:r.inspection?.headlessDriverStatus,permissionPreset:r.inspection?.permissionPreset,sandboxMode:r.inspection?.sandboxMode,recordSource:'report.json',toolNames:[...new Set((r.inspection?.toolSchemas??[]).filter(t=>typeof t.name==='string'&&t.name!=='UNKNOWN').map(t=>t.name))],toolDetails:[...new Set((r.inspection?.toolSchemas??[]).filter(t=>typeof t.name==='string'&&t.name!=='UNKNOWN').map(t=>t.name))].map(name=>({...r.inspection.toolSchemas.find(t=>t.name===name),attribution:toolAttribution(name,r.inspection.toolSchemas)}))});
         run.targetSummary='Profile web / '+(r.target?.dshPackageVersion??'—');
         if(r.inspection?.pluginCatalog)run.staticPlugins=r.inspection.pluginCatalog.map(p=>({...p,name:p.packageName||p.id,version:p.version,function:p.description||'',status:'已声明'}));
