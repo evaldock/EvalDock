@@ -1,5 +1,29 @@
 # Windows 超时定位与交接（2026-10-15）
 
+## 2026-10-16 接续规划阶段
+
+**当前结论：Windows 间歇超时仍未确认解决，实际安装包验收尚未完成。本次完成接手核对和规划，没有新增产品验证。** 当前 TODO 与详细开发卡沿用 [Windows 任务卡](WINDOWS_HANDOFF_20261014.md)，下方 10 月 15 日实验记录保留原日期，不改写成今天的新结果。
+
+| 项目 | 本次实际动作与结果 |
+| --- | --- |
+| 最新 app | `git fetch --no-tags origin app codex/windows-foundation codex/app-client-20261016` 后，对干净且仅落后的本地 app 执行 `git merge --ff-only origin/app`，从 `a84d2c0` 快进到 `433b76535d99b3aaea1ef4faf9016619db3ecbaf`，新增 7 个提交；与早上客户端聊天起点一致 |
+| Windows 接手源 | 远端仍为 `codex/windows-foundation / 8ef70d8b3a63ded2292a6330693e9509a693f1b7`。本次只更新该工作树两份现有文档，没有混入 app/客户端分支产品代码 |
+| 独立客户端成果 | `codex/app-client-20261016 / 12f9677f25542d0f606d31d1a6f44d8ea9cc4026`，C01 产品提交 `85db251`；全段沟通与现有文件核对完成，不重写详情页和 C02 核查 |
+| 当前 PR/CI 读回 | [PR #1](https://github.com/evaldock/EvalDock/pull/1)仍草稿、未合并；[CI #47](https://github.com/evaldock/EvalDock/actions/runs/38670210700) Windows 门禁失败，NSIS/摘要/上传跳过，Ubuntu 成功；未重新触发。原日志仍记 180 秒超时 |
+| 已识别接手差异 | app 的 `6c77478` 工具证据配对、`c7ddd4c` 报告证据加载尚未进入 Windows 起点。WX01 只承接现成修复，不重做或整文件覆盖 Windows 平台逻辑 |
+| 已识别重复执行 | C01 产品提交后至最终交付只改文档；收尾曾再跑相同完整产品检查，旧本地结果明确没有新产品改动。历史记录保留；后续同源码、同环境文档收尾只做文档检查 |
+| 本次验证边界 | 只做 Git、文档和既有证据核查。文档检查的实际结果、最后本地提交号在本次最终回复报告；没有运行产品测试、依赖安装、打包、Windows SSH/GUI、真实 Agent/模型或 Mac VM，也没有推送、上传或发布 |
+
+**当前未验证：** Windows SSH 认证与 GUI 会话能否使用、实际系统版本/工具链与仓库改动、可用 Windows Agent、账号/题目/调用上限，以及候选包签名和安装效果。旧 Windows 10 与 CI 证据只归属原提交、原环境，不能填这些空项。
+
+**下一步：** WX00 先核实原 Windows 机器；WX01 可独立承接必要现成修复。之后 WX02 有上限抓偶发失败，WX03 定位其他完整门禁失败，WX04 原机打包，WX05 安装/基础操作，WX06 一个真实 Agent 最小闭环，WX07 交付候选。Mac、C02、新引擎及自动更新不加入。
+
+**经验：** 沿用现有任务卡和日志，先分清“已有实现”“缺实机证据”“重复复跑”。文档查重不需要再执行产品全套；目标 Windows 上从未完成的安装与真实评测仍需实际验收。后续每卡用变化、证据、未完成、下一步、经验五行总结。
+
+---
+
+## 2026-10-15 实验与交接记录
+
 **代码已上传，超时根因尚未确定，Windows 整体验收未通过。** 分支为 `codex/windows-foundation`，[PR #1](https://github.com/evaldock/EvalDock/pull/1) 保持草稿，未合入 `app`。
 
 ## 本轮做了什么
