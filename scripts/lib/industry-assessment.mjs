@@ -36,8 +36,9 @@ export function buildIndustryAssessment(source, manifest, packets = []) {
       sourceTraceDigest:digest(c.traceDigest) ?? null, sourceRevision:c.scoreRevision?.id ?? null, origin:null};
     requireThat(finite(row.weight) && row.weight >= 0, 'INDUSTRY_WEIGHT_INVALID');
     if (!row.industryId) { cases.push(row); continue; }
-    if (!c.sourceReportSha256 || !c.hasTrace) row.scoringState = c.executionStatus === 'NOT_STARTED' ? 'PENDING_EXECUTION' : 'EVIDENCE_UNAVAILABLE';
-    else if (!c.effective || c.scoringStatus !== 'COMPLETE') row.scoringState = Object.values(c.scores).some(s => s.state === 'quarantined') ? 'EXCLUDED' : 'PENDING_SOURCE_COMPLETION';
+    if (Object.values(c.scores).some(s => s.state === 'quarantined')) row.scoringState = 'EXCLUDED';
+    else if (!c.sourceReportSha256 || !c.hasTrace) row.scoringState = c.executionStatus === 'NOT_STARTED' ? 'PENDING_EXECUTION' : 'EVIDENCE_UNAVAILABLE';
+    else if (!c.effective || c.scoringStatus !== 'COMPLETE') row.scoringState = 'PENDING_SOURCE_COMPLETION';
     else {
       let score = c.scores[decision.scoreLabelId];
       if (score) row.origin = 'REUSED';

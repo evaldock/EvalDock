@@ -26,8 +26,8 @@ test('different original labels, frozen standards, scales and modes remain separ
 test('partial attempts and quarantine never contribute or trigger supplemental judging',()=>{
  const {source,manifest}=fixture();source.cases[0].effective=false;source.cases[0].scoringStatus='PARTIAL';
  let out=buildIndustryAssessment(source,manifest);assert.equal(out.cases[0].scoringState,'PENDING_SOURCE_COMPLETION');assert.equal(out.industries[0].groups.length,0);
- source.cases[0].scores[label].state='quarantined';out=buildIndustryAssessment(source,manifest);assert.equal(out.cases[0].scoringState,'EXCLUDED');assert.equal(out.industries[0].excludedCount,1);
- delete source.cases[0].sourceReportSha256;source.cases[0].executionStatus='NOT_STARTED';assert.equal(buildIndustryAssessment(source,manifest).cases[0].scoringState,'PENDING_EXECUTION');
+ source.cases[0].scores[label].state='quarantined';source.cases[0].hasTrace=false;out=buildIndustryAssessment(source,manifest);assert.equal(out.cases[0].scoringState,'EXCLUDED');assert.equal(out.industries[0].excludedCount,1);
+ source.cases[0].scores={};delete source.cases[0].sourceReportSha256;source.cases[0].executionStatus='NOT_STARTED';assert.equal(buildIndustryAssessment(source,manifest).cases[0].scoringState,'PENDING_EXECUTION');
 });
 test('unassessable, invalid scores, pending labels and Judge errors retain different states',()=>{
  const {source,manifest}=fixture();const c=source.cases[0];c.scores[label].state='null';c.scores[label].value=null;assert.equal(buildIndustryAssessment(source,manifest).industries[0].unassessableCount,1);
