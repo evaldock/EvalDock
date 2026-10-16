@@ -7,6 +7,7 @@ import {piLaunch} from '../../adapters/pi/launch.mjs';
 import {temporary} from './support.mjs';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createPiAdapter} from '../../adapters/pi/adapter.mjs';
 
 test('CLI negotiation uses advertised contracts and excludes evaluator credentials',async()=>{
@@ -28,7 +29,7 @@ test('Pi omits unavailable optional flags while retaining isolated runtime and e
  const home=await temporary(t);
  const launch=await piLaunch({executable:'/fixture/pi',model:'fixture'},{extensions:[],protocol:{id:'pi.json-stream/v1',flags:['--mode','--print','--no-session','--provider','--model']}},home);
  assert.ok(!launch.args.includes('--no-context-files'));assert.ok(!launch.args.includes('--no-themes'));
- assert.ok(launch.args.includes('--no-session'));assert.equal(launch.env.PI_CODING_AGENT_DIR,home+'/.pi/agent');
+ assert.ok(launch.args.includes('--no-session'));assert.equal(launch.env.PI_CODING_AGENT_DIR,path.join(home,'.pi','agent'));
 });
 
 test('Pi print execution accepts both credential grammars and protects literal prompt arguments',async t=>{
@@ -56,7 +57,7 @@ test('native Hermes completion is accepted only from one completed owned session
  const {execFileSync}=await import('node:child_process');
  const {restoreHermesEvidence}=await import('../../adapters/hermes/adapter.mjs');
  const root=await temporary(t),file=root+'/session.db';
- const reader=new URL('../../adapters/hermes/session-evidence.py',import.meta.url).pathname;
+ const reader=fileURLToPath(new URL('../../adapters/hermes/session-evidence.py',import.meta.url));
  const create=`import sqlite3,sys\nc=sqlite3.connect(sys.argv[1]);c.executescript("CREATE TABLE sessions(id TEXT,ended_at REAL);CREATE TABLE messages(id INTEGER,session_id TEXT,role TEXT,tool_call_id TEXT,tool_calls TEXT,tool_name TEXT,content TEXT,timestamp REAL,finish_reason TEXT);INSERT INTO sessions VALUES('owned',1);INSERT INTO messages VALUES(1,'owned','assistant',NULL,NULL,NULL,'delivered',1,'stop');");c.commit()`;
  execFileSync(pythonExecutable,['-c',create,file]);
  const evidence=JSON.parse(execFileSync(pythonExecutable,[reader,file,'--session-archive'],{encoding:'utf8'}));
