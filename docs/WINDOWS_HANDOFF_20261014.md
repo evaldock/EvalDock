@@ -1,6 +1,6 @@
 # Windows x64 接续 TODO 与开发任务卡
 
-> 2026-10-16 当前接续计划。下方历史 W1–W6/N0–N4 记录保留；本节负责当前顺序和边界。本次只完成拉取、沟通查重与规划，没有开始 Windows 修复或实机验收。
+> 2026-10-16 接续记录。下方各阶段和历史 W1–W6/N0–N4 记录保留；当前状态以“本轮提交与交接收尾”为准。规划、只读核查、本地实现和 Windows 实机验收分别记录，不互相代替。
 >
 > WX00 接续：用户随后只授权原 Windows 机器的只读核查，现已登录并取得系统、会话及仓库证据；完整运行隔离仍未确认。未同步源码、安装依赖、启动 App 或运行旧测试，详见下方 WX00 结果。
 >
@@ -20,18 +20,44 @@
 
 **Spec:** 用户 2026-10-16 提供的《window客户端交接文档.md》及本次请求。附件 SHA-256：`defe90bd2332ccec77250d1c5623266a7a84454eff3d4f1491bc8f99cfa096a5`。附件是规划依据，本次没有据其内容自动执行登录、安装或真实评测。
 
+## 2026-10-16 本轮提交与交接收尾
+
+**范围与版本：** 项目 `evaldock/EvalDock`，开发分支 `codex/windows-foundation`，继续使用 `EvalDock-windows-w1-w3` 工作树。本次按用户明确要求推送当前分支，不合入 `app/main`，不连接原 Windows、不处理 Mac、不发布。代码交付点为 [`9291f3a004668d147e5909393bb6ba9e63aa75d6`](https://github.com/evaldock/EvalDock/commit/9291f3a004668d147e5909393bb6ba9e63aa75d6)：从远端 `8ef70d8` 正常快进推送 7 个相关提交，`git ls-remote` 与 PR head 均已读回同一 SHA，没有空代码提交或强推。收尾文档另行提交推送，其 SHA 与最终 CI 状态只在最终回复报告，不回填循环提交。
+
+| 当前任务 | 实际状态及原因 |
+| --- | --- |
+| 接手/查重/任务规划、WX00 只读核实 | **该范围已完成。** 已有系统、会话、仓库及配置边界证据；专用账号、可操作 GUI 和完整运行隔离仍**未确认**，WX00 全卡不关闭 |
+| WX01 | **本地实现及相关检查完成，实机未验证。** 复用两项现成修复，保留 Windows 差异；未同步原机、未进行实际 Electron 界面或完整 Windows 门禁验收 |
+| WX02 | **未完成。** 偶发超时没有已确认根因或修复结果；现有成功样本不能证明它消失 |
+| WX03 | **本地批次收尾完成，全卡未通过。** 累计 4 条有本地夹具修正；另 10 条缺充分失败现场/原生契约而阻塞，DSH 1 条按用户要求暂缓。逐组条件见下方批次清单；原 Windows 失败是否恢复仍未验证 |
+| WX04–WX07 | **未完成/未验证。** 未在原机打包、安装及验收一个真实 Agent，未交付可取得的 `.exe`；仍受隔离、门禁和真实调用条件限制，不以代码已写代替交付完成 |
+
+**本次实际执行的最小测试：** 在代码交付点合并核验 4 个受影响夹具用例，命令如下，实际 **4 通过、0 失败、0 跳过，退出 0**；没有扩大到整套旧测试，没有真实 Agent/模型调用。
+
+```sh
+node --test --test-reporter=tap --test-timeout=120000 --test-name-pattern='^(Pi omits unavailable optional flags while retaining isolated runtime and explicit extensions|native Hermes completion is accepted only from one completed owned session|annotations bind to question bytes; stale annotation becomes UNKNOWN, hints never contain private answers|release audit rejects nested history, secrets, home paths and external links)$' tests/contracts/agent-version-negotiation.test.mjs tests/contracts/difficulty-sampling.test.mjs tests/contracts/desktop-publication.test.mjs
+```
+
+WX01 的 `pnpm run build`、`pnpm run check` 及四文件 30 项检查结果仍归原本地实现阶段（28 通过、2 项原生 Windows 跳过），不是此次新跑。`241a1e1..9291f3a` 的 TS/探针源码、依赖清单和锁文件无差异，继续使用当时构建产物，没有为收尾重复构建。此次未运行 `pnpm run verify` 或完整契约套件；`node --test workbench/lib/model-settings.test.mjs` 沿用 WX01 已有证据，本次未重跑。文档提交仅做链接、命令存在性、格式与发布边界检查，不再次执行产品测试。
+
+**对应 CI：已配置，代码提交未触发，未通过。** 本轮推送后同时查询 GitHub Actions 全事件运行与 check-runs，本 SHA 均为 0；没有本提交的运行链接，不能引用历史 CI #47 作为本次结果。[PR #1](https://github.com/evaldock/EvalDock/pull/1)当前 open、draft、未合并，API 返回 `mergeable=false`、`mergeable_state=dirty`。[本提交检查页](https://github.com/evaldock/EvalDock/commit/9291f3a004668d147e5909393bb6ba9e63aa75d6/checks)用于核对缺失检查，不代表通过。现有 `.github/workflows/ci.yml` 的 push 分支仅 `main/app/release/**`，当前分支依赖 PR 事件；本次未为绕过合并阻塞修改工作流、合并基线或手动重跑全套。无运行可等待时记录“未触发”，不写为“运行中”或“失败测试已修复”。
+
+**接手位置与访问：** 使用仓库 `https://github.com/evaldock/EvalDock.git` 的 `codex/windows-foundation`；先读本节、WX03 批次阻塞表及现有超时交接，不按旧 PR 正文中的历史状态重新实施。GitHub 元数据确认仓库为 public，当前 Git 凭据已实际成功推送。没有提供具体接手人的账号，其推送与 Actions 权限**未核验**；不要索取或传递用户密码/令牌。源码和文档随 Git 交付，本机忽略目录中的原始诊断日志、用户配置及运行产物不进入公开仓库。
+
+**下一步与停止点：** 原 Windows 隔离/桌面准备仍由用户暂缓；PR 合并冲突和缺失 CI 单独保留。条件变化后先处理对应阻塞，取得未解决项的首个断言/异常再最小修复，不能直接进入已验收的安装包交付。没有新证据不重新逐条循环核查，也不把本次提交推送收尾当作整个 Windows 项目完成。
+
 ## 当前边界与证据规则
 
 - “本轮只负责 Windows 适配，交付能实际安装、启动的 Windows x64 安装包。”
 - “Mac 相关开发、环境准备、虚拟机、测试、打包和验收均不在本轮范围内，无需处理或等待 Mac 事项。”不把 Mac B02 隔离阻塞变成 Windows 前置条件。
 - “运行验证以该 Windows 机器的实际结果为准，本机检查或 CI 结果不能替代目标机验证。”记录实际系统版本；不要求换成新 Windows 11 机器，也不泛化为所有 Windows 版本通过。
 - “同步前核对目标机的分支、提交和未提交改动，保留已有配置、密钥、题库和评测结果。”不覆盖远端独立修改，不使用整目录删除镜像。
-- “本轮先交付候选包，不合入 `app` 或 `main`，不正式发布。”本次未推送、触发 CI、修改 PR 或上传安装包。
+- “本轮先交付候选包，不合入 `app` 或 `main`，不正式发布。”用户后续已明确授权当前开发分支的代码/文档推送和 CI 核验，结果见本轮收尾；没有上传安装包或发布。
 - 只处理影响 Windows 运行、测试、打包和验收的实际问题。C02 历史复测入口、新 Agent 适配器、Judge/Planner 引擎、网站、ARM64/WSL、自动更新和跨版本升级不纳入。
 - 区分代码已有、合成检查、CI、目标机界面、真实 Agent 与业务评分。缺证据写“未验证”；`SCORED`、`UNASSESSABLE`、`ERROR` 和有效零分不得混淆。未知清理不能写成完成。
 - 不读取或提交真实密钥、题库、私有参考和原始评测记录。私有参考仍只交给既有 Judge；新增资源继续接受现有包内实际字节审计。
 
-## 本次已核实的三个版本
+## 接续规划时核实的三个版本（历史快照）
 
 | 用途 | 分支与提交 | 本次结果 |
 | --- | --- | --- |
@@ -65,9 +91,9 @@
 - [x] 区分重复实现、可以省掉的复跑，以及 Windows 尚缺的实机验收。
 - [x] 在本文件整理接续卡，在[超时交接](WINDOWS_TIMEOUT_INVESTIGATION_20261015.md)记录本阶段总结；不新建同类清单。
 - [ ] **WX00 → 只读核查已完成，后续准备由用户暂缓。** SSH、系统、桌面存在及两个检出状态已核实；GUI 操作入口和专用测试账号/运行隔离未确认。未创建账号、改配置、同步或启动，详见下方结果。
-- [ ] **WX01 → 本地承接与相关合成检查完成，Windows 原生未验。** 两项修复已移入，Windows 差异保留；不搬 C01/C02。未同步原机，详情及门禁限制见本卡执行记录。
+- [ ] **WX01 → 本地承接与相关合成检查完成，Windows 原生未验。** 两项修复已移入并随 `9291f3a` 推送，Windows 差异保留；不搬 C01/C02。未同步原机，当前 PR 冲突/缺 CI 与实机验收限制见收尾记录。
 - [ ] **WX02 → N2 超时。** 优先看已有失败证据，缺现场才定向采样；有失败依据才修，未复现就保留未解决状态。
-- [ ] **WX03 → 完整门禁阻塞。** 先定位 DSH 预检及其他登记失败，按证实根因最小修复，再运行本轮必要完整检查。
+- [ ] **WX03 → 本地批次已收尾，全卡未通过。** 4 条已有本地夹具修正，10 条缺充分依据而阻塞，DSH 1 条暂缓；原 Windows 失败是否恢复及完整门禁未验证。缺新依据不循环核查，详情见批次表和收尾记录。
 - [ ] **WX04 → 原机生成候选。** 同源码生成 NSIS，审计包内文件并绑定源码、EXE、SHA-256。
 - [ ] **WX05 → 原机安装与界面。** 安装、启动、主要页面、配置、合成导入/报告、退出、卸载保留/重装；实测失败只开对应小修复。
 - [ ] **WX06 → 一个真实 Agent 的最小闭环。** 目标、账号、题目和调用上限明确后，用 1 道题核对执行/采集/评分/报告；不新增适配器。
