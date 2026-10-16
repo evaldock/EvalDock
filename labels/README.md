@@ -8,6 +8,8 @@
 
 新标签随新评测冻结到报告。历史 Case、Trace 和评分不回填。每题新增一次常规 Judge 调用，评分阶段会相应增加模型请求与等待时间。
 
+已有轮次的行业成绩可按审阅后的逐题归属重新汇总；复用评分须保留原评分标签、标准指纹、量表和执行模式。缺少适用标签评分时，仅对已有可采纳执行证据进行独立 Judge 补评，修订另存，原报告和 Trace 保持不变。未执行、部分评分、隔离和证据不足不能补成零分。流程与本地数据边界见[独立行业评估](../docs/INDUSTRY_ASSESSMENT.md)。
+
 成本效率需要选择「完整流程」（FULL）。适配器在现有 `session/completion` 中保留原生用量来源、去重与字段覆盖情况，以及实际进程或任务请求的执行区间；采集窗口另行记录。WorkBuddy 从本题独立原生会话读取数字统计，Pi/LangGraph 保留完成消息用量，Hermes/OpenClaw 支持原生归档统计。接口未提供 token 时仍可限定为时间评分，未知字段不补零。具体采集边界见[适配器说明](../adapters/README.md#evidence-policy)。
 
 逐响应汇总标记 `counterScope: PER_RESPONSE`、`aggregation: SUM`；原生会话累计量标记 `SESSION_TOTAL`、`NONE`，两者及重复镜像不相加。WorkBuddy 归档缺失时，口径未确认的完成响应数字保留为 `UNKNOWN` 证据，不当作会话总量；仍可依真实耗时限定评分范围。
