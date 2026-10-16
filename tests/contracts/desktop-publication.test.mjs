@@ -11,10 +11,15 @@ test('release audit accepts an empty library and web URLs and emits byte digests
  const files=audit.auditDesktopRuntime(root);assert.ok(files.length);assert.ok(files.every(f=>/^[a-f0-9]{64}$/.test(f.sha256)));
 });
 test('release audit rejects nested history, secrets, home paths and external links',async t=>{
- for(const [name,content] of [['reports/history.json','{}'],['.env','SECRET=value'],['local.js','const home="'+path.join('/Users','fixture-person','data')+'"'],['credential.txt','-----BEGIN PRIVATE KEY-----']]){
+ for(const [name,content] of [
+  ['reports/history.json','{}'],['.env','SECRET=value'],
+  ['local-posix.js','const home='+JSON.stringify(['','Users','fixture-person','data'].join('/'))+';'],
+  ['local-windows.js','const home='+JSON.stringify(['C:','Users','fixture-person','data'].join('\\'))+';'],
+  ['credential.txt','-----BEGIN PRIVATE KEY-----'],
+ ]){
   const root=await fixture(t),file=path.join(root,'dist',name);await mkdir(path.dirname(file),{recursive:true});await writeFile(file,content);assert.throws(()=>audit.auditDesktopRuntime(root),/publication boundary failed/);
  }
- const root=await fixture(t);await symlink('/etc/hosts',path.join(root,'dist/linked'));assert.throws(()=>audit.auditDesktopRuntime(root),/not a regular/);
+ const root=await fixture(t),external=await fixture(t);await symlink(external,path.join(root,'dist/linked'),'junction');assert.throws(()=>audit.auditDesktopRuntime(root),/not a regular/);
 });
 test('release audit rejects even synthetic demo tasks and additional user configuration',async t=>{
  const root=await fixture(t);await cp('examples/datasets/minimal',path.join(root,'datasets'),{recursive:true});assert.throws(()=>audit.auditDesktopRuntime(root),/empty desktop library/);
