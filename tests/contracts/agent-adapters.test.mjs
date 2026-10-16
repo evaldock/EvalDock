@@ -19,6 +19,27 @@ import {projectTraceOverview} from '../../dist/src/reporting/trace-overview.js';
 import {startControlServer} from '../../workbench/control-server.mjs';
 import {sessionForJob} from '../../workbench/live-observation.mjs';
 import {platformEnvironment} from '../../adapters/shared/platform-environment.mjs';
+import {validateCapture} from '../../adapters/compatibility/contracts.mjs';
+
+test('large Pi tool payloads retain call pairing while reporting truncated evidence',()=>{
+  const c=new Capture('pi'),secret='private-credential-must-be-redacted';
+  piEvent({type:'tool_execution_start',toolCallId:'large-call',toolName:'write',args:{path:'output/file',content:'x'.repeat(40000),api_key:secret}},c);
+  piEvent({type:'tool_execution_end',toolCallId:'large-call',toolName:'write',result:{content:[{type:'text',text:'written'}]},isError:false},c);
+  piEvent({type:'tool_execution_start',toolCallId:'large-result',toolName:'read',args:{path:'input/file'}},c);
+  piEvent({type:'tool_execution_end',toolCallId:'large-result',toolName:'read',result:{content:[{type:'text',text:'y'.repeat(40000)}],authorization:secret},isError:true},c);
+  piEvent({type:'message_end',message:{role:'assistant',stopReason:'stop',content:[{type:'text',text:'Done'}]}},c);
+  piEvent({type:'agent_end'},c);c.cleanup='STOPPED';
+  const capture=c.finish(),events=capture.queue.map(row=>row.event);
+  const issues=validateCapture({trace:{normalizeEvent:normalizedEvent}},capture,{required:['tools'],controlled:true});
+  assert.deepEqual(issues.map(issue=>issue.code),['AGENT_EVIDENCE_TRUNCATED']);
+  assert.equal(events.find(event=>event.type==='tool/call'&&event.data.callId==='large-call').data.arguments.representation,'EXCERPT');
+  const result=events.find(event=>event.type==='tool/result'&&event.data.callId==='large-result');
+  assert.equal(result.data.name,'read');assert.equal(result.data.isError,true);
+  assert.equal(result.data.result.representation,'EXCERPT');
+  assert.ok(capture.clipped>0);assert.equal(capture.omitted,0);
+  assert.ok(!JSON.stringify(capture).includes(secret));
+  assert.ok(Buffer.byteLength(JSON.stringify(capture))<192*1024);
+});
 
 test('Pi push events preserve distinct tools and final answer, omit token updates and fit the common Trace store',async t=>{
   const c=new Capture('pi');
