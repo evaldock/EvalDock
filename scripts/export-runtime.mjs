@@ -6,7 +6,9 @@ import {createRequire} from 'node:module';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const out=path.resolve(process.argv[2]??'artifacts/core-runtime');
-if(root.startsWith(out+path.sep)||out===path.resolve(root))throw Error('Choose an output directory outside the core source.');
+const relative=path.relative(root,out);
+const inside=relative!==''&&!relative.startsWith('..'+path.sep)&&!path.isAbsolute(relative);
+if(root.startsWith(out+path.sep)||out===path.resolve(root)||inside&&relative.split(path.sep)[0]!=='artifacts')throw Error('Choose an output directory outside the core source or under artifacts/.');
 execFileSync(process.execPath,['scripts/check-publication-boundary.mjs'],{cwd:root,stdio:'inherit'});
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
 const tracked=execFileSync('git',['ls-files','-z'],{cwd:root,encoding:'utf8'}).split('\0').filter(Boolean);

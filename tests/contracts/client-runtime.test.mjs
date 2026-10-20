@@ -12,6 +12,7 @@ test('core runtime exports the client interface without a desktop dependency',as
   assert.equal(pkg.main,undefined);assert.equal(pkg.build,undefined);
   assert.equal(pkg.devDependencies.electron,undefined);
   assert.ok(!Object.keys(pkg.scripts).some(name=>name.startsWith('desktop')));
+  assert.throws(()=>execFileSync(process.execPath,['scripts/export-runtime.mjs','src'],{stdio:'pipe'}),/Choose an output directory/);
 });
 
 test('exported runtime contains the built core and public resources without client or test code',async t=>{
