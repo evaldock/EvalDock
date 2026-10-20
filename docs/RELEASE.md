@@ -16,7 +16,7 @@ Mac App 安装包不携带该演示题，首次使用的本地题库为空；用
 
 Mac App v0.1.2 的下载、空工作空间和使用范围见[公开测试版说明](releases/v0.1.2.md)。本版纳入 HTML 报告 Trace 加载修复，替代此前的 v0.1.1 下载建议；两个版本保留各自的安装包和源码记录。测试版通过 GitHub Releases 提供 DMG 下载；临时签名包不代表 Developer ID 签名、公证或干净系统安装已验收。
 
-当前可运行源码工作台，也可按 [Mac App 指南](MAC_APP.md)在本机构建桌面应用。已完成的 App 临时签名构建、资源检查和合成交互记录见 [App 清单](APP_TODO_20261013.md)；这些结果不代表 Developer ID、公证、干净安装、实际跨版本更新或通用 Docker 发行已验收。本节只对齐当前状态，不是新版本发行说明。
+客户端构建与更新目标已迁移至 [EvalDock-APP](https://github.com/evaldock/EvalDock-APP)，本库不再安装 Electron 或提供 `desktop:*` 命令。当前可运行源码工作台，也可在新库按 [Mac App 指南](MAC_APP.md)在本机构建桌面应用。已完成的 App 临时签名构建、资源检查和合成交互记录见 [App 清单](https://github.com/evaldock/EvalDock-APP/blob/main/docs/APP_TODO_20261013.md)；这些结果不代表 Developer ID、公证、干净安装、实际跨版本更新或通用 Docker 发行已验收。本节只对齐当前状态，不是新版本发行说明。
 package.json 声明最低 Node.js `>=22`；当前 CI 使用 Node.js 24，本机已有验证为 24.19.0，建议使用 24.x。pnpm 固定为 11.24.0，最低声明不等于所有 Node 22 版本已实测。
 桌面 Agent 需另行安装、登录，并按[支持情况与验收范围](../adapters/SUPPORT.md)核对应用身份和版本；发布包不含它们的安装文件、账号或凭据。完整步骤见[原生安装指南](NATIVE_SETUP.md)。
 

@@ -5,15 +5,14 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {BenchDockLibrary} from '../../workbench/lib/benchdock-library.mjs';
-import {libraryFingerprint} from '../../desktop/workspace.mjs';
+import {libraryFingerprint} from '../../workbench/lib/library-workspace.mjs';
 import {evaluationCatalog} from '../../workbench/lib/evaluation-config.mjs';
-import {datasetDirectory,renderDatasets,selectedItems} from '../../workbench/design-prototypes/product-pages.js';
 import {startControlServer} from '../../workbench/control-server.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function fixture(t,{empty=false}={}){
  const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-directory-'));t.after(()=>rm(root,{recursive:true,force:true}));
- await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'desktop/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});
+ await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'tests/fixtures/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});
  await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
  const input=Buffer.from('synthetic public input');
  const rows=[
@@ -77,9 +76,6 @@ test('explicit subset download adds selectable public cases and retains existing
  assert.equal(local.scoring.readyCases,existing.scoring.readyCases);assert.deepEqual(await readFile(path.join(f.root,privateFile)),reference);
  assert.deepEqual(local.datasets.find(dataset=>dataset.id===existing.datasets[0].id),existing.datasets[0]);
  assert.equal((await readdir(path.join(f.root,'dataset-history'))).length,1);assert.ok(!f.requests.some(name=>name.includes('private/')));
- const directory=datasetDirectory(local,library.status());assert.equal(directory.filter(dataset=>dataset.id===mixed.id).length,1);assert.equal(directory.find(dataset=>dataset.id===mixed.id).local,true);
- const source=directory.find(dataset=>dataset.downloadableCases===0);
- assert.deepEqual(selectedItems(local,new Map([[mixed.id,new Set([0,1])],[source.id,new Set([0])]])),[{datasetId:mixed.id,caseIndices:[0]}]);
  const other=library.status().catalog.datasets.find(dataset=>dataset.name==='Synthetic second set');
  library.downloadDataset(other.id);await library.catalog.pending;
  assert.equal(library.status().download.state,'READY');assert.equal((await evaluationCatalog(f.root)).datasets.length,3);
@@ -162,42 +158,6 @@ test('byte progress follows streamed files, excludes failed attempts and include
  library.downloadDataset(directory.find(dataset=>dataset.name==='Synthetic second set').id);await library.catalog.pending;
  status=library.status().download;
  assert.equal(status.state,'READY');assert.equal(status.downloadedBytes,status.totalBytes);assert.equal(status.cachedBytes,status.totalBytes);
-});
-
-test('directory cards show download, progress, failure and actual local readiness separately',()=>{
- const remote={id:'dataset.fixture/v1',name:'<img src=x onerror=bad>',caseCount:2,downloadableCases:1,sourceOnlyCases:1,labelIds:['label.artifact-delivery/v1'],downloadBytes:1024};
- const library={catalog:{state:'READY',datasets:[remote]},download:{state:'IDLE'}},catalog={datasets:[],scoring:{readyCases:0,totalCases:0,labelIds:[]}},ui={selection:new Map(),datasetQuery:'',datasetFilter:'all'};
- let html=renderDatasets({catalog,ui,library});assert.match(html,/待下载/);assert.match(html,/下载题库/);assert.doesNotMatch(html,/data-dataset-detail=/);assert.doesNotMatch(html,/<img/);
- library.download={state:'DOWNLOADING',datasetId:remote.id,completedFiles:2,totalFiles:5};html=renderDatasets({catalog,ui,library});assert.match(html,/2 \/ 5 个文件/);assert.match(html,/取消下载/);assert.doesNotMatch(html,/data-dataset-detail=/);
- library.download={state:'FAILED',datasetId:remote.id,error:'<script>failed</script>'};html=renderDatasets({catalog,ui,library});assert.match(html,/重新下载/);assert.doesNotMatch(html,/<script>/);
- catalog.datasets=[{id:remote.id,name:'Local fixture',labelIds:[],cases:[{index:0,title:'Local task',scoringState:'UNAVAILABLE'}]}];
- html=renderDatasets({catalog,ui,library});assert.match(html,/选择题目/);assert.match(html,/本地 1 题/);assert.match(html,/0 题评分参考已就绪/);assert.doesNotMatch(html,/data-library-download=/);
- ui.datasetFilter='download';assert.doesNotMatch(renderDatasets({catalog,ui,library}),/class="dataset-card"/);
-});
-
-test('download cards show byte percentages and keep installation visibly in progress after the download finishes',()=>{
- const remote={id:'dataset.progress/v1',name:'Synthetic progress set',caseCount:1,downloadableCases:1,labelIds:[],downloadBytes:1024};
- const catalog={datasets:[]},ui={selection:new Map(),datasetQuery:'',datasetFilter:'all'};
- const library={catalog:{state:'READY',datasets:[remote]},download:{datasetId:remote.id,state:'DOWNLOADING',phase:'DOWNLOADING',completedFiles:0,totalFiles:1,downloadedBytes:256,totalBytes:1024}};
- let html=renderDatasets({catalog,ui,library});
- assert.match(html,/25%/);assert.match(html,/<progress[^>]*max="100"[^>]*value="25"/);assert.match(html,/256 B \/ 1\.0 KB/);
- library.download={...library.download,state:'INSTALLING',phase:'COPYING',completedFiles:1,downloadedBytes:1024,installation:{completed:12}};
- html=renderDatasets({catalog,ui,library});
- assert.match(html,/下载完成/);assert.match(html,/已复制 12 个文件/);assert.match(html,/<progress[^>]*aria-label="题库安装进度"/);
- assert.doesNotMatch(html,/<progress[^>]*value=/);assert.doesNotMatch(html,/100%/);
- library.download={...library.download,phase:'VALIDATING',installation:{completed:7,total:20}};
- html=renderDatasets({catalog,ui,library});
- assert.match(html,/正在校验题目/);assert.match(html,/7 \/ 20 题/);assert.match(html,/35%/);
- assert.match(html,/<progress[^>]*max="100"[^>]*value="35"/);
-});
-
-test('legacy local subsets keep their names, labels and selectable IDs without duplicate directory cards',()=>{
- const local={id:'dataset.harbor-synthetic-set/v1',name:'本地测试集',labelIds:['label.tool-code/v1'],cases:[{index:0,title:'已安装任务'}]};
- const remote={id:'dataset.benchdock-hashed/v1',name:'Synthetic-Set',caseCount:2,downloadableCases:1,sourceOnlyCases:1,labelIds:['label.artifact-delivery/v1']};
- const catalog={datasets:[local]},library={catalog:{state:'READY',datasets:[remote]}};
- const directory=datasetDirectory(catalog,library);assert.equal(directory.length,1);assert.equal(directory[0].id,local.id);assert.equal(directory[0].name,local.name);assert.deepEqual(directory[0].labelIds,local.labelIds);
- const html=renderDatasets({catalog,library,ui:{datasetQuery:'',selection:new Map()}});
- assert.match(html,/部分在本地/);assert.match(html,/data-dataset-detail="dataset.harbor-synthetic-set\/v1"/);assert.doesNotMatch(html,/data-library-download=/);
 });
 
 test('catalog download routes reject arbitrary locations and missing CSRF, then expose only installed selections',async t=>{

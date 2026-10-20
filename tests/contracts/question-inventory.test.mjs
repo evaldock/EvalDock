@@ -49,7 +49,7 @@ test('inventory refresh reflects changed, added and removed local questions with
  assert.equal((await fetch(origin+'/question-inventory/cases/'+old.datasets[0].cases[0].file)).status,404);
  const detail=await(await fetch(origin+'/question-inventory/cases/'+next.datasets[0].cases[0].file)).json();assert.equal(detail.question.task.instructions,'Synthetic revised task');
  await rm(path.join(extra.dir,'question.json'));assert.equal((await(await fetch(url)).json()).datasets[0].cases.length,1);
- await cp('desktop/empty-library/catalog.md',path.join(root,'datasets/catalog.md'));
+ await cp('tests/fixtures/empty-library/catalog.md',path.join(root,'datasets/catalog.md'));
  assert.deepEqual((await(await fetch(url)).json()).datasets,[]);assert.deepEqual((await(await fetch(origin+'/api/control/evaluation-catalog')).json()).datasets,[]);
  assert.equal((await fetch(origin+'/question-inventory/cases/'+next.datasets[0].cases[0].file)).status,404);
 });

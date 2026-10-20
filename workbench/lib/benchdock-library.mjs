@@ -4,7 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify,isDeepStrictEqual} from 'node:util';
 import {ProxyAgent} from 'undici';
-import {importLibrary,libraryFingerprint} from '../../desktop/workspace.mjs';
+import {importLibrary,libraryFingerprint} from './library-workspace.mjs';
 import {BenchDockCatalog} from './benchdock-catalog.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

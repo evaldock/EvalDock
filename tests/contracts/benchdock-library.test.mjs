@@ -5,8 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {BenchDockLibrary} from '../../workbench/lib/benchdock-library.mjs';
-import {isBundledLibrary} from '../../desktop/workspace.mjs';
-import {renderLibrary} from '../../workbench/design-prototypes/product-pages.js';
+import {isBundledLibrary} from '../../workbench/lib/library-workspace.mjs';
 import {startControlServer} from '../../workbench/control-server.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function fixture(t){
@@ -83,11 +82,6 @@ test('default detection preserves custom imports and local changes',async t=>{
  await rm(path.join(f.root,'datasets/evaldock-import.json'));await writeFile(path.join(f.root,'datasets/basic-file-delivery/case-001/input/numbers.json'),'{}');
  assert.equal(await isBundledLibrary(process.cwd(),f.root),false);
  const custom=await f.service({automatic:false});custom.start();assert.equal(custom.status().state,'LOCAL');assert.equal(f.requests.length,0);
-});
-test('download UI escapes errors, distinguishes preparation from readiness and states scoring limits',()=>{
- const failed=renderLibrary({automatic:true,state:'FAILED',error:'<script>bad</script>'});assert.ok(!failed.includes('<script>'));assert.match(failed,/重试准备题库/);
- const preparing=renderLibrary({automatic:true,state:'DOWNLOADING',completedFiles:2,totalFiles:8});assert.match(preparing,/2 \/ 8/);assert.match(preparing,/取消下载/);assert.ok(!preparing.includes('已就绪'));
- const ready=renderLibrary({automatic:true,state:'READY',cases:3});assert.match(ready,/3 道/);assert.match(ready,/无法评分/);
 });
 test('library routes enforce CSRF and automatic runs wait for verified installation',async t=>{
  const f=await fixture(t);let calls=0,state='DOWNLOADING';

@@ -1,7 +1,7 @@
 import {readFile,writeFile,mkdir,rm,lstat,cp,rename} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
-import {importLibrary,libraryFingerprint} from '../../desktop/workspace.mjs';
+import {importLibrary,libraryFingerprint} from './library-workspace.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const records=bytes=>bytes.toString('utf8').split('\n').filter(line=>line.trim()).map(line=>JSON.parse(line));

@@ -60,6 +60,8 @@ EvalDock 用来测试不同 Agent，以及同一 Agent 在不同插件配置下�
 
 ## 工作台
 
+桌面客户端开发和打包已迁移至 [EvalDock-APP](https://github.com/evaldock/EvalDock-APP)。本仓库维护评测核心、适配器和高级工作台，参见[运行接口](docs/CLIENT_RUNTIME.md)。
+
 安装后可在工作台选择 Agent 与插件、配置模型并查看本次运行结果，详见[安装指南](docs/NATIVE_SETUP.md)。
 
 ## 评测流程

@@ -15,7 +15,7 @@ environment readiness, execution completion or scoring-reference availability.
 | Count | Meaning and evidence |
 | --- | --- |
 | Bundled tasks | Task files in this checkout's default `datasets/`: one synthetic demo. The copy under `examples/` and test fixtures are not additional default tasks. |
-| Desktop bundled tasks | Zero. The Mac App initializes an empty catalog from `desktop/empty-library/`; users download or import tasks separately. Upgrades retain existing libraries. |
+| Desktop bundled tasks | Zero. The Mac App initializes an empty catalog from `desktop/empty-library/` in [EvalDock-APP](https://github.com/evaldock/EvalDock-APP); users download or import tasks separately. Upgrades retain existing libraries. |
 | Loaded tasks | Tasks successfully loaded from the selected catalog and root on a particular machine. Shared adapters use `EVALDOCK_DATASETS_ROOT`, defaulting to `datasets/`; the DSH CLI also supports an explicit `--datasets` path. Record the root and version or import receipt. Other machines' loaded counts have not been established here. |
 | Selected and executed tasks | The selected plan and actual run evidence for a particular evaluation. Selection does not establish that execution started, completed or was scored. |
 

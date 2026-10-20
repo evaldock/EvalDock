@@ -7,13 +7,13 @@ import {createHash} from 'node:crypto';
 import {BenchDockLibrary} from '../../workbench/lib/benchdock-library.mjs';
 import {OnlineSelection} from '../../workbench/lib/online-selection.mjs';
 import {evaluationCatalog} from '../../workbench/lib/evaluation-config.mjs';
-import {libraryFingerprint} from '../../desktop/workspace.mjs';
+import {libraryFingerprint} from '../../workbench/lib/library-workspace.mjs';
 import {loadDatasetCase} from '../../dist/src/datasets/loader.js';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function fixture(t,{empty=false}={}){
   const root=await mkdtemp(path.join(os.tmpdir(),'evaldock-online-'));t.after(()=>rm(root,{recursive:true,force:true}));
-  await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'desktop/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
+  await cp('dist',path.join(root,'dist'),{recursive:true});await cp(empty?'tests/fixtures/empty-library':'datasets',path.join(root,'datasets'),{recursive:true});await mkdir(path.join(root,'config'));await writeFile(path.join(root,'package.json'),'{"type":"module"}');
   const rows=Array.from({length:10},(_,i)=>({schema:'benchdock.catalog/v1',task_id:'synthetic-'+i,subset:'Synthetic large set',title:'Synthetic task '+i,prompt:'Copy input/data.txt to output/answer.txt.',distribution:'bundled',environment_status:'inputs_bundled_python_required',inputs:[{path:'datasets/fixture-'+i+'/data.txt',destination:'input/data.txt',bytes:1,sha256:sha(Buffer.from('x'))}],license_files:[]}));
   rows.push({schema:'benchdock.catalog/v1',task_id:'source-only',subset:'Synthetic source set',distribution:'source_reference'});
   const files=new Map(rows.slice(0,10).map((row,i)=>['datasets/fixture-'+i+'/data.txt',Buffer.from('x')]));

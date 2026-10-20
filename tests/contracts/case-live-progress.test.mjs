@@ -9,7 +9,6 @@ import {Jobs} from '../../workbench/lib/jobs.mjs';
 import {temporary,json} from './support.mjs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
-import {renderRun} from '../../workbench/design-prototypes/product-pages.js';
 test('case stages survive bounded log replay and out-of-order concurrent completion',()=>{
  const job={state:'RUNNING',events:[]};let tick=0;
  const emit=(ordinal,phase,extra={})=>{const e={ordinal,total:4,caseId:'case-'+ordinal,datasetId:'dataset.test/v1',phase,at:new Date(1700000000000+tick++).toISOString(),...extra};const text='[evaldock:case] '+JSON.stringify(e);recordCaseProgress(job,text);job.events.push({kind:'stderr',text,time:e.at});};
@@ -29,7 +28,7 @@ test('saved Case results restore historical progress for every controller withou
  for(const controller of [processAgent,officeAgent,dsh]){
   const records=await controller.records(),progress=records.jobs[0].progress;
   assert.equal(progress.ended,3,controller.constructor.name);assert.equal(progress.normal,3);assert.equal(progress.total,3);assert.equal(progress.percent,100);
-  assert.match(renderRun(records.jobs[0],records.runs[0]),/3 \/ 3 题已结束/);
+
  }
  assert.deepEqual(job,before);assert.deepEqual(await readFile(file),original);
 });
@@ -40,7 +39,7 @@ test('historical progress counts saved outcomes without assuming a terminal Job 
  const controller=Object.assign(new AgentControl({root,kind:'langgraph'}),{jobs,results:new ControlResults(root),targets:[]});
  const {jobs:records,runs}=await controller.records(),progress=records[0].progress;
  assert.equal(progress.total,5);assert.equal(progress.ended,3);assert.equal(progress.normal,1);assert.equal(progress.failed,1);assert.equal(progress.cancelled,1);assert.equal(progress.remaining,2);assert.equal(progress.percent,60);
- assert.match(renderRun(records[0],runs[0]),/3 \/ 5 题已结束/);
+
 });
 test('saved partial results preserve the live Case phase when progress logs are truncated',async t=>{
  const root=await temporary(t),targetId='synthetic-active',runId='synthetic-live';

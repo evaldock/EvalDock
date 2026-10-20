@@ -13,8 +13,7 @@ import {runEvaluation} from '../../adapters/shared/evaluation.mjs';
 import {evaluationCatalog} from '../../workbench/lib/evaluation-config.mjs';
 import {ControlResults} from '../../workbench/lib/control-results.mjs';
 import {startControlServer} from '../../workbench/control-server.mjs';
-import {importLibrary} from '../../desktop/workspace.mjs';
-import {renderDatasets} from '../../workbench/design-prototypes/product-pages.js';
+import {importLibrary} from '../../workbench/lib/library-workspace.mjs';
 
 const secret='SYNTHETIC_PRIVATE_ASSESSMENT_SENTINEL';
 async function assertPublicWorkspace(directory){
@@ -50,7 +49,6 @@ test('catalog reports reference readiness, invalidation and public-only state wi
   const {root,dir,q}=await library(t);
   let catalog=await evaluationCatalog(root);assert.equal(catalog.scoring.readyCases,1);assert.deepEqual(catalog.scoring.labelIds,['label.contract/v1']);
   assert.ok(!JSON.stringify(catalog).includes(secret));
-  const html=renderDatasets({catalog,ui:{datasetId:null,datasetQuery:'',selection:new Map()}});assert.match(html,/1 \/ 1/);assert.match(html,/可评分题目覆盖/);
   await writeFile(path.join(dir,'private/final.json'),'broken');catalog=await evaluationCatalog(root);assert.equal(catalog.scoring.readyCases,0);assert.equal(catalog.datasets[0].cases[0].scoringState,'INVALID');
   q.grading={mode:'unavailable',reason:'PRIVATE_EVALUATOR_NOT_DISTRIBUTED'};await json(path.join(dir,'question.json'),q);
   catalog=await evaluationCatalog(root);assert.equal(catalog.datasets[0].cases[0].scoringState,'UNAVAILABLE');assert.deepEqual(catalog.scoring.labelIds,[]);

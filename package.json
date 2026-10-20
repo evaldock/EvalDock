@@ -21,75 +21,16 @@
     "verify": "node scripts/check-publication-boundary.mjs && pnpm run test:benchdock-import && pnpm run check && pnpm test",
     "workbench": "node workbench/control-server.mjs",
     "test:benchdock-import": "python3 -m unittest discover -s tests -p test_benchdock_import.py",
-    "desktop:icon": "swift scripts/build-desktop-icon.swift",
-    "desktop:prepare": "pnpm run build && node scripts/stage-desktop.mjs",
-    "desktop": "pnpm run desktop:prepare && electron .",
-    "desktop:pack": "pnpm run desktop:prepare && electron-builder --mac --dir",
-    "desktop:dmg": "pnpm run desktop:prepare && electron-builder --mac dmg",
-    "desktop:release": "node scripts/build-desktop-release.mjs"
+    "runtime:export": "node scripts/export-runtime.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
     "@deepseek-ai/schemastery": "3.18.1",
     "@types/node": "22.18.0",
-    "electron": "^44.7.0",
-    "electron-builder": "^26.15.3",
     "typescript": "5.9.3"
   },
-  "main": "desktop/main.mjs",
-  "build": {
-    "appId": "ai.evaldock.desktop",
-    "productName": "EvalDock",
-    "directories": {
-      "output": "artifacts/mac"
-    },
-    "files": [
-      "desktop/main.mjs",
-      "desktop/preload.cjs",
-      "desktop/workspace.mjs",
-      "package.json",
-      "desktop/assets/icon.png",
-      "desktop/library-archive.mjs",
-      "desktop/updates.mjs"
-    ],
-    "extraResources": [
-      {
-        "from": "artifacts/desktop-runtime",
-        "to": "runtime"
-      },
-      {
-        "from": "artifacts/desktop-runtime/node_modules",
-        "to": "runtime/node_modules",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "identity": "-",
-      "icon": "desktop/assets/icon.icns"
-    },
-    "afterPack": "scripts/verify-desktop-package.cjs",
-    "dmg": {
-      "icon": "desktop/assets/icon.icns"
-    },
-    "afterSign": "scripts/verify-desktop-signature.cjs",
-    "publish": {
-      "provider": "github",
-      "owner": "evaldock",
-      "repo": "EvalDock",
-      "releaseType": "release"
-    }
-  },
-  "description": "Local desktop evaluation for agents and plugins",
+  "description": "Agent evaluation core, adapters and local workbench",
   "dependencies": {
-    "electron-updater": "6.8.9",
-    "undici": "7.30.0",
-    "yauzl": "3.4.0"
+    "undici": "7.30.0"
   }
 }

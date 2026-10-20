@@ -59,6 +59,8 @@ The workbench lets you select agents and plugins, configure Planner and Judge AP
 
 ## Workbench
 
+Desktop client development and packaging have moved to [EvalDock-APP](https://github.com/evaldock/EvalDock-APP). This repository owns the evaluation core, adapters and advanced workbench. [Runtime interface](docs/CLIENT_RUNTIME.md).
+
 Use the workbench to configure agents, plugins and models and inspect your own runs. See the [setup guide](docs/NATIVE_SETUP.md).
 
 ## Evaluation workflow
