@@ -35,7 +35,7 @@
 
 - 修改源码后运行受影响的契约测试；直接运行 `tests/contracts/*.test.mjs` 前，确认 `pnpm run build` 已生成当前源码对应的产物。
 - 代码变更完成后执行与 CI 一致的检查：`pnpm run verify` 和 `node --test workbench/lib/model-settings.test.mjs`。
-- 核心运行接口变更还需在 EvalDock-APP 更新锁定提交并完成 `pnpm run verify`、桌面启动及适用的打包检查。
+- 需要同步影响 App 的核心运行接口变更，还需移植到 EvalDock-APP 的本地 `engine/` 并完成 `pnpm run verify`、桌面启动及适用的打包检查。
 - 适配器变更还需在已配置的真实 Agent 环境验证执行、采集、评分与报告。环境缺失时明确说明未验证环节，离线测试通过不能作为真实运行验收。
 - 仅文档变更检查链接、命令与 `git diff --check`；涉及公开内容时运行发布边界检查。
 - 交付时说明行为变化、已完成的验证及剩余限制；用户可见行为改变时同步相应文档。
